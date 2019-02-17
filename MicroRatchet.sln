@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroRatchet", "MicroRatchet\MicroRatchet.csproj", "{AF07AD05-6AD5-4DFB-8789-171B51559F0C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {110AE236-E5CF-49FF-81A2-9BEE5E109CC7}
+	EndGlobalSection
+EndGlobal
