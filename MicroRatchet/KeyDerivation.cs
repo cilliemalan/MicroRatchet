@@ -7,58 +7,33 @@ using System.Text;
 
 namespace MicroRatchet
 {
-    internal class KeyDerivation : IDisposable, IKeyDerivation
+    internal class KeyDerivation : IKeyDerivation
     {
-        private HMac _hmac;
-        private int _hashLen;
-        private byte[] _info;
-
-        public KeyDerivation(byte[] key, byte[] info)
-            : this()
+        public byte[] GenerateBytes(byte[] key, byte[] info, int howManyBytes)
         {
-            Reset(key, info);
-        }
+            HMac _hmac = new HMac(new Sha256Digest());
+            int _hashLen = _hmac.GetMacSize();
+            _hmac.Init(new KeyParameter(key));
 
-        public KeyDerivation()
-        {
-            _hmac = new HMac(new Sha256Digest());
-            _hashLen = _hmac.GetMacSize();
-        }
-
-        private void Reset(byte[] newKey, byte[] newInfo)
-        {
-            if (_hmac == null) throw new ObjectDisposedException(nameof(KeyDerivation));
-            
-            if (_info != null) Array.Clear(_info, 0, _info.Length);
-            _info = new byte[newInfo.Length];
-            Array.Copy(newInfo, _info, _info.Length);
-            
-            _hmac.Init(new KeyParameter(newKey));
-        }
-
-        public byte[] GenerateBytes(int howmany)
-        {
-            if (_hmac == null) throw new ObjectDisposedException(nameof(KeyDerivation));
-
-            byte[] output = new byte[howmany];
+            byte[] output = new byte[howManyBytes];
             byte[] bytes = null;
-            
+
             int offset = 0;
             int i = 0;
 
             void ExpandNext()
             {
-                if (bytes != null) _hmac.BlockUpdate(bytes, 0, _hashLen);
-                else bytes = new byte[_hashLen];
-                if (_info != null) _hmac.BlockUpdate(_info, 0, _info.Length);
-                _hmac.Update((byte)(i + 1));
-                _hmac.DoFinal(bytes, 0);
             }
 
-            while (offset < howmany)
+            while (offset < howManyBytes)
             {
-                ExpandNext();
-                int left = howmany - offset;
+                if (bytes != null) _hmac.BlockUpdate(bytes, 0, _hashLen);
+                else bytes = new byte[_hashLen];
+                if (info != null) _hmac.BlockUpdate(info, 0, info.Length);
+                _hmac.Update((byte)(i + 1));
+                _hmac.DoFinal(bytes, 0);
+
+                int left = howManyBytes - offset;
                 if (left > _hashLen) left = _hashLen;
                 Array.Copy(bytes, 0, output, offset, left);
                 offset += left;
@@ -66,12 +41,6 @@ namespace MicroRatchet
             }
 
             return output;
-        }
-
-        public void Dispose()
-        {
-            _hmac?.Init(new KeyParameter(new byte[32]));
-            _hmac = null;
         }
     }
 }
