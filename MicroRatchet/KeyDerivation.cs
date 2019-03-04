@@ -20,11 +20,7 @@ namespace MicroRatchet
 
             int offset = 0;
             int i = 0;
-
-            void ExpandNext()
-            {
-            }
-
+            
             while (offset < howManyBytes)
             {
                 if (bytes != null) _hmac.BlockUpdate(bytes, 0, _hashLen);

@@ -3,7 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.421
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicroRatchet", "MicroRatchet\MicroRatchet.csproj", "{AF07AD05-6AD5-4DFB-8789-171B51559F0C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroRatchet", "MicroRatchet\MicroRatchet.csproj", "{AF07AD05-6AD5-4DFB-8789-171B51559F0C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroRatchet.Tests", "MicroRatchet.Tests\MicroRatchet.Tests.csproj", "{EF4462BC-0E43-47EA-9ADA-B01A60B101F8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroRatchet.Performance", "MicroRatchet.Performance\MicroRatchet.Performance.csproj", "{A9AE970B-F1B0-4CBC-92CB-188E96F38CFE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BC963FFA-F74D-4F22-9C53-D95BB8F17796}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE = LICENSE
+		Readme.md = Readme.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,11 +25,25 @@ Global
 		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF07AD05-6AD5-4DFB-8789-171B51559F0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF4462BC-0E43-47EA-9ADA-B01A60B101F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF4462BC-0E43-47EA-9ADA-B01A60B101F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF4462BC-0E43-47EA-9ADA-B01A60B101F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF4462BC-0E43-47EA-9ADA-B01A60B101F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9AE970B-F1B0-4CBC-92CB-188E96F38CFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9AE970B-F1B0-4CBC-92CB-188E96F38CFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9AE970B-F1B0-4CBC-92CB-188E96F38CFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9AE970B-F1B0-4CBC-92CB-188E96F38CFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {110AE236-E5CF-49FF-81A2-9BEE5E109CC7}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
