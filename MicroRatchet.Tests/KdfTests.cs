@@ -20,7 +20,7 @@ namespace MicroRatchet.Tests
             byte[] key = new byte[32];
             byte[] info = new byte[32];
 
-            var derived = new KeyDerivation().GenerateBytes(key, info, 32);
+            var derived = new KeyDerivation(new Digest()).GenerateBytes(key, info, 32);
 
             var bcKdf = new HkdfBytesGenerator(new Sha256Digest());
             HkdfParameters hkdfparms = HkdfParameters.SkipExtractParameters(key, info);
@@ -44,7 +44,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new KeyDerivation().GenerateBytes(key, info, 32);
+            var derived = new KeyDerivation(new Digest()).GenerateBytes(key, info, 32);
 
             var bcKdf = new HkdfBytesGenerator(new Sha256Digest());
             HkdfParameters hkdfparms = HkdfParameters.SkipExtractParameters(key, info);
@@ -69,7 +69,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new KeyDerivation().GenerateBytes(key, info, outputLength);
+            var derived = new KeyDerivation(new Digest()).GenerateBytes(key, info, outputLength);
 
             var bcKdf = new HkdfBytesGenerator(new Sha256Digest());
             HkdfParameters hkdfparms = HkdfParameters.SkipExtractParameters(key, info);
@@ -94,7 +94,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new KeyDerivation().GenerateBytes(key, info, 32);
+            var derived = new KeyDerivation(new Digest()).GenerateBytes(key, info, 32);
 
             var bcKdf = new HkdfBytesGenerator(new Sha256Digest());
             HkdfParameters hkdfparms = HkdfParameters.SkipExtractParameters(key, info);

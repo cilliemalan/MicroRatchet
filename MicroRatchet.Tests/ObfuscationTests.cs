@@ -25,7 +25,7 @@ namespace MicroRatchet.Tests
         [InlineData(-4524232)]
         public static void ObfuscateBasicTest(int n)
         {
-            var kd = new KeyDerivation();
+            var kd = new KeyDerivation(new Digest());
             var rng = new RandomNumberGenerator();
             byte[] nonce = BigEndianBitConverter.GetBytes(n);
             byte[] key = rng.Generate(32);

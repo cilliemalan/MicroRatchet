@@ -9,11 +9,18 @@ namespace MicroRatchet
 {
     internal class KeyDerivation : IKeyDerivation
     {
+        private IDigest _digest;
+        
+        public KeyDerivation(IDigest digest)
+        {
+            _digest = digest;
+        }
+
         public byte[] GenerateBytes(byte[] key, byte[] info, int howManyBytes)
         {
-            HMac _hmac = new HMac(new Sha256Digest());
-            int _hashLen = _hmac.GetMacSize();
-            _hmac.Init(new KeyParameter(key));
+            var _hmac = new HMac(_digest);
+            int _hashLen = _digest.DigestSize / 8;
+            _hmac.Init(key);
 
             byte[] output = new byte[howManyBytes];
             byte[] bytes = null;
@@ -23,11 +30,10 @@ namespace MicroRatchet
             
             while (offset < howManyBytes)
             {
-                if (bytes != null) _hmac.BlockUpdate(bytes, 0, _hashLen);
-                else bytes = new byte[_hashLen];
-                if (info != null) _hmac.BlockUpdate(info, 0, info.Length);
-                _hmac.Update((byte)(i + 1));
-                _hmac.DoFinal(bytes, 0);
+                if (bytes != null) _hmac.Process(bytes);
+                if (info != null) _hmac.Process(info);
+                _hmac.Process(new[] { (byte)(i + 1) });
+                bytes = _hmac.Compute();
 
                 int left = howManyBytes - offset;
                 if (left > _hashLen) left = _hashLen;

@@ -13,6 +13,5 @@ namespace MicroRatchet
         IKeyAgreementFactory KeyAgreementFactory { get; }
         ICipherFactory CipherFactory { get; }
         IVerifierFactory VerifierFactory { get; }
-        IKeyDerivation KeyDerivation { get; }
     }
 }

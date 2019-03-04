@@ -19,7 +19,7 @@ namespace MicroRatchet
         ISecureStorage SecureStorage => _services.SecureStorage;
         IKeyAgreementFactory KeyAgreementFactory => _services.KeyAgreementFactory;
         ICipherFactory CipherFactory => _services.CipherFactory;
-        IKeyDerivation KeyDerivation => _services.KeyDerivation;
+        IKeyDerivation KeyDerivation;
 
         public IServices Services => _services;
         public int Mtu => _Mtu;
@@ -30,6 +30,8 @@ namespace MicroRatchet
             _services = services ?? throw new ArgumentException(nameof(services));
             _isClient = isClient;
             _Mtu = Mtu;
+
+            KeyDerivation = new KeyDerivation(_services.Digest);
         }
 
         private byte[] SendInitializationRequest(State _state)

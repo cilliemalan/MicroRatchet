@@ -43,20 +43,27 @@ namespace MicroRatchet
                     byte[] key = null;
                     while (gen < toStep)
                     {
+                        Debug.WriteLine($"      RTC  #:      {gen + 1}");
+                        Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+
                         var nextKeys = kdf.GenerateKeys(chain, null, 2);
                         gen++;
                         chain = nextKeys[0];
                         key = nextKeys[1];
+
+                        Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+                        Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
                     }
 
                     // store the key as the latest key we've generated
                     ChainKeys.Add((gen, chain));
 
+
                     return (key, gen);
                 }
             }
 
-            public void Initialize(byte[] headerKey,byte[] chainKey, byte[] nextHeaderKey)
+            public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
             {
                 Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
                 Debug.WriteLine($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
@@ -68,7 +75,7 @@ namespace MicroRatchet
                 {
                     (0, chainKey)
                 };
-                
+
             }
         }
 

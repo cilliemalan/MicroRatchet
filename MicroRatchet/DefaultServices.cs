@@ -24,7 +24,6 @@ namespace MicroRatchet
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
         public ICipherFactory CipherFactory { get; set; }
         public IVerifierFactory VerifierFactory { get; set; }
-        public IKeyDerivation KeyDerivation { get; set; } = new KeyDerivation();
 
         private class DefaultFactories : IKeyAgreementFactory, ICipherFactory, IVerifierFactory
         {

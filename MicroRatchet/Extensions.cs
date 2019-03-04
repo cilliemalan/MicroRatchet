@@ -7,6 +7,18 @@ namespace MicroRatchet
 {
     internal static class Extensions
     {
+        public static byte[] ComputeDigest(this IDigest digest, ArraySegment<byte> data)
+        {
+            digest.Process(data);
+            return digest.Compute();
+        }
+
+        public static void Process(this HMac hmac, byte[] data) =>
+            hmac.Process(new ArraySegment<byte>(data));
+
+        public static byte[] ComputeDigest(this IDigest digest, byte[] data) =>
+            digest.ComputeDigest(new ArraySegment<byte>(data));
+
         public static byte[] Decrypt(this ICipher cipher, byte[] data) =>
             cipher.Decrypt(new ArraySegment<byte>(data));
 
@@ -70,9 +82,6 @@ namespace MicroRatchet
             for (int i = 0; i < bytes.Count; i++) if (bytes.Array[bytes.Offset + i] != other.Array[other.Offset + i]) return false;
             return true;
         }
-
-        public static byte[] ComputeDigest(this IDigest digest, byte[] data) =>
-            digest.ComputeDigest(new ArraySegment<byte>(data));
 
         public static void Generate(this IRandomNumberGenerator rng, byte[] data) =>
             rng.Generate(new ArraySegment<byte>(data));

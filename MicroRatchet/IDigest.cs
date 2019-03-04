@@ -5,6 +5,8 @@ namespace MicroRatchet
     public interface IDigest
     {
         int DigestSize { get; }
-        byte[] ComputeDigest(ArraySegment<byte> data);
+        void Reset();
+        void Process(ArraySegment<byte> data);
+        byte[] Compute();
     }
 }
