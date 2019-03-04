@@ -9,7 +9,7 @@ namespace MicroRatchet
     internal class EcdhRatchet
     {
         // the number of past ratchets to retain
-        public const int RetainCount = 5;
+        public const int RetainCount = 7;
 
         private List<EcdhRatchetStep> _steps = new List<EcdhRatchetStep>();
 
