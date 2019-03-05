@@ -1,8 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)int\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <!--<DocumentationFile>$(OutDir)MicroRatchet.xml</DocumentationFile>-->
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,11 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-
     <IsPackable>false</IsPackable>
-
     <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)int\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
 
   <ItemGroup>
