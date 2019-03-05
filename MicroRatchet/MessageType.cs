@@ -8,7 +8,7 @@ namespace MicroRatchet
     {
         Normal = 0,
         NormalWithEcdh = 1,
-        InitializationRequest = 3,
-        InitializationResponse = 7,
+        InitializationRequest = 2,
+        InitializationResponse = 3,
     }
 }
