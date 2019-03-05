@@ -17,6 +17,7 @@ namespace MicroRatchet
         ICipherFactory CipherFactory => Services.CipherFactory;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
+        IMac Mac => Services.Mac;
 
         public IServices Services { get; }
         public int Mtu { get; }
@@ -104,7 +105,7 @@ namespace MicroRatchet
             if (state == null || state.RemotePublicKey == null) throw new InvalidOperationException("Could not send initialization response because the state has not been initialized.");
             if (state.RemoteEcdhForInit == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral key has been deleted. Perhaps the initialization response has already been sent.");
             if (state.InitializationNonce == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral nonce has been deleted. Perhaps the initialization response has already been sent.");
-            
+
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(32);
             serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
@@ -254,47 +255,69 @@ namespace MicroRatchet
         {
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
-            // decrypt the outer payload with the AEAD cipher
-            var cipher = CipherFactory.GetAeadCipher(state.FirstReceiveHeaderKey, 96);
-            byte[] obfuscatedNonce = new byte[4];
-            Array.Copy(payload, obfuscatedNonce, 4);
-            byte[] encryptedPayload = new byte[payload.Length - 4];
-            Array.Copy(payload, 4, encryptedPayload, 0, payload.Length - 4);
-            var decryptedPayload = cipher.Decrypt(obfuscatedNonce, encryptedPayload);
-            if (decryptedPayload == null) throw new InvalidOperationException("Could not decrypt the message");
+            var messageType = GetMessageType(payload[0]);
+            if (messageType != MessageType.NormalWithEcdh)
+            {
+                throw new InvalidOperationException("The payload was invalid");
+            }
 
-            // get the unobfuscated nonce
-            byte[] nonce = KeyDerivation.UnObfuscate(obfuscatedNonce, state.FirstReceiveHeaderKey, decryptedPayload);
+            // extract the nonce
+            byte[] nonce = new byte[4];
+            Array.Copy(payload, nonce, nonce.Length);
 
-            // get the new ecdh public from the decrypted payload
+            // use the header key we already agreed on
+            byte[] headerKey = state.FirstReceiveHeaderKey;
+
+            // double check the mac
+            Mac.Init(headerKey, nonce, 96);
+            Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - nonce.Length - 12));
+            byte[] mac = Mac.Compute();
+            if (!mac.Matches(new ArraySegment<byte>(payload, payload.Length - 12, 12)))
+            {
+                throw new InvalidOperationException("The first received message authentication code did not match");
+            }
+
+            // get the encrypted payload
+            byte[] encryptedPayload;
+            int headerSize = messageType == MessageType.NormalWithEcdh ? 36 : 4;
+            encryptedPayload = new byte[payload.Length - headerSize - 12];
+            Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
+
+            // decrypt the header
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
+            var decryptedHeader = headerCipher.Decrypt(payload, 0, headerSize);
+            decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
+
+            // the message contains ecdh parameters
             var clientEcdhPublic = new byte[32];
-            Array.Copy(decryptedPayload, clientEcdhPublic, 32);
+            Array.Copy(decryptedHeader, 4, clientEcdhPublic, 0, 32);
 
             // initialize the ecdh ratchet
-            var step = EcdhRatchetStep.InitializeServer(KeyDerivation,
+            var ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
                 KeyAgreementFactory.Deserialize(state.LocalEcdhRatchetStep0),
                 state.RootKey, clientEcdhPublic,
                 KeyAgreementFactory.Deserialize(state.LocalEcdhRatchetStep1),
                 state.FirstReceiveHeaderKey,
                 state.FirstSendHeaderKey);
-            state.Ratchets.Add(step);
+            state.Ratchets.Add(ratchetUsed);
 
             // get the inner payload key from the server receive chain
-            var (key, nr) = step.ReceivingChain.RetrieveAndTrim(KeyDerivation, 1);
-            byte[] innerPayload = new byte[decryptedPayload.Length - 32];
-            Array.Copy(decryptedPayload, 32, innerPayload, 0, innerPayload.Length);
+            var (key, nr) = ratchetUsed.ReceivingChain.RetrieveAndTrim(KeyDerivation, 1);
 
-            var innerCipher = CipherFactory.GetCipher(key, nonce);
-            var decryptedInnerPayload = innerCipher.Decrypt(innerPayload);
+            // decrypt the inner payload
+            var nonceBytes = new byte[4];
+            Array.Copy(decryptedHeader, nonceBytes, 4);
+            var innerCipher = CipherFactory.GetCipher(key, nonceBytes);
+            var decryptedInnerPayload = innerCipher.Decrypt(encryptedPayload);
 
+            // check the inner payload
             var innerNonce = new byte[32];
             Array.Copy(decryptedInnerPayload, innerNonce, 32);
-
             if (!innerNonce.Matches(state.NextInitializationNonce))
             {
                 throw new InvalidOperationException("The inner encrypted nonce did not match the initialization nonce.");
             }
-
             SaveState(state);
         }
 
@@ -325,8 +348,8 @@ namespace MicroRatchet
         private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step)
         {
             // message format:
-            // #nonce (4)#, [<payload, padding>]mac(12)
-            // #nonce (4)#, [ecdh (32), <payload, padding>]mac(12)
+            // <nonce (4)>, <payload, padding>, mac(12)
+            // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
 
             var state = _state;
 
@@ -335,83 +358,93 @@ namespace MicroRatchet
             var (payloadKey, messageNumber) = step.SendingChain.RatchetAndTrim(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
             var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
-            nonce[0] = SetMessageType(nonce[0], messageType);
 
             // calculate some sizes
-            var overhead = 4 + 12 + (includeEcdh ? 32 : 0);
-            var payloadSize = message.Length;
+            var headerSize = 4 + (includeEcdh ? 32 : 0);
+            var overhead = headerSize + 12;
+            var messageSize = message.Length;
+            var maxMessageSize = Mtu - overhead;
 
             // build the payload: <payload, padding>
             byte[] payload;
-            using (var mspayload = new MemoryStream())
+            if (pad && messageSize < maxMessageSize)
             {
-                using (var bwpayload = new BinaryWriter(mspayload))
-                {
-                    bwpayload.Write(message);
-                    if (pad)
-                    {
-                        int left = Mtu - overhead - payloadSize;
-                        if (left > 0)
-                        {
-                            bwpayload.Write(RandomNumberGenerator.Generate(left));
-                        }
-                    }
-
-                    payload = mspayload.ToArray();
-                }
+                payload = new byte[Mtu - overhead];
+                Array.Copy(message, payload, message.Length);
+            }
+            else if (messageSize > maxMessageSize)
+            {
+                throw new InvalidOperationException("The message doesn't fit inside the MTU");
+            }
+            else
+            {
+                payload = message;
             }
 
             // encrypt the payload
             var cipher = CipherFactory.GetCipher(payloadKey, nonce);
             var encryptedPayload = cipher.Encrypt(payload);
 
-            // build the outer payload: [ecdh, <...>]mac
-            byte[] outerPayload;
-            using (var ms = new MemoryStream())
+            // build the header: <nonce(4), ecdh(32)?>
+            byte[] header = new byte[headerSize];
+            Array.Copy(nonce, header, nonce.Length);
+            if (includeEcdh)
             {
-                using (var bw = new BinaryWriter(ms))
-                {
-                    if (includeEcdh)
-                    {
-                        bw.Write(ratchetPublicKey);
-                    }
-                    bw.Write(encryptedPayload);
-                    outerPayload = ms.ToArray();
-                }
+                Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
             }
 
-            // obfuscate the nonce
-            var obfuscatedNonce = KeyDerivation.Obfuscate(nonce, step.SendingChain.HeaderKey, outerPayload);
+            // encrypt the header
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, 32);
+            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
+            var encryptedHeader = headerCipher.Encrypt(header);
 
-            // encrypt the encrypted payload with the header key
-            var aeadCipher = CipherFactory.GetAeadCipher(step.SendingChain.HeaderKey, 96);
-            var encryptedOuterPayload = aeadCipher.Encrypt(obfuscatedNonce, outerPayload);
+            // set the message type (we can do this because we're using a CTR stream cipher)
+            encryptedHeader[0] = SetMessageType(encryptedHeader[0], messageType);
 
-            // buid the rest of the message: #nonce#, [...]mac
-            using (var ms = new MemoryStream())
+            // mac the message: <header>, <payload>, mac(12)
+            // the mac uses the first 4 encrypted bytes as iv and the rest (incl ecdh if there) as ad.
+            byte[] iv;
+            if (includeEcdh)
             {
-                using (var bw = new BinaryWriter(ms))
-                {
-                    bw.Write(obfuscatedNonce);
-                    bw.Write(encryptedOuterPayload);
-                    var result = ms.ToArray();
-                    if (result.Length > Mtu) throw new InvalidOperationException("Could not create message within MTU");
-                    SaveState(state);
-                    return result;
-                }
+                iv = new byte[4];
+                Array.Copy(encryptedHeader, iv, 4);
+                Mac.Init(step.SendingChain.HeaderKey, iv, 96);
+                Mac.Process(new ArraySegment<byte>(encryptedHeader, 4, encryptedHeader.Length - 4));
             }
+            else
+            {
+                iv = encryptedHeader;
+                Mac.Init(step.SendingChain.HeaderKey, iv, 96);
+            }
+            Mac.Process(new ArraySegment<byte>(encryptedPayload));
+            var mac = Mac.Compute();
+
+            // construct the resulting message
+            byte[] result = new byte[encryptedHeader.Length + encryptedPayload.Length + mac.Length];
+            Array.Copy(encryptedHeader, 0, result, 0, encryptedHeader.Length);
+            Array.Copy(encryptedPayload, 0, result, encryptedHeader.Length, encryptedPayload.Length);
+            Array.Copy(mac, 0, result, encryptedHeader.Length + encryptedPayload.Length, mac.Length);
+            if (result.Length > Mtu) throw new InvalidOperationException("Could not create message within MTU");
+            SaveState(state);
+            return result;
         }
 
         private byte[] DeconstructMessage(State _state, byte[] payload)
         {
             var state = _state;
 
-            // extract the nonce
-            byte[] obfuscatedNonce = new byte[4];
-            Array.Copy(payload, obfuscatedNonce, 4);
+            var messageType = GetMessageType(payload[0]);
+            if (messageType != MessageType.Normal && messageType != MessageType.NormalWithEcdh)
+            {
+                throw new InvalidOperationException("The payload was invalid");
+            }
 
+            // extract the nonce
+            byte[] nonce = new byte[4];
+            Array.Copy(payload, nonce, nonce.Length);
+
+            // find the header key by checking the mac
             byte[] headerKey = null;
-            byte[] decrypted = null;
             EcdhRatchetStep ratchetUsed = null;
             bool usedNextHeaderKey = false;
             int cnt = 0;
@@ -419,9 +452,10 @@ namespace MicroRatchet
             {
                 cnt++;
                 headerKey = ratchet.ReceivingChain.HeaderKey;
-                var cipher1 = CipherFactory.GetAeadCipher(headerKey, 96);
-                decrypted = cipher1.Decrypt(obfuscatedNonce, payload, 4, payload.Length - 4);
-                if (decrypted != null)
+                Mac.Init(headerKey, nonce, 96);
+                Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - nonce.Length - 12));
+                byte[] mac = Mac.Compute();
+                if (mac.Matches(new ArraySegment<byte>(payload, payload.Length - mac.Length, mac.Length)))
                 {
                     ratchetUsed = ratchet;
                     break;
@@ -429,9 +463,10 @@ namespace MicroRatchet
                 else
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
-                    var cipher2 = CipherFactory.GetAeadCipher(headerKey, 96);
-                    decrypted = cipher2.Decrypt(obfuscatedNonce, payload, 4, payload.Length - 4);
-                    if (decrypted != null)
+                    Mac.Init(headerKey, nonce, 96);
+                    Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - nonce.Length - 12));
+                    mac = Mac.Compute();
+                    if (mac.Matches(new ArraySegment<byte>(payload, payload.Length - mac.Length, mac.Length)))
                     {
                         usedNextHeaderKey = true;
                         ratchetUsed = ratchet;
@@ -440,24 +475,29 @@ namespace MicroRatchet
                 }
             }
 
-            if (decrypted == null)
+            if (ratchetUsed == null)
             {
                 throw new InvalidOperationException("Could not decrypt the incoming message");
             }
 
-            byte[] noncebytes = KeyDerivation.UnObfuscate(obfuscatedNonce, headerKey, decrypted);
-            int nonce = BigEndianBitConverter.ToInt32(noncebytes);
-            var messageType = GetMessageType(nonce);
-            int step = ClearMessageType(nonce);
+            // get the encrypted payload
+            byte[] encryptedPayload;
+            int headerSize = messageType == MessageType.NormalWithEcdh ? 36 : 4;
+            encryptedPayload = new byte[payload.Length - headerSize - 12];
+            Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
+
+            // decrypt the header
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
+            var decryptedHeader = headerCipher.Decrypt(payload, 0, headerSize);
+            decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
+            int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
             if (messageType == MessageType.NormalWithEcdh)
             {
                 // the message contains ecdh parameters
                 var clientEcdhPublic = new byte[32];
-                Array.Copy(decrypted, clientEcdhPublic, 32);
-                var newDecrypted = new byte[decrypted.Length - 32];
-                Array.Copy(decrypted, 32, newDecrypted, 0, newDecrypted.Length);
-                decrypted = newDecrypted;
+                Array.Copy(decryptedHeader, 4, clientEcdhPublic, 0, 32);
 
                 if (usedNextHeaderKey)
                 {
@@ -468,17 +508,15 @@ namespace MicroRatchet
                     ratchetUsed = newRatchet;
                 }
             }
-            else if (messageType != MessageType.Normal)
-            {
-                throw new InvalidOperationException("Received invalid message type");
-            }
 
             // get the inner payload key from the server receive chain
             var (key, nr) = ratchetUsed.ReceivingChain.RetrieveAndTrim(KeyDerivation, step);
 
             // decrypt the inner payload
-            var innerCipher = CipherFactory.GetCipher(key, noncebytes);
-            var decryptedInnerPayload = innerCipher.Decrypt(decrypted);
+            var nonceBytes = new byte[4];
+            Array.Copy(decryptedHeader, nonceBytes, 4);
+            var innerCipher = CipherFactory.GetCipher(key, nonceBytes);
+            var decryptedInnerPayload = innerCipher.Decrypt(encryptedPayload);
             SaveState(state);
             return decryptedInnerPayload;
         }
