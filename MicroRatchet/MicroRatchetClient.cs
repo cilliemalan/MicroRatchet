@@ -37,8 +37,7 @@ namespace MicroRatchet
 
             // 32 bytes nonce
             state.InitializationNonce = RandomNumberGenerator.Generate(32);
-            state.InitializationNonce[0] &= 0b0001_1111;
-            state.InitializationNonce[0] |= 0b0110_0000;
+            state.InitializationNonce[0] = SetMessageType(state.InitializationNonce[0], MessageType.InitializationRequest);
 
             // get the public key
             var pubkey = Signature.PublicKey;
@@ -101,8 +100,7 @@ namespace MicroRatchet
 
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(32);
-            serverNonce[0] &= 0b0001_1111;
-            serverNonce[0] |= 0b1110_0000;
+            serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
             state.NextInitializationNonce = serverNonce;
             var tempEcdh = KeyAgreementFactory.GenerateNew();
             var tempEcdhPubkey = tempEcdh.GetPublicKey();
@@ -336,24 +334,12 @@ namespace MicroRatchet
         {
             var state = _state;
 
-            // select the ECDH ratchet step to use
-            byte type;
-            if (includeEcdh)
-            {
-                type = 0b0010_0000;
-            }
-            else
-            {
-                type = 0b0000_0000;
-            }
-
-
             // get the payload key and nonce
             var ratchetPublicKey = KeyAgreementFactory.Deserialize(step.PrivateKey).GetPublicKey();
             var (payloadKey, messageNumber) = step.SendingChain.Ratchet(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
-            nonce[0] &= 0b0001_1111;
-            nonce[0] |= type;
+            var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
+            nonce[0] = SetMessageType(nonce[0], messageType);
 
             // build the payload
             // <server nonce (32), padding (mtu - 80)>
@@ -461,10 +447,10 @@ namespace MicroRatchet
 
             byte[] noncebytes = KeyDerivation.UnObfuscate(obfuscatedNonce, headerKey, decrypted);
             int nonce = BigEndianBitConverter.ToInt32(noncebytes);
-            int type = (int)((nonce & 0xE0000000) >> 29);
-            int step = nonce & 0x1FFFFFFF;
+            var messageType = GetMessageType(nonce);
+            int step = ClearMessageType(nonce);
 
-            if (type == 0b001)
+            if (messageType == MessageType.NormalWithEcdh)
             {
                 // the message contains ecdh parameters
                 var clientEcdhPublic = new byte[32];
@@ -481,6 +467,10 @@ namespace MicroRatchet
                     state.Ratchets.Add(newRatchet);
                     ratchetUsed = newRatchet;
                 }
+            }
+            else if (messageType != MessageType.Normal)
+            {
+                throw new InvalidOperationException("Received invalid message type");
             }
 
             // get the inner payload key from the server receive chain
@@ -516,9 +506,9 @@ namespace MicroRatchet
 
                     if (state.RemoteEcdhForInit == null)
                     {
-                        var nonce = BigEndianBitConverter.ToUInt32(dataReceived);
-                        var type = nonce >> 29;
-                        if (type == 0b111)
+                        var nonce = BigEndianBitConverter.ToInt32(dataReceived);
+                        var type = GetMessageType(nonce);
+                        if (type == MessageType.InitializationResponse)
                         {
                             // step 2: init response from server
                             ReceiveInitializationResponse(_state, dataReceived);
@@ -547,12 +537,12 @@ namespace MicroRatchet
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
 
-                var nonce = BigEndianBitConverter.ToUInt32(dataReceived);
-                var type = nonce >> 29;
+                var nonce = BigEndianBitConverter.ToInt32(dataReceived);
+                var type = GetMessageType(nonce);
 
                 if (state.InitializationNonce == null)
                 {
-                    if (type == 0b011)
+                    if (type == MessageType.InitializationRequest)
                     {
                         // step 1: client init request
                         ReceiveInitializationRequest(_state, dataReceived);
@@ -618,5 +608,12 @@ namespace MicroRatchet
                 SecureStorage.StoreAsync(state.Serialize());
             }
         }
+
+        private static MessageType GetMessageType(byte b) => (MessageType)((b & 0b1110_0000) >> 5);
+        private static MessageType GetMessageType(int i) => (MessageType)((i & 0b11100000_00000000_00000000_00000000) >> 29);
+        private static byte SetMessageType(byte b, MessageType type) => (byte)(b & 0b0001_1111 | ((int)type << 5));
+        private static int SetMessageType(ref int i, MessageType type) => i & 0b00011111_11111111_11111111_11111111 | ((int)type << 29);
+        private static byte ClearMessageType(byte b) => (byte)(b & 0b0001_1111);
+        private static int ClearMessageType(int i) => i & 0b00011111_11111111_11111111_11111111;
     }
 }
