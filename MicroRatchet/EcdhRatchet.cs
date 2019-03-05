@@ -8,7 +8,8 @@ namespace MicroRatchet
 {
     internal class EcdhRatchet
     {
-        // the number of past ratchets to retain
+        // the number of past ratchets to retain just in case
+        // an ancient message comes in completely out of order.
         public const int RetainCount = 7;
 
         private List<EcdhRatchetStep> _steps = new List<EcdhRatchetStep>();

@@ -217,7 +217,7 @@ namespace MicroRatchet
 
                             // store the new nonce we got from the server
                             state.InitializationNonce = nonce;
-                            Debug.WriteLine($"storing iniitlizaionta nonce: {Convert.ToBase64String(state.InitializationNonce)}");
+                            //Debug.WriteLine($"storing iniitlizaionta nonce: {Convert.ToBase64String(state.InitializationNonce)}");
 
                             // we now have enough information to construct our double ratchet
                             var localStep0EcdhRatchet = KeyAgreementFactory.GenerateNew();
@@ -493,7 +493,7 @@ namespace MicroRatchet
 
             if (IsClient)
             {
-                Debug.WriteLine("\n\n###CLIENT");
+                //Debug.WriteLine("\n\n###CLIENT");
                 if (dataReceived == null)
                 {
                     // step 1: send first init request from client
@@ -532,7 +532,7 @@ namespace MicroRatchet
             }
             else
             {
-                Debug.WriteLine("\n\n###SERVER");
+                //Debug.WriteLine("\n\n###SERVER");
                 var state = (ServerState)_state;
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
@@ -566,7 +566,7 @@ namespace MicroRatchet
 
         public byte[] Receive(byte[] data)
         {
-            Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+            //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             var state = State.Deserialize(SecureStorage.LoadAsync());
 
             if (state == null || state.Ratchets.IsEmpty)
@@ -579,7 +579,7 @@ namespace MicroRatchet
 
         public byte[] Send(byte[] payload)
         {
-            Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
+            //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = State.Deserialize(SecureStorage.LoadAsync());
 
             if (state == null || state.Ratchets.IsEmpty)

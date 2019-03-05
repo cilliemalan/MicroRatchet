@@ -23,10 +23,10 @@ namespace MicroRatchet
                 ChainKeys.Add((nextGen, nextKeys[0]));
 
 
-                Debug.WriteLine($"      RTC  #:      {nextGen}");
-                Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-                Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+                //Debug.WriteLine($"      RTC  #:      {nextGen}");
+                //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+                //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+                //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
 
                 TrimChain();
                 return (nextKeys[1], nextGen);
@@ -44,16 +44,16 @@ namespace MicroRatchet
                 byte[] key = null;
                 while (gen < step)
                 {
-                    Debug.WriteLine($"      RTC  #:      {gen + 1}");
-                    Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+                    //Debug.WriteLine($"      RTC  #:      {gen + 1}");
+                    //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
 
                     var nextKeys = kdf.GenerateKeys(chain, null, 2);
                     gen++;
                     chain = nextKeys[0];
                     key = nextKeys[1];
 
-                    Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                    Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+                    //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+                    //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
                 }
 
                 // store the key as the latest key we've generated
@@ -65,9 +65,9 @@ namespace MicroRatchet
 
             public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
             {
-                Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
-                Debug.WriteLine($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
-                Debug.WriteLine($"  C Key NHK:      {Convert.ToBase64String(nextHeaderKey)}");
+                //Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
+                //Debug.WriteLine($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
+                //Debug.WriteLine($"  C Key NHK:      {Convert.ToBase64String(nextHeaderKey)}");
 
                 HeaderKey = headerKey;
                 NextHeaderKey = nextHeaderKey;
@@ -125,11 +125,11 @@ namespace MicroRatchet
             byte[] rootKey, byte[] publicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
         {
-            Debug.WriteLine($"--Initialize ECDH Ratchet");
-            Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
-            Debug.WriteLine($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
-            Debug.WriteLine($"ECDH Public:        {Convert.ToBase64String(publicKey ?? new byte[0])}");
-            Debug.WriteLine($"Curr ECDH Private: ({Convert.ToBase64String(keyPair.GetPublicKey())})");
+            //Debug.WriteLine($"--Initialize ECDH Ratchet");
+            //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
+            //Debug.WriteLine($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
+            //Debug.WriteLine($"ECDH Public:        {Convert.ToBase64String(publicKey ?? new byte[0])}");
+            //Debug.WriteLine($"Curr ECDH Private: ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e = new EcdhRatchetStep
             {
@@ -139,32 +139,32 @@ namespace MicroRatchet
             };
 
             // receive chain
-            Debug.WriteLine("  --Receiving Chain");
+            //Debug.WriteLine("  --Receiving Chain");
             var rcinfo = previousKeyPair.DeriveKey(publicKey);
-            Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
+            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
             var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3);
-            Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(rckeys[0])}");
-            Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(rckeys[1])}");
-            Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(rckeys[2])}");
+            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(rckeys[0])}");
+            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(rckeys[1])}");
+            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(rckeys[2])}");
             rootKey = rckeys[0];
             e.ReceivingChain.Initialize(receiveHeaderKey, rckeys[1], rckeys[2]);
 
             // send chain
-            Debug.WriteLine("  --Sending Chain");
+            //Debug.WriteLine("  --Sending Chain");
             var scinfo = keyPair.DeriveKey(publicKey);
-            Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
+            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
-            Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
-            Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
-            Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
+            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
+            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
+            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
 
             // next root key
 
-            Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
+            //Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
             e.NextRootKey = rootKey;
             return e;
         }
@@ -174,11 +174,11 @@ namespace MicroRatchet
             byte[] receiveHeaderKey, byte[] sendHeaderKey,
             IKeyAgreement nextKeyPair)
         {
-            Debug.WriteLine($"--Initialize ECDH Ratchet CLIENT");
-            Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
-            Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(publicKey0)}");
-            Debug.WriteLine($"ECDH Public 1:      {Convert.ToBase64String(publicKey1)}");
-            Debug.WriteLine($"ECDH Private:      ({Convert.ToBase64String(keyPair.GetPublicKey())})");
+            //Debug.WriteLine($"--Initialize ECDH Ratchet CLIENT");
+            //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
+            //Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(publicKey0)}");
+            //Debug.WriteLine($"ECDH Public 1:      {Convert.ToBase64String(publicKey1)}");
+            //Debug.WriteLine($"ECDH Private:      ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e0 = new EcdhRatchetStep
             {
@@ -188,22 +188,22 @@ namespace MicroRatchet
             };
 
             // receive chain doesn't exist
-            Debug.WriteLine("  --Receiving Chain");
+            //Debug.WriteLine("  --Receiving Chain");
 
             // send chain
-            Debug.WriteLine("  --Sending Chain");
+            //Debug.WriteLine("  --Sending Chain");
             var scinfo = keyPair.DeriveKey(publicKey0);
-            Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
+            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
-            Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
-            Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
-            Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
+            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
+            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
+            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
 
             // next root key
-            Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
+            //Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
             e0.NextRootKey = rootKey;
 
             var e1 = EcdhRatchetStep.InitializeServer(kdf,

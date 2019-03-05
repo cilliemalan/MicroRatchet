@@ -32,13 +32,13 @@ namespace MicroRatchet
             var len = encryptor.ProcessBytes(data.Array, data.Offset, data.Count, output, 0);
             encryptor.DoFinal(output, len);
 
-            Debug.WriteLine($"--AEAD encrypting--");
-            Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
-            Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(nonce ?? new byte[0])}");
-            Debug.WriteLine($"   AD:      {Convert.ToBase64String(ad ?? new byte[0])}");
-            Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
-            Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output ?? new byte[0])}");
-            Debug.WriteLine($"--AEAD encrypting--");
+            //Debug.WriteLine($"--AEAD encrypting--");
+            //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
+            //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(nonce ?? new byte[0])}");
+            //Debug.WriteLine($"   AD:      {Convert.ToBase64String(ad ?? new byte[0])}");
+            //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
+            //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output ?? new byte[0])}");
+            //Debug.WriteLine($"--AEAD encrypting--");
             return output;
         }
 
@@ -60,13 +60,13 @@ namespace MicroRatchet
                 output = null;
             }
 
-            Debug.WriteLine($"--AEAD decrypting--");
-            Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
-            Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(nonce ?? new byte[0])}");
-            Debug.WriteLine($"   AD:      {Convert.ToBase64String(ad ?? new byte[0])}");
-            Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
-            Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output ?? new byte[0])}");
-            Debug.WriteLine($"--AEAD decrypting--");
+            //Debug.WriteLine($"--AEAD decrypting--");
+            //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
+            //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(nonce ?? new byte[0])}");
+            //Debug.WriteLine($"   AD:      {Convert.ToBase64String(ad ?? new byte[0])}");
+            //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
+            //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output ?? new byte[0])}");
+            //Debug.WriteLine($"--AEAD decrypting--");
             return output;
         }
 
