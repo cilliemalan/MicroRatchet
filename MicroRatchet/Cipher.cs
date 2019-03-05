@@ -53,7 +53,7 @@ namespace MicroRatchet
                 else
                 {
                     byte[] tempBuffer = new byte[blockSize];
-                    Array.Copy(data.Array, i, tempBuffer, 0, left);
+                    Array.Copy(data.Array, data.Offset + i, tempBuffer, 0, left);
                     encryptor.ProcessBlock(tempBuffer, 0, outputBuffer, i);
                 }
             }
