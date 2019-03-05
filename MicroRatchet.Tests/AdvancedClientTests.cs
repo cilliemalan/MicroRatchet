@@ -109,14 +109,14 @@ namespace MicroRatchet.Tests
                 if (outOfOrder)
                 {
                     if (l.Count == 0) return null;
-                    else
+                    else if (l.Count < 10)
                     {
                         var m = l[r.Next(l.Count)];
                         l.Remove(m);
                         return m;
                     }
                 }
-                else
+
                 {
                     var m = l.FirstOrDefault();
                     l.Remove(m);
