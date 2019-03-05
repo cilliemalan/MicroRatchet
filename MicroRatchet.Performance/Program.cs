@@ -8,12 +8,12 @@ namespace MicroRatchet.Performance
     {
         static void Main(string[] args)
         {
-            int clientMessagesCount = 10000;
-            int serverMessagesCount = 10000;
+            int clientMessagesCount = 100000;
+            int serverMessagesCount = 1000;
             double clientDropChance = 0.1;
             double serverDropChance = 0.1;
 
-            
+
             var (client, server) = CreateAndInitialize();
             RandomNumberGenerator rng = new RandomNumberGenerator();
             Random r = new Random();
@@ -32,13 +32,14 @@ namespace MicroRatchet.Performance
             Console.WriteLine($"Sending {clientMessagesCount}/{clientDropChance:P0} and {serverMessagesCount}/{serverDropChance:P0}");
             for (int i = 0; ; i++)
             {
-                if (!messagesSentFromClient.TryPeek(out var _) && !messagesSentFromServer.TryPeek(out var _) &&
-                    !clientMessagesToSend.TryPeek(out var _) && !serverMessagesToSend.TryPeek(out var _))
+                bool anyMessagesToReceive = messagesSentFromClient.TryPeek(out var _) || messagesSentFromServer.TryPeek(out var _);
+                bool anyMessagesToSend = clientMessagesToSend.TryPeek(out var _) || serverMessagesToSend.TryPeek(out var _);
+                if (!anyMessagesToReceive && !anyMessagesToSend)
                 {
                     break;
                 }
-                
-                if (i % 100 == 0)
+
+                if (i % 5 == 0)
                 {
                     var totalReceived = clientReceived + serverReceived + clientDropped + serverDropped;
                     var totalAll = clientMessagesCount + serverMessagesCount;
@@ -46,65 +47,85 @@ namespace MicroRatchet.Performance
                     Console.Write($"\r{percentage:P0} - c: {clientSent}/{clientDropped} -> {serverReceived}  s: {serverSent}/{serverDropped} -> {clientReceived}   ");
                 }
 
-                var n = r.Next(4);
+                var clientOrServer = r.Next(2);
+                var sendOrReceive = r.Next(2);
+                double ratio = (double)clientMessagesCount / serverMessagesCount / 10;
+                int maxClient = (int)(10 * ratio);
+                int maxServer = (int)(20 / ratio);
+                var maxMessages = r.Next(clientOrServer == 0 ? maxClient : maxServer) + 1;
 
-                if (n == 0) // send from client
+                if (anyMessagesToSend && (sendOrReceive == 0 || !anyMessagesToReceive))
                 {
-                    clientMessagesToSend.TryDequeue(out var payload);
-                    if (payload != null)
+                    if (clientOrServer == 0) // send from client
                     {
-                        payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                        var message = client.Send(payload);
-                        if (r.NextDouble() > clientDropChance)
+                        while (maxMessages-- > 0)
                         {
-                            clientSent++;
-                            messagesSentFromClient.Enqueue(message);
-                        }
-                        else
-                        {
-                            clientDropped++;
-                        }
-                    }
-                    else n = 1;
-                }
-                if (n == 1) // send from server
-                {
-                    serverMessagesToSend.TryDequeue(out var payload);
-                    if (payload != null)
-                    {
-                        payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                        var message = server.Send(payload);
-                        if (r.NextDouble() > serverDropChance)
-                        {
-                            serverSent++;
-                            messagesSentFromServer.Enqueue(message);
-                        }
-                        else
-                        {
-                            serverDropped++;
+                            clientMessagesToSend.TryDequeue(out var payload);
+                            if (payload != null)
+                            {
+                                payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
+                                var message = client.Send(payload);
+                                if (r.NextDouble() > clientDropChance)
+                                {
+                                    clientSent++;
+                                    messagesSentFromClient.Enqueue(message);
+                                }
+                                else
+                                {
+                                    clientDropped++;
+                                }
+                            }
                         }
                     }
-                    else n = 2;
-                }
-                if (n == 2) // receive by client
-                {
-                    messagesSentFromServer.TryDequeue(out var message);
-                    if (message != null)
+                    else
                     {
-                        var payload = client.Receive(message);
-                        messagesReceivedByClient.Add(payload);
-                        clientReceived++;
+                        while (maxMessages-- > 0)
+                        {
+                            serverMessagesToSend.TryDequeue(out var payload);
+                            if (payload != null)
+                            {
+                                payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
+                                var message = server.Send(payload);
+                                if (r.NextDouble() > serverDropChance)
+                                {
+                                    serverSent++;
+                                    messagesSentFromServer.Enqueue(message);
+                                }
+                                else
+                                {
+                                    serverDropped++;
+                                }
+                            }
+                        }
                     }
-                    else n = 3;
                 }
-                if (n == 3) // receive by server
+                else
                 {
-                    messagesSentFromClient.TryDequeue(out var message);
-                    if (message != null)
+                    if (clientOrServer != 0)  // receive by client
                     {
-                        var payload = server.Receive(message);
-                        messagesReceivedByServer.Add(payload);
-                        serverReceived++;
+                        while (maxMessages-- > 0)
+                        {
+                            messagesSentFromServer.TryDequeue(out var message);
+                            if (message != null)
+                            {
+                                var payload = client.Receive(message);
+                                messagesReceivedByClient.Add(payload);
+                                clientReceived++;
+                            }
+                        }
+                    }
+                    else // receive by server
+                    {
+                        while (maxMessages-- > 0)
+                        {
+                            messagesSentFromClient.TryDequeue(out var message);
+                            if (message != null)
+                            {
+                                var payload = server.Receive(message);
+                                messagesReceivedByServer.Add(payload);
+                                serverReceived++;
+                            }
+                        }
                     }
                 }
             }
