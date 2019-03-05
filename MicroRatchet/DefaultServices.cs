@@ -36,7 +36,7 @@ namespace MicroRatchet
                 return _kexCache[pvt] = new KeyAgreement(pvt);
             }
             public IAeadCipher GetAeadCipher(byte[] key, int macSize = 128) => new AeadCipher(key, macSize);
-            public ICipher GetCipher(byte[] key, byte[] iv) => new Cipher(key, iv);
+            public ICipher GetCipher(byte[] key, byte[] iv) { var c = new Cipher(); c.Initialize(key, iv); return c; }
 
             private ConcurrentDictionary<byte[], KeyAgreement> _kexCache = new ConcurrentDictionary<byte[], KeyAgreement>();
         }

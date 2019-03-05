@@ -19,8 +19,10 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(message);
 
-            Cipher c = new Cipher(key, iv);
+            Cipher c = new Cipher();
+            c.Initialize(key, iv);
             var encrypted = c.Encrypt(message);
+            c.Initialize(key, iv);
             var decrypted = c.Decrypt(encrypted);
 
             Assert.Equal(message, decrypted);
@@ -40,8 +42,10 @@ namespace MicroRatchet.Tests
                 r.NextBytes(key);
                 r.NextBytes(message);
 
-                Cipher c = new Cipher(key, iv);
+                Cipher c = new Cipher();
+                c.Initialize(key, iv);
                 var encrypted = c.Encrypt(message);
+                c.Initialize(key, iv);
                 var decrypted = c.Decrypt(encrypted);
 
                 Assert.Equal(message, decrypted);
@@ -62,9 +66,11 @@ namespace MicroRatchet.Tests
                 r.NextBytes(key);
                 r.NextBytes(message);
 
-                Cipher c = new Cipher(key, iv);
+                Cipher c = new Cipher();
+                c.Initialize(key, iv);
                 var encrypted = c.Encrypt(message);
                 encrypted[r.Next(encrypted.Length)]++;
+                c.Initialize(key, iv);
                 var decrypted = c.Decrypt(encrypted);
 
                 Assert.NotNull(decrypted);
@@ -83,8 +89,10 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(message);
 
-            Cipher c = new Cipher(key, iv);
+            Cipher c = new Cipher();
+            c.Initialize(key, iv);
             var encrypted = c.Encrypt(new ArraySegment<byte>(message, 10, 80));
+            c.Initialize(key, iv);
             var decrypted = c.Decrypt(encrypted);
 
             Assert.Equal(message.Skip(10).Take(80).ToArray(), decrypted);
@@ -101,22 +109,15 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(message);
 
-            Cipher c = new Cipher(key, iv);
+            Cipher c = new Cipher();
+            c.Initialize(key, iv);
             var encrypted = c.Encrypt(new ArraySegment<byte>(message, 10, 80));
             var enc2 = new byte[100];
             Array.Copy(encrypted, 0, enc2, 10, 80);
+            c.Initialize(key, iv);
             var decrypted = c.Decrypt(new ArraySegment<byte>(enc2, 10, 80));
 
             Assert.Equal(message.Skip(10).Take(80).ToArray(), decrypted);
-        }
-
-        [Fact]
-        public void DisposeTest()
-        {
-            Cipher c = new Cipher(new byte[32], new byte[32]);
-            c.Dispose();
-            Assert.Throws<ObjectDisposedException>(() => c.Encrypt(new byte[0]));
-            Assert.Throws<ObjectDisposedException>(() => c.Decrypt(new byte[0]));
         }
     }
 }

@@ -10,15 +10,29 @@ using System.Diagnostics;
 
 namespace MicroRatchet
 {
-    internal class Cipher : IDisposable, ICipher
+    internal class Cipher : ICipher
     {
-        private byte[] iv;
-        private byte[] key;
+        SicBlockCipher cipher;
 
-        public Cipher(byte[] key, byte[] iv)
+        public Cipher()
         {
-            this.iv = FixIv(iv);
-            this.key = key;
+        }
+
+        public void Initialize(byte[] key, byte[] iv)
+        {
+            if (key == null && iv == null)
+            {
+                cipher = null;
+            }
+            else
+            {
+                //Debug.WriteLine($"--crypting--");
+                //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
+                //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(iv ?? new byte[0])}");
+                var notUsed = true;
+                cipher = new SicBlockCipher(new AesEngine());
+                cipher.Init(notUsed, new ParametersWithIV(new KeyParameter(key), FixIv(iv) ?? new byte[cipher.GetBlockSize()]));
+            }
         }
 
         private byte[] FixIv(byte[] iv)
@@ -32,50 +46,38 @@ namespace MicroRatchet
             return newiv;
         }
 
-        public byte[] Encrypt(ArraySegment<byte> data) => Process(data, iv);
-        public byte[] Decrypt(ArraySegment<byte> data) => Process(data, iv);
+        public byte[] Encrypt(ArraySegment<byte> data) => Process(data);
+        public byte[] Decrypt(ArraySegment<byte> data) => Process(data);
 
-        private byte[] Process(ArraySegment<byte> data, byte[] iv)
+        private byte[] Process(ArraySegment<byte> data)
         {
-            if (key == null) throw new ObjectDisposedException(nameof(Cipher));
-
-            var encryptor = new SicBlockCipher(new AesEngine());
-            var blockSize = encryptor.GetBlockSize();
-            encryptor.Init(true, new ParametersWithIV(new KeyParameter(key), iv ?? new byte[blockSize]));
+            if (cipher == null) throw new ObjectDisposedException(nameof(Cipher));
+            
+            var blockSize = cipher.GetBlockSize();
             var outputBuffer = new byte[RoundUpToMultiple(data.Count, blockSize)];
             for (int i = 0; i < data.Count; i += blockSize)
             {
                 int left = data.Count - i;
                 if (left > blockSize)
                 {
-                    encryptor.ProcessBlock(data.Array, data.Offset + i, outputBuffer, i);
+                    cipher.ProcessBlock(data.Array, data.Offset + i, outputBuffer, i);
                 }
                 else
                 {
                     byte[] tempBuffer = new byte[blockSize];
                     Array.Copy(data.Array, data.Offset + i, tempBuffer, 0, left);
-                    encryptor.ProcessBlock(tempBuffer, 0, outputBuffer, i);
+                    cipher.ProcessBlock(tempBuffer, 0, outputBuffer, i);
                 }
             }
             var output = new byte[data.Count];
             Array.Copy(outputBuffer, output, data.Count);
 
             //Debug.WriteLine($"--crypting--");
-            //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
-            //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(iv ?? new byte[0])}");
             //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
             //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output)}");
             //Debug.WriteLine($"--crypting--");
 
             return output;
-        }
-        public void Dispose()
-        {
-            if (key != null)
-            {
-                Array.Clear(key, 0, key.Length);
-                key = null;
-            }
         }
 
         private static int RoundUpToMultiple(int a, int multipleOf)
