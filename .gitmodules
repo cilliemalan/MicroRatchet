@@ -1,0 +1,4 @@
+[submodule "thirdparty/wolfssl"]
+	path = thirdparty/wolfssl
+	url = https://github.com/wolfSSL/wolfssl
+	branch = master
