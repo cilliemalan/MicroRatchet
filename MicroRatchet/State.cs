@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -41,14 +42,7 @@ namespace MicroRatchet
         public static State Deserialize(byte[] data)
         {
             if (data == null || data.Length == 0) return null;
-
-            ArraySegment<byte> digest = new ArraySegment<byte>(data, data.Length - 32, 32);
-            ArraySegment<byte> payload = new ArraySegment<byte>(data, 0, data.Length - 32 - 4);
-
-            var sha = new Digest();
-            var computedDigest = sha.ComputeDigest(payload);
-            if (!computedDigest.Matches(digest)) throw new Exception("Storage corrupted. Digest doesn't match");
-
+            
             var isClient = (data[0] & 0x80) != 0;
             var state = isClient ? (State)new ClientState() : new ServerState();
 
@@ -78,12 +72,7 @@ namespace MicroRatchet
 
                     WritePayload(bw);
 
-                    // compute digest
-                    var hash = new Digest();
-                    ms.TryGetBuffer(out var buffer);
-                    var digest = hash.ComputeDigest(buffer);
-                    WriteBuffer(bw, digest);
-
+                    Debug.WriteLine($"Serialized {ms.Length} bytes of state");
                     return ms.ToArray();
                 }
             }
