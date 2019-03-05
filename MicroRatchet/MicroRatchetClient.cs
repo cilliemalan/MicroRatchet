@@ -9,29 +9,26 @@ namespace MicroRatchet
 {
     public class MicroRatchetClient
     {
-        private IServices _services;
-        private bool _isClient;
-        private int _Mtu;
-
-        IDigest Digest => _services.Digest;
-        ISignature Signature => _services.Signature;
-        IRandomNumberGenerator RandomNumberGenerator => _services.RandomNumberGenerator;
-        ISecureStorage SecureStorage => _services.SecureStorage;
-        IKeyAgreementFactory KeyAgreementFactory => _services.KeyAgreementFactory;
-        ICipherFactory CipherFactory => _services.CipherFactory;
+        IDigest Digest => Services.Digest;
+        ISignature Signature => Services.Signature;
+        IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
+        ISecureStorage SecureStorage => Services.SecureStorage;
+        IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
+        ICipherFactory CipherFactory => Services.CipherFactory;
         IKeyDerivation KeyDerivation;
+        IVerifierFactory VerifierFactory => Services.VerifierFactory;
 
-        public IServices Services => _services;
-        public int Mtu => _Mtu;
-        public bool IsClient => _isClient;
+        public IServices Services { get; }
+        public int Mtu { get; }
+        public bool IsClient { get; }
 
         public MicroRatchetClient(IServices services, bool isClient, int Mtu = 1000)
         {
-            _services = services ?? throw new ArgumentException(nameof(services));
-            _isClient = isClient;
-            _Mtu = Mtu;
+            Services = services ?? throw new ArgumentException(nameof(services));
+            IsClient = isClient;
+            this.Mtu = Mtu;
 
-            KeyDerivation = new KeyDerivation(_services.Digest);
+            KeyDerivation = new KeyDerivation(Services.Digest);
         }
 
         private byte[] SendInitializationRequest(State _state)
@@ -62,7 +59,7 @@ namespace MicroRatchet
                     bw.Write(Signature.Sign(msbuffer));
 
                     SaveState(state);
-                    if (ms.Length > _Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
+                    if (ms.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return ms.ToArray();
                 }
             }
@@ -82,7 +79,7 @@ namespace MicroRatchet
                     state.RemotePublicKey = br.ReadBytes(32);
                     state.RemoteEcdhForInit = br.ReadBytes(32);
 
-                    var verifier = _services.VerifierFactory.Create(state.RemotePublicKey);
+                    var verifier = VerifierFactory.Create(state.RemotePublicKey);
                     if (!verifier.VerifySignedMessage(data))
                     {
                         throw new InvalidOperationException("The signature was invalid");
@@ -168,7 +165,7 @@ namespace MicroRatchet
                     messageWriter.Write(cipher.Encrypt(serverNonce, payload));
 
                     SaveState(state);
-                    if (messageStream.Length > _Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
+                    if (messageStream.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return messageStream.ToArray();
                 }
             }
@@ -188,9 +185,9 @@ namespace MicroRatchet
                 {
                     var nonce = br.ReadBytes(32);
                     var ecdh = br.ReadBytes(32);
-                    IKeyAgreement localEcdh = _services.KeyAgreementFactory.Deserialize(state.LocalEcdhForInit);
+                    IKeyAgreement localEcdh = KeyAgreementFactory.Deserialize(state.LocalEcdhForInit);
                     var tempSharedSecret = localEcdh.DeriveKey(ecdh);
-                    var cipher = _services.CipherFactory.GetAeadCipher(tempSharedSecret);
+                    var cipher = CipherFactory.GetAeadCipher(tempSharedSecret);
                     var payload = cipher.Decrypt(nonce, data, 64, data.Length - 64);
 
                     if (payload == null)
@@ -216,7 +213,7 @@ namespace MicroRatchet
                                 throw new InvalidOperationException("Nonce did not match");
                             }
 
-                            var verifier = _services.VerifierFactory.Create(serverPubKey);
+                            var verifier = VerifierFactory.Create(serverPubKey);
                             if (!verifier.VerifySignedMessage(payload))
                             {
                                 throw new InvalidOperationException("The signature was invalid");
@@ -368,7 +365,7 @@ namespace MicroRatchet
                     bwpayload.Write(message);
                     if (pad)
                     {
-                        int left = _Mtu - 80;
+                        int left = Mtu - 80;
                         if (left > 0)
                         {
                             bwpayload.Write(RandomNumberGenerator.Generate(left));
@@ -412,7 +409,7 @@ namespace MicroRatchet
                     bw.Write(obfuscatedNonce);
                     bw.Write(encryptedOuterPayload);
                     var result = ms.ToArray();
-                    if (result.Length > _Mtu) throw new InvalidOperationException("Could not create message within MTU");
+                    if (result.Length > Mtu) throw new InvalidOperationException("Could not create message within MTU");
                     SaveState(state);
                     return result;
                 }
@@ -501,10 +498,10 @@ namespace MicroRatchet
             var _state = State.Deserialize(SecureStorage.LoadAsync());
             if (_state == null)
             {
-                _state = State.Initialize(_isClient);
+                _state = State.Initialize(IsClient);
             }
 
-            if (_isClient)
+            if (IsClient)
             {
                 Debug.WriteLine("\n\n###CLIENT");
                 if (dataReceived == null)
@@ -579,7 +576,7 @@ namespace MicroRatchet
 
         public byte[] Receive(byte[] data)
         {
-            Debug.WriteLine($"\n\n###{(_isClient ? "CLIENT" : "SERVER")} RECEIVE");
+            Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             var state = State.Deserialize(SecureStorage.LoadAsync());
 
             if (state == null || state.Ratchets.IsEmpty)
@@ -592,7 +589,7 @@ namespace MicroRatchet
 
         public byte[] Send(byte[] payload)
         {
-            Debug.WriteLine($"\n\n###{(_isClient ? "CLIENT" : "SERVER")} SEND");
+            Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = State.Deserialize(SecureStorage.LoadAsync());
 
             if (state == null || state.Ratchets.IsEmpty)
@@ -600,7 +597,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            bool canIncludeEcdh = payload.Length <= _Mtu - 48;
+            bool canIncludeEcdh = payload.Length <= Mtu - 48;
             EcdhRatchetStep step;
             if (canIncludeEcdh)
             {
@@ -618,7 +615,7 @@ namespace MicroRatchet
         {
             if (state != null)
             {
-                _services.SecureStorage.StoreAsync(state.Serialize());
+                SecureStorage.StoreAsync(state.Serialize());
             }
         }
     }
