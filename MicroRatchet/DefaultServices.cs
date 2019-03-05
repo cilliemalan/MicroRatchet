@@ -11,7 +11,6 @@ namespace MicroRatchet
         {
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;
-            CipherFactory = fac;
             VerifierFactory = fac;
 
             Signature = new Signature(privateKey);
@@ -22,11 +21,11 @@ namespace MicroRatchet
         public IRandomNumberGenerator RandomNumberGenerator { get; set; } = new RandomNumberGenerator();
         public ISecureStorage SecureStorage { get; set; } = new InMemoryStorage();
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
-        public ICipherFactory CipherFactory { get; set; }
+        public ICipher Cipher { get; set; } = new Cipher();
         public IVerifierFactory VerifierFactory { get; set; }
         public IMac Mac { get; set; } = new GMac();
 
-        private class DefaultFactories : IKeyAgreementFactory, ICipherFactory, IVerifierFactory
+        private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory
         {
             public IVerifier Create(byte[] publicKey) => new Verifier(publicKey);
             public IKeyAgreement Deserialize(byte[] data) => _kexCache.GetOrAdd(data, d => new KeyAgreement(d));
@@ -35,8 +34,6 @@ namespace MicroRatchet
                 var pvt = KeyGeneration.GeneratePrivateKey();
                 return _kexCache[pvt] = new KeyAgreement(pvt);
             }
-            public IAeadCipher GetAeadCipher(byte[] key, int macSize = 128) => new AeadCipher(key, macSize);
-            public ICipher GetCipher(byte[] key, byte[] iv) { var c = new Cipher(); c.Initialize(key, iv); return c; }
 
             private ConcurrentDictionary<byte[], KeyAgreement> _kexCache = new ConcurrentDictionary<byte[], KeyAgreement>();
         }

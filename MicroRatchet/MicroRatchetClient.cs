@@ -14,7 +14,7 @@ namespace MicroRatchet
         IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
         ISecureStorage SecureStorage => Services.SecureStorage;
         IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
-        ICipherFactory CipherFactory => Services.CipherFactory;
+        ICipher Cipher => Services.Cipher;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
         IMac Mac => Services.Mac;
@@ -161,8 +161,8 @@ namespace MicroRatchet
                     }
 
                     // write the encrypted payload
-                    var cipher = CipherFactory.GetCipher(sharedSecret, serverNonce);
-                    var encryptedPayload = cipher.Encrypt(payload);
+                    Cipher.Initialize(sharedSecret, serverNonce);
+                    var encryptedPayload = Cipher.Encrypt(payload);
                     messageWriter.Write(encryptedPayload);
 
                     // calculate and write mac
@@ -194,8 +194,8 @@ namespace MicroRatchet
                     var ecdh = br.ReadBytes(32);
                     IKeyAgreement localEcdh = KeyAgreementFactory.Deserialize(state.LocalEcdhForInit);
                     var tempSharedSecret = localEcdh.DeriveKey(ecdh);
-                    var cipher = CipherFactory.GetCipher(tempSharedSecret, nonce);
-                    var payload = cipher.Decrypt(data, 64, data.Length - 64 - 16);
+                    Cipher.Initialize(tempSharedSecret, nonce);
+                    var payload = Cipher.Decrypt(data, 64, data.Length - 64 - 16);
 
                     // check mac
                     br.BaseStream.Seek(data.Length - 16, SeekOrigin.Begin);
@@ -300,8 +300,8 @@ namespace MicroRatchet
 
             // decrypt the header
             var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
-            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
-            var decryptedHeader = headerCipher.Decrypt(payload, 0, headerSize);
+            Cipher.Initialize(headerEncryptionKey, null);
+            var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
 
             // the message contains ecdh parameters
@@ -323,8 +323,8 @@ namespace MicroRatchet
             // decrypt the inner payload
             var nonceBytes = new byte[4];
             Array.Copy(decryptedHeader, nonceBytes, 4);
-            var innerCipher = CipherFactory.GetCipher(key, nonceBytes);
-            var decryptedInnerPayload = innerCipher.Decrypt(encryptedPayload);
+            Cipher.Initialize(key, nonceBytes);
+            var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
 
             // check the inner payload
             var innerNonce = new byte[32];
@@ -397,8 +397,8 @@ namespace MicroRatchet
             }
 
             // encrypt the payload
-            var cipher = CipherFactory.GetCipher(payloadKey, nonce);
-            var encryptedPayload = cipher.Encrypt(payload);
+            Cipher.Initialize(payloadKey, nonce);
+            var encryptedPayload = Cipher.Encrypt(payload);
 
             // build the header: <nonce(4), ecdh(32)?>
             byte[] header = new byte[headerSize];
@@ -410,8 +410,8 @@ namespace MicroRatchet
 
             // encrypt the header
             var headerEncryptionKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, 32);
-            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
-            var encryptedHeader = headerCipher.Encrypt(header);
+            Cipher.Initialize(headerEncryptionKey, null);
+            var encryptedHeader = Cipher.Encrypt(header);
 
             // set the message type (we can do this because we're using a CTR stream cipher)
             encryptedHeader[0] = SetMessageType(encryptedHeader[0], messageType);
@@ -503,8 +503,8 @@ namespace MicroRatchet
 
             // decrypt the header
             var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
-            var headerCipher = CipherFactory.GetCipher(headerEncryptionKey, null);
-            var decryptedHeader = headerCipher.Decrypt(payload, 0, headerSize);
+            Cipher.Initialize(headerEncryptionKey, null);
+            var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
@@ -530,8 +530,8 @@ namespace MicroRatchet
             // decrypt the inner payload
             var nonceBytes = new byte[4];
             Array.Copy(decryptedHeader, nonceBytes, 4);
-            var innerCipher = CipherFactory.GetCipher(key, nonceBytes);
-            var decryptedInnerPayload = innerCipher.Decrypt(encryptedPayload);
+            Cipher.Initialize(key, nonceBytes);
+            var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
             SaveState(state);
             return decryptedInnerPayload;
         }

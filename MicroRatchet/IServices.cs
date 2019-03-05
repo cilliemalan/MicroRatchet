@@ -11,7 +11,7 @@ namespace MicroRatchet
         IRandomNumberGenerator RandomNumberGenerator { get; }
         ISecureStorage SecureStorage { get; }
         IKeyAgreementFactory KeyAgreementFactory { get; }
-        ICipherFactory CipherFactory { get; }
+        ICipher Cipher { get; }
         IVerifierFactory VerifierFactory { get; }
         IMac Mac { get; }
     }
