@@ -6,9 +6,9 @@ namespace MicroRatchet
 {
     internal enum MessageType
     {
-        Normal = 0,
-        NormalWithEcdh = 1,
-        InitializationRequest = 2,
-        InitializationResponse = 3,
+        Normal = 0b000,
+        NormalWithEcdh = 0b001,
+        InitializationRequest = 0b100,
+        InitializationResponse = 0b101,
     }
 }
