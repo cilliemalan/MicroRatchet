@@ -97,8 +97,8 @@ namespace MicroRatchet
         {
             // message format:
             // new nonce(32), ecdh pubkey(32),
-            // [nonce from init request(32), server pubkey(32), 
-            // new ecdh pubkey(32) x3, signature(64)]mac(16)
+            // <nonce from init request(32), server pubkey(32), 
+            // new ecdh pubkey(32) x3, signature(64)>, mac(16)
 
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
 
@@ -161,8 +161,15 @@ namespace MicroRatchet
                     }
 
                     // write the encrypted payload
-                    var cipher = CipherFactory.GetAeadCipher(sharedSecret);
-                    messageWriter.Write(cipher.Encrypt(serverNonce, payload));
+                    var cipher = CipherFactory.GetCipher(sharedSecret, serverNonce);
+                    var encryptedPayload = cipher.Encrypt(payload);
+                    messageWriter.Write(encryptedPayload);
+
+                    // calculate and write mac
+                    Mac.Init(sharedSecret, serverNonce, 128);
+                    Mac.Process(new ArraySegment<byte>(encryptedPayload));
+                    var mac = Mac.Compute();
+                    messageWriter.Write(mac);
 
                     SaveState(state);
                     if (messageStream.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
@@ -175,21 +182,29 @@ namespace MicroRatchet
         {
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive an init response.");
 
-            // new nonce(32), ecdh pubkey(32), [nonce(32), server pubkey(32), 
-            // new ecdh pubkey(32) x3, signature(64)]mac(16)
+            // new nonce(32), ecdh pubkey(32), <nonce(32), server pubkey(32), 
+            // new ecdh pubkey(32) x3, signature(64)>, mac(16)
 
             using (var ms = new MemoryStream(data))
             {
                 using (var br = new BinaryReader(ms))
                 {
+                    // decrypt
                     var nonce = br.ReadBytes(32);
                     var ecdh = br.ReadBytes(32);
                     IKeyAgreement localEcdh = KeyAgreementFactory.Deserialize(state.LocalEcdhForInit);
                     var tempSharedSecret = localEcdh.DeriveKey(ecdh);
-                    var cipher = CipherFactory.GetAeadCipher(tempSharedSecret);
-                    var payload = cipher.Decrypt(nonce, data, 64, data.Length - 64);
+                    var cipher = CipherFactory.GetCipher(tempSharedSecret, nonce);
+                    var payload = cipher.Decrypt(data, 64, data.Length - 64 - 16);
 
-                    if (payload == null)
+                    // check mac
+                    br.BaseStream.Seek(data.Length - 16, SeekOrigin.Begin);
+                    var mac = br.ReadBytes(16);
+                    Mac.Init(tempSharedSecret, nonce, 128);
+                    Mac.Process(new ArraySegment<byte>(data, 64, data.Length - 64 - 16));
+                    var checkMac = Mac.Compute();
+
+                    if (!mac.Matches(checkMac))
                     {
                         throw new InvalidOperationException("Could not decript payload");
                     }
