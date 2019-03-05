@@ -96,16 +96,31 @@ namespace MicroRatchet
                     var toRetain = new List<(int generation, byte[] chain)>();
 
                     int lastGeneration = int.MaxValue;
-                    foreach (var ck in ChainKeys.AsEnumerable().Reverse())
+                    foreach (var ck in ChainKeys.AsEnumerable().OrderByDescending(x => x.generation))
                     {
-                        if (ck.generation != lastGeneration - 1)
+                        if (toRetain.Count > 45) break;
+
+                        if (toRetain.Count == 0)
                         {
                             toRetain.Add(ck);
                         }
+                        else
+                        {
 
-                        lastGeneration = ck.generation;
+                            if (lastGeneration - ck.generation > 1)
+                            {
+                                toRetain.Add(ck);
+                            }
+
+                            lastGeneration = ck.generation;
+                        }
                     }
 
+                    if (toRetain[toRetain.Count - 1] != ChainKeys[0])
+                    {
+                        toRetain.Add(ChainKeys[0]);
+                    }
+                    toRetain.Reverse();
                     ChainKeys = toRetain;
                 }
             }
