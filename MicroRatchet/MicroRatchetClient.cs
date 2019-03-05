@@ -97,9 +97,7 @@ namespace MicroRatchet
             // message format:
             // new nonce(32), ecdh pubkey(32),
             // [nonce from init request(32), server pubkey(32), 
-            // server pubkey signature(64), client pubkey signature(64), 
             // new ecdh pubkey(32) x3, signature(64)]mac(16)
-            // header + [] + mac = GCM encrypted with agreed key
 
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
 
@@ -132,12 +130,8 @@ namespace MicroRatchet
             var serverEcdhRatchet1 = KeyAgreementFactory.GenerateNew();
             state.LocalEcdhRatchetStep1 = serverEcdhRatchet1.Serialize();
 
-            // generate client's pubkey signature
-            byte[] clientKeySignature = Signature.Sign(state.RemotePublicKey);
-
             // new nonce(32), ecdh pubkey(32),
-            // [nonce(32), server pubkey(32),  server pubkey signature(64),
-            // client pubkey signature(64), new ecdh pubkey(32) x3, signature(64)], mac(16)
+            // [nonce(32), server pubkey(32), new ecdh pubkey(32) x3, signature(64)], mac(16)
 
             using (MemoryStream messageStream = new MemoryStream())
             {
@@ -154,8 +148,6 @@ namespace MicroRatchet
                         {
                             payloadWriter.Write(state.InitializationNonce);
                             payloadWriter.Write(Signature.PublicKey);
-                            payloadWriter.Write(new byte[64]); // TODO: public key signature
-                            payloadWriter.Write(clientKeySignature);
                             payloadWriter.Write(serverEcdh.GetPublicKey());
                             payloadWriter.Write(serverEcdhRatchet0.GetPublicKey());
                             payloadWriter.Write(serverEcdhRatchet1.GetPublicKey());
@@ -183,7 +175,6 @@ namespace MicroRatchet
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive an init response.");
 
             // new nonce(32), ecdh pubkey(32), [nonce(32), server pubkey(32), 
-            // server pubkey signature(64), client pubkey signature(64), 
             // new ecdh pubkey(32) x3, signature(64)]mac(16)
 
             using (var ms = new MemoryStream(data))
@@ -208,8 +199,6 @@ namespace MicroRatchet
                         {
                             var oldNonce = brp.ReadBytes(32);
                             var serverPubKey = brp.ReadBytes(32);
-                            var serverPubKeySig = brp.ReadBytes(64);
-                            var clientPubKeySig = brp.ReadBytes(64);
                             var rootEcdh = brp.ReadBytes(32);
                             var remoteRatchetEcdh0 = brp.ReadBytes(32);
                             var remoteRatchetEcdh1 = brp.ReadBytes(32);
@@ -225,11 +214,6 @@ namespace MicroRatchet
                             {
                                 throw new InvalidOperationException("The signature was invalid");
                             }
-                            // TODO check that the server public key is signed by a trusted signer
-                            if (!verifier.Verify(Signature.PublicKey, clientPubKeySig))
-                            {
-                                throw new InvalidOperationException("The client public key was not signed by the server key");
-                            }
 
                             // store the new nonce we got from the server
                             state.InitializationNonce = nonce;
@@ -241,7 +225,6 @@ namespace MicroRatchet
 
                             // initialize client root key and ecdh ratchet
                             state.RemoteEcdhForInit = rootEcdh;
-                            state.publicKeySignature = clientPubKeySig;
                             var rootPreKey = localEcdh.DeriveKey(rootEcdh);
                             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
                             var rootKey = state.RootKey = genKeys[0];
