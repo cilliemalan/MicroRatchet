@@ -33,6 +33,9 @@ namespace MicroRatchet
 
         private byte[] SendInitializationRequest(State _state)
         {
+            // message format:
+            // nonce(32), pubkey(32), ecdh(32), signature(64) (total: 160 bytes)
+
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can send init request.");
 
             // 32 bytes nonce
@@ -91,13 +94,19 @@ namespace MicroRatchet
 
         private byte[] SendInitializationResponse(State _state)
         {
+            // message format:
+            // new nonce(32), ecdh pubkey(32),
+            // [nonce from init request(32), server pubkey(32), 
+            // server pubkey signature(64), client pubkey signature(64), 
+            // new ecdh pubkey(32) x3, signature(64)]mac(16)
+            // header + [] + mac = GCM encrypted with agreed key
+
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
 
             if (state == null || state.RemotePublicKey == null) throw new InvalidOperationException("Could not send initialization response because the state has not been initialized.");
             if (state.RemoteEcdhForInit == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral key has been deleted. Perhaps the initialization response has already been sent.");
             if (state.InitializationNonce == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral nonce has been deleted. Perhaps the initialization response has already been sent.");
-
-
+            
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(32);
             serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
@@ -126,9 +135,9 @@ namespace MicroRatchet
             // generate client's pubkey signature
             byte[] clientKeySignature = Signature.Sign(state.RemotePublicKey);
 
-            // new nonce(32), ecdh pubkey(32), [nonce(32), server pubkey(32), 
-            // server pubkey signature(64), client pubkey signature(64), 
-            // new ecdh pubkey(32) x3, signature(64)], mac(16)
+            // new nonce(32), ecdh pubkey(32),
+            // [nonce(32), server pubkey(32),  server pubkey signature(64),
+            // client pubkey signature(64), new ecdh pubkey(32) x3, signature(64)], mac(16)
 
             using (MemoryStream messageStream = new MemoryStream())
             {
@@ -175,7 +184,7 @@ namespace MicroRatchet
 
             // new nonce(32), ecdh pubkey(32), [nonce(32), server pubkey(32), 
             // server pubkey signature(64), client pubkey signature(64), 
-            // new ecdh pubkey(32) x3, signature(64)], mac(16)
+            // new ecdh pubkey(32) x3, signature(64)]mac(16)
 
             using (var ms = new MemoryStream(data))
             {
@@ -332,6 +341,10 @@ namespace MicroRatchet
 
         private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step)
         {
+            // message format:
+            // #nonce (4)#, [<payload, padding>]mac(12)
+            // #nonce (4)#, [ecdh (32), <payload, padding>]mac(12)
+
             var state = _state;
 
             // get the payload key and nonce
@@ -341,8 +354,11 @@ namespace MicroRatchet
             var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
             nonce[0] = SetMessageType(nonce[0], messageType);
 
-            // build the payload
-            // <server nonce (32), padding (mtu - 80)>
+            // calculate some sizes
+            var overhead = 4 + 12 + (includeEcdh ? 32 : 0);
+            var payloadSize = message.Length;
+
+            // build the payload: <payload, padding>
             byte[] payload;
             using (var mspayload = new MemoryStream())
             {
@@ -351,7 +367,7 @@ namespace MicroRatchet
                     bwpayload.Write(message);
                     if (pad)
                     {
-                        int left = Mtu - 80;
+                        int left = Mtu - overhead - payloadSize;
                         if (left > 0)
                         {
                             bwpayload.Write(RandomNumberGenerator.Generate(left));
@@ -366,7 +382,7 @@ namespace MicroRatchet
             var cipher = CipherFactory.GetCipher(payloadKey, nonce);
             var encryptedPayload = cipher.Encrypt(payload);
 
-            // nonce (4), [ecdh (32), <payload>], mac (12)
+            // build the outer payload: [ecdh, <...>]mac
             byte[] outerPayload;
             using (var ms = new MemoryStream())
             {
@@ -388,6 +404,7 @@ namespace MicroRatchet
             var aeadCipher = CipherFactory.GetAeadCipher(step.SendingChain.HeaderKey, 96);
             var encryptedOuterPayload = aeadCipher.Encrypt(obfuscatedNonce, outerPayload);
 
+            // buid the rest of the message: #nonce#, [...]mac
             using (var ms = new MemoryStream())
             {
                 using (var bw = new BinaryWriter(ms))
