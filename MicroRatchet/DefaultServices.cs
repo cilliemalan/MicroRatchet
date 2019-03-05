@@ -28,11 +28,12 @@ namespace MicroRatchet
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory
         {
             public IVerifier Create(byte[] publicKey) => new Verifier(publicKey);
-            public IKeyAgreement Deserialize(byte[] data) => _kexCache.GetOrAdd(data, d => new KeyAgreement(d));
+            public IKeyAgreement Deserialize(byte[] data) => _kexCache.GetOrAdd(data, d => KeyAgreement.Deserialize(d));
             public IKeyAgreement GenerateNew()
             {
                 var pvt = KeyGeneration.GeneratePrivateKey();
-                return _kexCache[pvt] = new KeyAgreement(pvt);
+                var kex = new KeyAgreement(pvt, null);
+                return _kexCache[kex.Serialize()] = kex;
             }
 
             private ConcurrentDictionary<byte[], KeyAgreement> _kexCache = new ConcurrentDictionary<byte[], KeyAgreement>();

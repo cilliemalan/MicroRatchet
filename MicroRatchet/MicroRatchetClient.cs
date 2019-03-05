@@ -368,8 +368,10 @@ namespace MicroRatchet
 
             var state = _state;
 
-            // get the payload key and nonce
+            // this is the hottest line in the send process
             var ratchetPublicKey = KeyAgreementFactory.Deserialize(step.PrivateKey).GetPublicKey();
+
+            // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetAndTrim(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
             var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
@@ -518,6 +520,8 @@ namespace MicroRatchet
                 {
                     // perform ecdh ratchet
                     var newEcdh = KeyAgreementFactory.GenerateNew();
+
+                    // this is the hottest line in the deconstruct process:
                     EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
                     state.Ratchets.Add(newRatchet);
                     ratchetUsed = newRatchet;

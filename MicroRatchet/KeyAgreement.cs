@@ -20,6 +20,7 @@ namespace MicroRatchet
         private static readonly ECDomainParameters domainParms;
         private static readonly Func<int, BigInteger, ECPoint> _decompress;
         private byte[] _privateKey;
+        private byte[] _publicKey;
         private ECPrivateKeyParameters _pk;
         private Sha256Digest _sha = new Sha256Digest();
 
@@ -36,18 +37,13 @@ namespace MicroRatchet
             _decompress = (i, b) => (ECPoint)m.Invoke(domainParms.Curve, new object[] { i, b });
         }
 
-        public KeyAgreement(byte[] privateKey, int id)
-            : this(privateKey)
-        {
-            Id = id;
-        }
-
-        public KeyAgreement(byte[] privateKey)
+        public KeyAgreement(byte[] privateKey, byte[] publicKey = null)
         {
             if (privateKey == null) throw new ArgumentNullException(nameof(privateKey));
             if (privateKey.Length != 32) throw new ArgumentException("private key is strictly 32 bytes long");
             _privateKey = privateKey;
             _pk = new ECPrivateKeyParameters(new BigInteger(privateKey), domainParms);
+            _publicKey = publicKey;
         }
 
         public byte[] DeriveKey(byte[] otherPublicKey)
@@ -113,8 +109,25 @@ namespace MicroRatchet
             }
         }
 
-        public byte[] GetPublicKey() => KeyGeneration.GetPublicKeyFromPrivateKey(_pk);
+        public byte[] GetPublicKey()
+        {
+            if (_publicKey == null)
+            {
+                _publicKey = KeyGeneration.GetPublicKeyFromPrivateKey(_pk);
+            }
 
-        public byte[] Serialize() => _privateKey;
+            return _publicKey;
+        }
+
+        public byte[] Serialize() => _privateKey.Concat(GetPublicKey()).ToArray();
+
+        public static KeyAgreement Deserialize(byte[] data)
+        {
+            byte[] pri = new byte[32];
+            byte[] pub = new byte[32];
+            Array.Copy(data, pri, 32);
+            Array.Copy(data, 32, pub, 0, 32);
+            return new KeyAgreement(pri, pub);
+        }
     }
 }
