@@ -15,52 +15,52 @@ namespace MicroRatchet
             public byte[] NextHeaderKey;
             public List<(int generation, byte[] chain)> ChainKeys;
 
-            public (byte[], int) Ratchet(IKeyDerivation kdf, int? toStep = null)
+            public (byte[] key, int generation) RatchetAndTrim(IKeyDerivation kdf)
             {
-                if (toStep == null)
-                {
-                    var (gen, chain) = ChainKeys.Last();
-                    var nextKeys = kdf.GenerateKeys(chain, null, 2);
-                    var nextGen = gen + 1;
-                    ChainKeys.Add((nextGen, nextKeys[0]));
+                var (gen, chain) = ChainKeys.Last();
+                var nextKeys = kdf.GenerateKeys(chain, null, 2);
+                var nextGen = gen + 1;
+                ChainKeys.Add((nextGen, nextKeys[0]));
 
-                    Debug.WriteLine($"      RTC  #:      {nextGen}");
+
+                Debug.WriteLine($"      RTC  #:      {nextGen}");
+                Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+                Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+                Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+
+                TrimChain();
+                return (nextKeys[1], nextGen);
+            }
+
+            public (byte[], int) RetrieveAndTrim(IKeyDerivation kdf, int step)
+            {
+                // get the latest chain key we have that is smaller than the requested generation
+                var (gen, chain) = ChainKeys.OrderByDescending(x => x.generation)
+                    .Where(x => x.generation < step)
+                    .FirstOrDefault();
+
+                if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
+
+                byte[] key = null;
+                while (gen < step)
+                {
+                    Debug.WriteLine($"      RTC  #:      {gen + 1}");
                     Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+
+                    var nextKeys = kdf.GenerateKeys(chain, null, 2);
+                    gen++;
+                    chain = nextKeys[0];
+                    key = nextKeys[1];
+
                     Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
                     Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-
-                    return (nextKeys[1], nextGen);
                 }
-                else
-                {
-                    // get the latest chain key we have that is smaller than the requested generation
-                    var (gen, chain) = ChainKeys.OrderByDescending(x => x.generation)
-                        .Where(x => x.generation < toStep.Value)
-                        .FirstOrDefault();
 
-                    if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
+                // store the key as the latest key we've generated
+                ChainKeys.Add((gen, chain));
 
-                    byte[] key = null;
-                    while (gen < toStep)
-                    {
-                        Debug.WriteLine($"      RTC  #:      {gen + 1}");
-                        Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-
-                        var nextKeys = kdf.GenerateKeys(chain, null, 2);
-                        gen++;
-                        chain = nextKeys[0];
-                        key = nextKeys[1];
-
-                        Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                        Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-                    }
-
-                    // store the key as the latest key we've generated
-                    ChainKeys.Add((gen, chain));
-
-
-                    return (key, gen);
-                }
+                TrimChain();
+                return (key, gen);
             }
 
             public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
@@ -75,7 +75,39 @@ namespace MicroRatchet
                 {
                     (0, chainKey)
                 };
+            }
 
+            private void TrimChain()
+            {
+                // skipping the last chain key, move from the back
+                // and remove all consecutive ratchet keys. When a discontinuity
+                // is found, don't delete it
+
+                if (ChainKeys.Count == 1) return;
+                else if (ChainKeys.Count == 2)
+                {
+                    if (ChainKeys[0].generation == ChainKeys[1].generation - 1)
+                    {
+                        ChainKeys.RemoveAt(0);
+                    }
+                }
+                else
+                {
+                    var toRetain = new List<(int generation, byte[] chain)>();
+
+                    int lastGeneration = int.MaxValue;
+                    foreach (var ck in ChainKeys.AsEnumerable().Reverse())
+                    {
+                        if (ck.generation != lastGeneration - 1)
+                        {
+                            toRetain.Add(ck);
+                        }
+
+                        lastGeneration = ck.generation;
+                    }
+
+                    ChainKeys = toRetain;
+                }
             }
         }
 
