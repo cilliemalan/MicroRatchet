@@ -24,6 +24,7 @@ namespace MicroRatchet
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
         public ICipherFactory CipherFactory { get; set; }
         public IVerifierFactory VerifierFactory { get; set; }
+        public IMac Mac { get; set; } = new GMac();
 
         private class DefaultFactories : IKeyAgreementFactory, ICipherFactory, IVerifierFactory
         {
