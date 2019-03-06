@@ -87,6 +87,15 @@ namespace MicroRatchet.Tests
         [InlineData(100, 100, 0.5, 0.1, true)]
         [InlineData(100, 100, 0.5, 0.0, true)]
         [InlineData(100, 100, 0.0, 0.5, true)]
+        [InlineData(1000, 100, 0.1, 0.1)]
+        [InlineData(1000, 100, 0.5, 0.5)]
+        [InlineData(1000, 100, 0.1, 0.5)]
+        [InlineData(1000, 100, 0.5, 0.1)]
+        [InlineData(1000, 100, 0.5, 0.0)]
+        [InlineData(1000, 100, 0.0, 0.5)]
+        [InlineData(1000, 100, 0.5, 0.1, true)]
+        [InlineData(1000, 100, 0.5, 0.0, true)]
+        [InlineData(1000, 100, 0.0, 0.5, true)]
         [Theory]
         public void LargeVolumeTest(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false)
         {
@@ -183,6 +192,8 @@ namespace MicroRatchet.Tests
                 }
             }
 
+            var clientState = State.Deserialize(client.Services.SecureStorage.LoadAsync());
+            var serverState = State.Deserialize(server.Services.SecureStorage.LoadAsync());
             Assert.All(messagesReceivedByClient, message => serverMessages.Contains(message));
             Assert.All(messagesReceivedByServer, message => clientMessages.Contains(message));
         }
