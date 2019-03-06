@@ -10,19 +10,14 @@ namespace MicroRatchet
         protected override int Version => 1;
         protected override bool IsClient => false;
 
-        // not used at all
-        //public byte[] RemotePublicKey;
-
-        // used transiently
-        //public byte[] InitializationNonce;
-        //public byte[] RemoteEcdhForInit;
-
         // used only once
         public byte[] RootKey;
         public byte[] FirstSendHeaderKey;
         public byte[] FirstReceiveHeaderKey;
         public byte[] LocalEcdhRatchetStep0;
         public byte[] LocalEcdhRatchetStep1;
+
+        // used a few times
         public byte[] NextInitializationNonce;
 
         protected override void ReadPayload(BinaryReader br)
