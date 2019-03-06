@@ -60,8 +60,7 @@ namespace MicroRatchet
                     bw.Write(clientEcdh.GetPublicKey());
                     ms.TryGetBuffer(out var msbuffer);
                     bw.Write(Signature.Sign(msbuffer));
-
-                    SaveState(state);
+                    
                     if (ms.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return ms.ToArray();
                 }
@@ -87,9 +86,7 @@ namespace MicroRatchet
                     {
                         throw new InvalidOperationException("The signature was invalid");
                     }
-
-                    SaveState(state);
-
+                    
                     return (initializationNonce, remoteEcdhForInit, remotePublicKey);
                 }
             }
@@ -168,8 +165,7 @@ namespace MicroRatchet
                     Mac.Process(new ArraySegment<byte>(encryptedPayload));
                     var mac = Mac.Compute();
                     messageWriter.Write(mac);
-
-                    SaveState(state);
+                    
                     if (messageStream.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return messageStream.ToArray();
                 }
@@ -251,7 +247,6 @@ namespace MicroRatchet
                                 localStep1EcdhRatchet));
 
                             state.LocalEcdhForInit = null;
-                            SaveState(state);
                         }
                     }
                 }
@@ -338,7 +333,6 @@ namespace MicroRatchet
             state.LocalEcdhRatchetStep0 = null;
             state.LocalEcdhRatchetStep1 = null;
             state.RootKey = null;
-            SaveState(state);
         }
 
         private byte[] SendFirstResponse(State _state)
@@ -363,6 +357,8 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("The first response from the server did not contain the correct nonce");
             }
+
+            state.InitializationNonce = null;
         }
 
         private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step)
@@ -447,7 +443,6 @@ namespace MicroRatchet
             Array.Copy(encryptedPayload, 0, result, encryptedHeader.Length, encryptedPayload.Length);
             Array.Copy(mac, 0, result, encryptedHeader.Length + encryptedPayload.Length, mac.Length);
             if (result.Length > Mtu) throw new InvalidOperationException("Could not create message within MTU");
-            SaveState(state);
             return result;
         }
 
@@ -541,7 +536,6 @@ namespace MicroRatchet
             Array.Copy(decryptedHeader, nonceBytes, 4);
             Cipher.Initialize(key, nonceBytes);
             var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
-            SaveState(state);
             return decryptedInnerPayload;
         }
 
@@ -553,43 +547,45 @@ namespace MicroRatchet
                 _state = State.Initialize(IsClient);
             }
 
+            byte[] sendback;
             if (IsClient)
             {
                 //Debug.WriteLine("\n\n###CLIENT");
                 if (dataReceived == null)
                 {
                     // step 1: send first init request from client
-                    return SendInitializationRequest(_state);
+                    sendback = SendInitializationRequest(_state);
                 }
                 else
                 {
                     var state = (ClientState)_state;
-
+                    var nonce = BigEndianBitConverter.ToInt32(dataReceived);
+                    var type = GetMessageType(nonce);
 
                     if (state.Ratchets.Count == 0)
                     {
-                        var nonce = BigEndianBitConverter.ToInt32(dataReceived);
-                        var type = GetMessageType(nonce);
                         if (type == MessageType.InitializationResponse)
                         {
                             // step 2: init response from server
                             ReceiveInitializationResponse(_state, dataReceived);
-                            return SendFirstClientMessage(_state);
+                            sendback = SendFirstClientMessage(_state);
                         }
                         else
                         {
                             throw new InvalidOperationException("Expected an initialization response but got something else.");
                         }
                     }
-                    else
+                    else if (type == MessageType.Normal)
                     {
                         // step 3: receive first message from server
                         ReceiveFirstResponse(_state, dataReceived);
                         // initialization completed successfully.
-                        return null;
+                        sendback = null;
                     }
-
-                    throw new InvalidOperationException("Unexpected message received during client initialization");
+                    else
+                    {
+                        throw new InvalidOperationException("Unexpected message received during client initialization");
+                    }
                 }
             }
             else
@@ -606,17 +602,22 @@ namespace MicroRatchet
                 {
                     // step 1: client init request
                     var (initializationNonce, remoteEcdhForInit, remotePublicKey) = ReceiveInitializationRequest(_state, dataReceived);
-                    return SendInitializationResponse(_state, initializationNonce, remoteEcdhForInit);
+                    sendback = SendInitializationResponse(_state, initializationNonce, remoteEcdhForInit);
                 }
                 else if (type == MessageType.NormalWithEcdh)
                 {
                     // step 2: first message from client
                     ReceiveFirstMessage(_state, dataReceived);
-                    return SendFirstResponse(_state);
+                    sendback = SendFirstResponse(_state);
                 }
-
-                throw new InvalidOperationException("Unexpected message received during server initialization");
+                else
+                {
+                    throw new InvalidOperationException("Unexpected message received during server initialization");
+                }
             }
+
+            SaveState(_state);
+            return sendback;
         }
 
         public byte[] Receive(byte[] data)
@@ -629,7 +630,9 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            return DeconstructMessage(state, data);
+            var result = DeconstructMessage(state, data);
+            SaveState(state);
+            return result;
         }
 
         public byte[] Send(byte[] payload)
@@ -653,7 +656,9 @@ namespace MicroRatchet
                 step = state.Ratchets.SecondToLast;
             }
 
-            return ConstructMessage(state, payload, false, canIncludeEcdh, step);
+            var result = ConstructMessage(state, payload, false, canIncludeEcdh, step);
+            SaveState(state);
+            return result;
         }
 
         private void SaveState(State state)
