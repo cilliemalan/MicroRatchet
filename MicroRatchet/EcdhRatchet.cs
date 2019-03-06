@@ -36,6 +36,13 @@ namespace MicroRatchet
             {
                 _steps.RemoveRange(0, _steps.Count - RetainCount);
             }
+
+            if(_steps.Count > 2)
+            {
+                // the third-to-last step and older will never again be used for sending
+                var oldstep = _steps[_steps.Count - 3];
+                oldstep.SendingChain.Initialize(null, null, null);
+            }
         }
 
         public IEnumerable<EcdhRatchetStep> Enumerate() =>

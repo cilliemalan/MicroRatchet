@@ -8,7 +8,6 @@ namespace MicroRatchet
     internal class EcdhRatchetStep
     {
         private byte[] _publicKey;
-
         private byte[] KeyData;
         private byte[] NextRootKey;
         public SymmetricRacthet ReceivingChain;
