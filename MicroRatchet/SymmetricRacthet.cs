@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace MicroRatchet
@@ -8,56 +9,8 @@ namespace MicroRatchet
     {
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
-        public List<(int generation, byte[] chain)> ChainKeys;
-
-        public (byte[] key, int generation) RatchetAndTrim(IKeyDerivation kdf)
-        {
-            var (gen, chain) = ChainKeys.Last();
-            var nextKeys = kdf.GenerateKeys(chain, null, 2);
-            var nextGen = gen + 1;
-            ChainKeys.Add((nextGen, nextKeys[0]));
-
-
-            //Debug.WriteLine($"      RTC  #:      {nextGen}");
-            //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-            //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-            //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-
-            TrimChain();
-            return (nextKeys[1], nextGen);
-        }
-
-        public (byte[], int) RetrieveAndTrim(IKeyDerivation kdf, int step)
-        {
-            // get the latest chain key we have that is smaller than the requested generation
-            var (gen, chain) = ChainKeys.OrderByDescending(x => x.generation)
-                .Where(x => x.generation < step)
-                .FirstOrDefault();
-
-            if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
-
-            byte[] key = null;
-            while (gen < step)
-            {
-                //Debug.WriteLine($"      RTC  #:      {gen + 1}");
-                //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-
-                var nextKeys = kdf.GenerateKeys(chain, null, 2);
-                gen++;
-                chain = nextKeys[0];
-                key = nextKeys[1];
-
-                //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-            }
-
-            // store the key as the latest key we've generated
-            ChainKeys.Add((gen, chain));
-
-            TrimChain();
-            return (key, gen);
-        }
-
+        private List<(int generation, byte[] chain)> ChainKeys;
+        
         public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
             //Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
@@ -67,57 +20,122 @@ namespace MicroRatchet
             HeaderKey = headerKey;
             NextHeaderKey = nextHeaderKey;
             ChainKeys = new List<(int generation, byte[] chain)>
-                {
-                    (0, chainKey)
-                };
+            {
+                (0, chainKey)
+            };
         }
 
-        private void TrimChain()
+        public (byte[] key, int generation) Ratchet(IKeyDerivation kdf)
         {
-            // skipping the last chain key, move from the back
-            // and remove all consecutive ratchet keys. When a discontinuity
-            // is found, don't delete it
+            var (gen, chain) = GetLastGeneration();
+            var nextKeys = kdf.GenerateKeys(chain, null, 2);
+            var nextGen = gen + 1;
+            AddGeneration(nextGen, nextKeys[0]);
 
-            if (ChainKeys.Count == 1) return;
-            else if (ChainKeys.Count == 2)
+            //Debug.WriteLine($"      RTC  #:      {nextGen}");
+            //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+            //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+            //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+
+            return (nextKeys[1], nextGen);
+        }
+
+        public (byte[], int) Ratchet(IKeyDerivation kdf, int toGeneration)
+        {
+            // get the latest chain key we have that is smaller than the requested generation
+            var (gen, chain) = GetLastGenerationBefore(toGeneration);
+
+            if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
+
+            byte[] key = null;
+            while (gen < toGeneration)
             {
-                if (ChainKeys[0].generation == ChainKeys[1].generation - 1)
-                {
-                    ChainKeys.RemoveAt(0);
-                }
+                //Debug.WriteLine($"      RTC  #:      {gen + 1}");
+                //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
+
+                var nextKeys = kdf.GenerateKeys(chain, null, 2);
+                gen++;
+                chain = nextKeys[0];
+                key = nextKeys[1];
+                AddGeneration(gen, chain);
+
+                //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
+                //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+            }
+
+            return (key, gen);
+        }
+
+        private void AddGeneration(int gen, byte[] key)
+        {
+            ChainKeys.Add((gen, key));
+        }
+
+        private (int generation, byte[] chain) GetLastGeneration()
+        {
+            return ChainKeys.Last();
+        }
+
+        private (int generation, byte[] chain) GetLastGenerationBefore(int generation)
+        {
+            return ChainKeys.OrderByDescending(x => x.generation)
+                            .Where(x => x.generation < generation)
+                            .FirstOrDefault();
+        }
+
+        public void Serialize(BinaryWriter bw)
+        {
+            WriteBuffer(bw, HeaderKey);
+            WriteBuffer(bw, NextHeaderKey);
+            if (ChainKeys == null)
+            {
+                bw.Write(-1);
             }
             else
             {
-                var toRetain = new List<(int generation, byte[] chain)>();
-
-                int lastGeneration = int.MaxValue;
-                foreach (var ck in ChainKeys.AsEnumerable().OrderByDescending(x => x.generation))
+                bw.Write(ChainKeys.Count);
+                foreach (var (generation, chain) in ChainKeys)
                 {
-                    if (toRetain.Count > 45) break;
-
-                    if (toRetain.Count == 0)
-                    {
-                        toRetain.Add(ck);
-                    }
-                    else
-                    {
-
-                        if (lastGeneration - ck.generation > 1)
-                        {
-                            toRetain.Add(ck);
-                        }
-
-                        lastGeneration = ck.generation;
-                    }
+                    bw.Write(generation);
+                    WriteBuffer(bw, chain);
                 }
-
-                if (toRetain[toRetain.Count - 1] != ChainKeys[0])
-                {
-                    toRetain.Add(ChainKeys[0]);
-                }
-                toRetain.Reverse();
-                ChainKeys = toRetain;
             }
+        }
+
+        public void Deserialize(BinaryReader br)
+        {
+            HeaderKey = ReadBuffer(br);
+            NextHeaderKey = ReadBuffer(br);
+            int numChainKeys = br.ReadInt32();
+            if (numChainKeys >= 0)
+            {
+                ChainKeys = new List<(int, byte[])>();
+                for (int i = 0; i < numChainKeys; i++)
+                {
+                    ChainKeys.Add((br.ReadInt32(), ReadBuffer(br)));
+                }
+            }
+        }
+
+        private static void WriteBuffer(BinaryWriter bw, byte[] data)
+        {
+            if (data == null)
+            {
+                bw.Write(-1);
+            }
+            else
+            {
+                bw.Write(data.Length);
+                if (data.Length != 0) bw.Write(data);
+            }
+        }
+
+        private static byte[] ReadBuffer(BinaryReader br)
+        {
+            int c = br.ReadInt32();
+            if (c < 0) return null;
+            if (c > 0) return br.ReadBytes(c);
+            else return new byte[0];
         }
     }
 }

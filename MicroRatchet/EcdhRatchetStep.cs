@@ -136,54 +136,22 @@ namespace MicroRatchet
 
         public void Serialize(BinaryWriter bw)
         {
-            void SerializeChain(ref SymmetricRacthet se)
-            {
-                WriteBuffer(bw, se.HeaderKey);
-                WriteBuffer(bw, se.NextHeaderKey);
-                if (se.ChainKeys == null)
-                {
-                    bw.Write(-1);
-                }
-                else
-                {
-                    bw.Write(se.ChainKeys.Count);
-                    foreach (var (generation, chain) in se.ChainKeys)
-                    {
-                        bw.Write(generation);
-                        WriteBuffer(bw, chain);
-                    }
-                }
-            }
 
             WriteBuffer(bw, RemotePublicKey);
             WriteBuffer(bw, KeyData);
-            SerializeChain(ref SendingChain);
-            SerializeChain(ref ReceivingChain);
+            SendingChain.Serialize(bw);
+            ReceivingChain.Serialize(bw);
             WriteBuffer(bw, NextRootKey);
         }
 
         public static EcdhRatchetStep Deserialize(BinaryReader br)
         {
-            void DeserializeChain(ref SymmetricRacthet se)
-            {
-                se.HeaderKey = ReadBuffer(br);
-                se.NextHeaderKey = ReadBuffer(br);
-                int numChainKeys = br.ReadInt32();
-                if (numChainKeys >= 0)
-                {
-                    se.ChainKeys = new List<(int, byte[])>();
-                    for (int i = 0; i < numChainKeys; i++)
-                    {
-                        se.ChainKeys.Add((br.ReadInt32(), ReadBuffer(br)));
-                    }
-                }
-            }
 
             var step = new EcdhRatchetStep();
             step.RemotePublicKey = ReadBuffer(br);
             step.KeyData = ReadBuffer(br);
-            DeserializeChain(ref step.SendingChain);
-            DeserializeChain(ref step.ReceivingChain);
+            step.SendingChain.Deserialize(br);
+            step.ReceivingChain.Deserialize(br);
             step.NextRootKey = ReadBuffer(br);
 
             return step;
