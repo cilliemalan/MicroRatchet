@@ -369,8 +369,6 @@ namespace MicroRatchet
 
             var state = _state;
 
-            // this is the hottest line in the send process
-            var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
 
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
@@ -408,6 +406,8 @@ namespace MicroRatchet
             Array.Copy(nonce, header, nonce.Length);
             if (includeEcdh)
             {
+                // this is the hottest line in the send process
+                var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
                 Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
             }
 
