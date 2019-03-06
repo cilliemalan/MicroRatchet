@@ -316,7 +316,7 @@ namespace MicroRatchet
             state.Ratchets.Add(ratchetUsed);
 
             // get the inner payload key from the server receive chain
-            var (key, nr) = ratchetUsed.ReceivingChain.Ratchet(KeyDerivation, 1);
+            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, 1);
 
             // decrypt the inner payload
             var nonceBytes = new byte[4];
@@ -370,7 +370,7 @@ namespace MicroRatchet
             var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
 
             // get the payload key and nonce
-            var (payloadKey, messageNumber) = step.SendingChain.Ratchet(KeyDerivation);
+            var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
             var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
 
@@ -475,7 +475,7 @@ namespace MicroRatchet
                     ratchetUsed = ratchet;
                     break;
                 }
-                else
+                else if (ratchet.ReceivingChain.NextHeaderKey != null)
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
                     Mac.Init(headerKey, nonce, 96);
@@ -527,7 +527,7 @@ namespace MicroRatchet
             }
 
             // get the inner payload key from the server receive chain
-            var (key, nr) = ratchetUsed.ReceivingChain.Ratchet(KeyDerivation, step);
+            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // decrypt the inner payload
             var nonceBytes = new byte[4];

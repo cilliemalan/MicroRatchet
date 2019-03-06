@@ -10,7 +10,7 @@ namespace MicroRatchet
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
         private List<(int generation, byte[] chain)> ChainKeys;
-        
+
         public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
             //Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
@@ -25,12 +25,12 @@ namespace MicroRatchet
             };
         }
 
-        public (byte[] key, int generation) Ratchet(IKeyDerivation kdf)
+        public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
         {
             var (gen, chain) = GetLastGeneration();
             var nextKeys = kdf.GenerateKeys(chain, null, 2);
             var nextGen = gen + 1;
-            AddGeneration(nextGen, nextKeys[0]);
+            SetSingleGeneration(nextGen, nextKeys[0]);
 
             //Debug.WriteLine($"      RTC  #:      {nextGen}");
             //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
@@ -40,7 +40,7 @@ namespace MicroRatchet
             return (nextKeys[1], nextGen);
         }
 
-        public (byte[], int) Ratchet(IKeyDerivation kdf, int toGeneration)
+        public (byte[], int) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
         {
             // get the latest chain key we have that is smaller than the requested generation
             var (gen, chain) = GetLastGenerationBefore(toGeneration);
@@ -71,6 +71,11 @@ namespace MicroRatchet
             ChainKeys.Add((gen, key));
         }
 
+        private void SetSingleGeneration(int gen, byte[] key)
+        {
+            ChainKeys[0] = (gen, key);
+        }
+
         private (int generation, byte[] chain) GetLastGeneration()
         {
             return ChainKeys.Last();
@@ -83,36 +88,55 @@ namespace MicroRatchet
                             .FirstOrDefault();
         }
 
-        public void Serialize(BinaryWriter bw)
+        public void Serialize(BinaryWriter bw, bool isSendingChain)
         {
             WriteBuffer(bw, HeaderKey);
             WriteBuffer(bw, NextHeaderKey);
-            if (ChainKeys == null)
+            if (isSendingChain)
             {
-                bw.Write(-1);
+                var (generation, chain) = ChainKeys[0];
+                bw.Write(generation);
+                WriteBuffer(bw, chain);
             }
             else
             {
-                bw.Write(ChainKeys.Count);
-                foreach (var (generation, chain) in ChainKeys)
+                if (ChainKeys == null)
                 {
-                    bw.Write(generation);
-                    WriteBuffer(bw, chain);
+                    bw.Write(-1);
+                }
+                else
+                {
+                    bw.Write(ChainKeys.Count);
+                    foreach (var (generation, chain) in ChainKeys)
+                    {
+                        bw.Write(generation);
+                        WriteBuffer(bw, chain);
+                    }
                 }
             }
         }
 
-        public void Deserialize(BinaryReader br)
+        public void Deserialize(BinaryReader br, bool isSendingChain)
         {
             HeaderKey = ReadBuffer(br);
             NextHeaderKey = ReadBuffer(br);
-            int numChainKeys = br.ReadInt32();
-            if (numChainKeys >= 0)
+            if (isSendingChain)
             {
-                ChainKeys = new List<(int, byte[])>();
-                for (int i = 0; i < numChainKeys; i++)
+                ChainKeys = new List<(int, byte[])>
                 {
-                    ChainKeys.Add((br.ReadInt32(), ReadBuffer(br)));
+                    (br.ReadInt32(), ReadBuffer(br))
+                };
+            }
+            else
+            {
+                int numChainKeys = br.ReadInt32();
+                if (numChainKeys >= 0)
+                {
+                    ChainKeys = new List<(int, byte[])>();
+                    for (int i = 0; i < numChainKeys; i++)
+                    {
+                        ChainKeys.Add((br.ReadInt32(), ReadBuffer(br)));
+                    }
                 }
             }
         }

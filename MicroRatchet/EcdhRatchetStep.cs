@@ -109,13 +109,15 @@ namespace MicroRatchet
             rootKey = sckeys[0];
             e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
 
+            var nextSendHeaderKey = e0.SendingChain.NextHeaderKey;
+            e0.SendingChain.NextHeaderKey = null;
             var e1 = EcdhRatchetStep.InitializeServer(kdf,
                 keyPair,
                 rootKey,
                 remotePublicKey1,
                 nextKeyPair,
                 receiveHeaderKey,
-                e0.SendingChain.NextHeaderKey);
+                nextSendHeaderKey);
 
             return new[] { e0, e1 };
         }
@@ -125,22 +127,25 @@ namespace MicroRatchet
             var nextRootKey = NextRootKey;
             NextRootKey = null;
 
+            byte[] nextReceiveHeaderKey = ReceivingChain.NextHeaderKey;
+            ReceivingChain.NextHeaderKey = null;
+            byte[] nextSendHeaderKey = SendingChain.NextHeaderKey;
+            SendingChain.NextHeaderKey = null;
             return InitializeServer(kdf,
                 factory.Deserialize(KeyData),
                 nextRootKey,
                 remotePublicKey,
                 keyPair,
-                ReceivingChain.NextHeaderKey,
-                SendingChain.NextHeaderKey);
+                nextReceiveHeaderKey,
+                nextSendHeaderKey);
         }
 
         public void Serialize(BinaryWriter bw)
         {
-
             WriteBuffer(bw, RemotePublicKey);
             WriteBuffer(bw, KeyData);
-            SendingChain.Serialize(bw);
-            ReceivingChain.Serialize(bw);
+            SendingChain.Serialize(bw, true);
+            ReceivingChain.Serialize(bw, false);
             WriteBuffer(bw, NextRootKey);
         }
 
@@ -150,8 +155,8 @@ namespace MicroRatchet
             var step = new EcdhRatchetStep();
             step.RemotePublicKey = ReadBuffer(br);
             step.KeyData = ReadBuffer(br);
-            step.SendingChain.Deserialize(br);
-            step.ReceivingChain.Deserialize(br);
+            step.SendingChain.Deserialize(br, true);
+            step.ReceivingChain.Deserialize(br, false);
             step.NextRootKey = ReadBuffer(br);
 
             return step;
