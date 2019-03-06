@@ -250,6 +250,7 @@ namespace MicroRatchet
                                 receiveHeaderKey, sendHeaderKey,
                                 localStep1EcdhRatchet));
 
+                            state.LocalEcdhForInit = null;
                             SaveState(state);
                         }
                     }
@@ -331,6 +332,12 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("The inner encrypted nonce did not match the initialization nonce.");
             }
+
+            state.FirstSendHeaderKey = null;
+            state.FirstReceiveHeaderKey = null;
+            state.LocalEcdhRatchetStep0 = null;
+            state.LocalEcdhRatchetStep1 = null;
+            state.RootKey = null;
             SaveState(state);
         }
 
