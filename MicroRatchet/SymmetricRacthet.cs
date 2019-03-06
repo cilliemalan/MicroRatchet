@@ -29,6 +29,15 @@ namespace MicroRatchet
             ChainKey = chainKey;
         }
 
+        public void Reset()
+        {
+            HeaderKey = null;
+            NextHeaderKey = null;
+            LostKeys = null;
+            Generation = 0;
+            ChainKey = null;
+        }
+
         public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
         {
             var (gen, chain) = GetLastGeneration();
@@ -156,19 +165,20 @@ namespace MicroRatchet
         {
             if (data == null)
             {
-                bw.Write(-1);
+                bw.Write((byte)255);
             }
             else
             {
-                bw.Write(data.Length);
+                if (data.Length >= 255) throw new InvalidOperationException("The data is too big");
+                bw.Write((byte)data.Length);
                 if (data.Length != 0) bw.Write(data);
             }
         }
 
         private static byte[] ReadBuffer(BinaryReader br)
         {
-            int c = br.ReadInt32();
-            if (c < 0) return null;
+            int c = br.ReadByte();
+            if (c == 255) return null;
             if (c > 0) return br.ReadBytes(c);
             else return new byte[0];
         }

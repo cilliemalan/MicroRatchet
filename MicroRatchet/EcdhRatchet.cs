@@ -41,7 +41,7 @@ namespace MicroRatchet
             {
                 // the third-to-last step and older will never again be used for sending
                 var oldstep = _steps[_steps.Count - 3];
-                oldstep.SendingChain.Initialize(null, null, null);
+                oldstep.ClearKeyData();
             }
         }
 
