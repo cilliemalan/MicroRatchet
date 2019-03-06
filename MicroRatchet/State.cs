@@ -32,9 +32,9 @@ namespace MicroRatchet
             }
         }
 
-        public static State Deserialize(byte[] data)
+        private static State Deserialize(byte[] data)
         {
-            if (data == null || data.Length == 0) return null;
+            if (data == null || data.Length == 0 || data[0] == 0) return null;
             
             var isClient = (data[0] & 0x80) != 0;
             var state = isClient ? (State)new ClientState() : new ServerState();
@@ -53,7 +53,7 @@ namespace MicroRatchet
             return state;
         }
 
-        public byte[] Serialize()
+        private byte[] Serialize()
         {
             using (var ms = new MemoryStream())
             {
@@ -111,6 +111,19 @@ namespace MicroRatchet
             if (c < 0) return null;
             if (c > 0) return br.ReadBytes(c);
             else return new byte[0];
+        }
+
+        public static State Load(IStorageProvider storage)
+        {
+            byte[] buffer = new byte[storage.ColdSpace];
+            storage.ReadCold(0, new ArraySegment<byte>(buffer));
+            return Deserialize(buffer);
+        }
+
+        public void Store(IStorageProvider storage)
+        {
+            var data = Serialize();
+            storage.WriteCold(0, new ArraySegment<byte>(data));
         }
     }
 }

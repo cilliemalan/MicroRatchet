@@ -12,12 +12,14 @@ namespace MicroRatchet
         IDigest Digest => Services.Digest;
         ISignature Signature => Services.Signature;
         IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
-        ISecureStorage SecureStorage => Services.SecureStorage;
         IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
         ICipher Cipher => Services.Cipher;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
         IMac Mac => Services.Mac;
+        IStorageProvider Storage => Services.Storage;
+
+        private State _state;
 
         public IServices Services { get; }
         public int Mtu { get; }
@@ -541,7 +543,7 @@ namespace MicroRatchet
 
         public byte[] ProcessInitialization(byte[] dataReceived = null)
         {
-            var _state = State.Deserialize(SecureStorage.LoadAsync());
+            _state = LoadState();
             if (_state == null)
             {
                 _state = State.Initialize(IsClient);
@@ -615,30 +617,27 @@ namespace MicroRatchet
                     throw new InvalidOperationException("Unexpected message received during server initialization");
                 }
             }
-
-            SaveState(_state);
+            
             return sendback;
         }
 
         public byte[] Receive(byte[] data)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
-            var state = State.Deserialize(SecureStorage.LoadAsync());
+            var state = LoadState();
 
             if (state == null || state.Ratchets.IsEmpty)
             {
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            var result = DeconstructMessage(state, data);
-            SaveState(state);
-            return result;
+            return DeconstructMessage(state, data);
         }
 
         public byte[] Send(byte[] payload)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
-            var state = State.Deserialize(SecureStorage.LoadAsync());
+            var state = LoadState();
 
             if (state == null || state.Ratchets.IsEmpty)
             {
@@ -656,16 +655,24 @@ namespace MicroRatchet
                 step = state.Ratchets.SecondToLast;
             }
 
-            var result = ConstructMessage(state, payload, false, canIncludeEcdh, step);
-            SaveState(state);
-            return result;
+            return ConstructMessage(state, payload, false, canIncludeEcdh, step);
         }
 
-        private void SaveState(State state)
+        private State LoadState()
         {
-            if (state != null)
+            if(_state == null)
             {
-                SecureStorage.StoreAsync(state.Serialize());
+                _state = State.Load(Storage);
+            }
+
+            return _state;
+        }
+
+        public void SaveState()
+        {
+            if (_state != null)
+            {
+                _state.Store(Storage);
             }
         }
 

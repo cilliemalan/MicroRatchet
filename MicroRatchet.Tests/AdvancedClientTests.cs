@@ -69,8 +69,10 @@ namespace MicroRatchet.Tests
             Assert.Equal(smessage5, cr5);
             Assert.Equal(smessage6, cr6);
 
-            var cs = State.Deserialize(client.Services.SecureStorage.LoadAsync());
-            var ss = State.Deserialize(server.Services.SecureStorage.LoadAsync());
+            client.SaveState();
+            server.SaveState();
+            var cs = State.Load(client.Services.Storage);
+            var ss = State.Load(server.Services.Storage);
             Assert.Equal(5, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
@@ -191,9 +193,7 @@ namespace MicroRatchet.Tests
                     }
                 }
             }
-
-            var clientState = State.Deserialize(client.Services.SecureStorage.LoadAsync());
-            var serverState = State.Deserialize(server.Services.SecureStorage.LoadAsync());
+            
             Assert.All(messagesReceivedByClient, message => serverMessages.Contains(message));
             Assert.All(messagesReceivedByServer, message => clientMessages.Contains(message));
         }
@@ -214,6 +214,8 @@ namespace MicroRatchet.Tests
 
             Assert.Null(lastResult);
 
+            client.SaveState();
+            server.SaveState();
             return (new MicroRatchetClient(clientServices, true, 80), new MicroRatchetClient(serverServices, false, 80));
         }
     }

@@ -9,7 +9,7 @@ namespace MicroRatchet
         IDigest Digest { get; }
         ISignature Signature { get; }
         IRandomNumberGenerator RandomNumberGenerator { get; }
-        ISecureStorage SecureStorage { get; }
+        IStorageProvider Storage { get; }
         IKeyAgreementFactory KeyAgreementFactory { get; }
         ICipher Cipher { get; }
         IVerifierFactory VerifierFactory { get; }
