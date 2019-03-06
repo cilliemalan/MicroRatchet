@@ -367,7 +367,7 @@ namespace MicroRatchet
             var state = _state;
 
             // this is the hottest line in the send process
-            var ratchetPublicKey = KeyAgreementFactory.Deserialize(step.PrivateKey).GetPublicKey();
+            var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
 
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetAndTrim(KeyDerivation);

@@ -126,36 +126,37 @@ namespace MicroRatchet
             }
         }
 
-        public int Generation;
-        public byte[] PublicKey;
-        public byte[] PrivateKey;
+        private byte[] _publicKey;
+
+        private byte[] KeyData;
+        private byte[] NextRootKey;
+        private byte[] RemotePublicKey;
         public Chain ReceivingChain;
         public Chain SendingChain;
-        public byte[] NextRootKey;
 
         private EcdhRatchetStep() { }
 
         public static EcdhRatchetStep InitializeServer(IKeyDerivation kdf,
             IKeyAgreement previousKeyPair,
-            byte[] rootKey, byte[] publicKey, IKeyAgreement keyPair,
+            byte[] rootKey, byte[] remotePublicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
         {
             //Debug.WriteLine($"--Initialize ECDH Ratchet");
             //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
-            //Debug.WriteLine($"ECDH Public:        {Convert.ToBase64String(publicKey ?? new byte[0])}");
+            //Debug.WriteLine($"ECDH Public:        {Convert.ToBase64String(remotePublicKey ?? new byte[0])}");
             //Debug.WriteLine($"Curr ECDH Private: ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e = new EcdhRatchetStep
             {
-                Generation = 0,
-                PublicKey = publicKey,
-                PrivateKey = keyPair.Serialize(),
+                RemotePublicKey = remotePublicKey,
+                KeyData = keyPair.Serialize(),
+                _publicKey = keyPair.GetPublicKey()
             };
 
             // receive chain
             //Debug.WriteLine("  --Receiving Chain");
-            var rcinfo = previousKeyPair.DeriveKey(publicKey);
+            var rcinfo = previousKeyPair.DeriveKey(remotePublicKey);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
             var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3);
@@ -167,7 +168,7 @@ namespace MicroRatchet
 
             // send chain
             //Debug.WriteLine("  --Sending Chain");
-            var scinfo = keyPair.DeriveKey(publicKey);
+            var scinfo = keyPair.DeriveKey(remotePublicKey);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
@@ -184,22 +185,32 @@ namespace MicroRatchet
             return e;
         }
 
+        public byte[] GetPublicKey(IKeyAgreementFactory kexfac)
+        {
+            if (_publicKey == null)
+            {
+                _publicKey = kexfac.Deserialize(KeyData).GetPublicKey();
+            }
+
+            return _publicKey;
+        }
+
         public static EcdhRatchetStep[] InitializeClient(IKeyDerivation kdf,
-            byte[] rootKey, byte[] publicKey0, byte[] publicKey1, IKeyAgreement keyPair,
+            byte[] rootKey, byte[] remotePublicKey0, byte[] remotePublicKey1, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey,
             IKeyAgreement nextKeyPair)
         {
             //Debug.WriteLine($"--Initialize ECDH Ratchet CLIENT");
             //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(publicKey0)}");
-            //Debug.WriteLine($"ECDH Public 1:      {Convert.ToBase64String(publicKey1)}");
+            //Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(remotePublicKey0)}");
+            //Debug.WriteLine($"ECDH Public 1:      {Convert.ToBase64String(remotePublicKey1)}");
             //Debug.WriteLine($"ECDH Private:      ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e0 = new EcdhRatchetStep
             {
-                Generation = 0,
-                PublicKey = publicKey0,
-                PrivateKey = keyPair.Serialize(),
+                RemotePublicKey = remotePublicKey0,
+                KeyData = keyPair.Serialize(),
+                _publicKey = keyPair.GetPublicKey()
             };
 
             // receive chain doesn't exist
@@ -207,7 +218,7 @@ namespace MicroRatchet
 
             // send chain
             //Debug.WriteLine("  --Sending Chain");
-            var scinfo = keyPair.DeriveKey(publicKey0);
+            var scinfo = keyPair.DeriveKey(remotePublicKey0);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
@@ -224,7 +235,7 @@ namespace MicroRatchet
             var e1 = EcdhRatchetStep.InitializeServer(kdf,
                 keyPair,
                 rootKey,
-                publicKey1,
+                remotePublicKey1,
                 nextKeyPair,
                 receiveHeaderKey,
                 e0.SendingChain.NextHeaderKey);
@@ -232,12 +243,12 @@ namespace MicroRatchet
             return new[] { e0, e1 };
         }
 
-        public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, byte[] publicKey, IKeyAgreement keyPair)
+        public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, byte[] remotePublicKey, IKeyAgreement keyPair)
         {
             return EcdhRatchetStep.InitializeServer(kdf,
-                factory.Deserialize(PrivateKey),
+                factory.Deserialize(KeyData),
                 NextRootKey,
-                publicKey,
+                remotePublicKey,
                 keyPair,
                 ReceivingChain.NextHeaderKey,
                 SendingChain.NextHeaderKey);
@@ -264,9 +275,8 @@ namespace MicroRatchet
                 }
             }
 
-            bw.Write(Generation);
-            WriteBuffer(bw, PublicKey);
-            WriteBuffer(bw, PrivateKey);
+            WriteBuffer(bw, RemotePublicKey);
+            WriteBuffer(bw, KeyData);
             SerializeChain(ref SendingChain);
             SerializeChain(ref ReceivingChain);
             WriteBuffer(bw, NextRootKey);
@@ -290,9 +300,8 @@ namespace MicroRatchet
             }
 
             var step = new EcdhRatchetStep();
-            step.Generation = br.ReadInt32();
-            step.PublicKey = ReadBuffer(br);
-            step.PrivateKey = ReadBuffer(br);
+            step.RemotePublicKey = ReadBuffer(br);
+            step.KeyData = ReadBuffer(br);
             DeserializeChain(ref step.SendingChain);
             DeserializeChain(ref step.ReceivingChain);
             step.NextRootKey = ReadBuffer(br);
