@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParty", "ThirdParty", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wolfssl", "thirdParty\wolfssl.vcxproj", "{73973223-5EE8-41CA-8E88-1D60E89A237B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "microratchetwolfssl", "microratchetwolfssl\microratchetwolfssl.vcxproj", "{30FE0529-081B-460F-BECE-47F7375D6018}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -91,6 +93,16 @@ Global
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|x64.Build.0 = Release|x64
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|x86.ActiveCfg = Release|Win32
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|x86.Build.0 = Release|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Debug|x64.ActiveCfg = Debug|x64
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Debug|x64.Build.0 = Debug|x64
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Debug|x86.ActiveCfg = Debug|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Debug|x86.Build.0 = Debug|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Release|Any CPU.ActiveCfg = Release|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Release|x64.ActiveCfg = Release|x64
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Release|x64.Build.0 = Release|x64
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Release|x86.ActiveCfg = Release|Win32
+		{30FE0529-081B-460F-BECE-47F7375D6018}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -102,6 +114,7 @@ Global
 		{2F4B9A57-32F2-43EB-82D1-6107C0BC75CA} = {341D2A20-9590-4C29-9CFE-D14D5364D787}
 		{5F7E5C77-A8E1-495C-AF60-A98BA4160182} = {341D2A20-9590-4C29-9CFE-D14D5364D787}
 		{73973223-5EE8-41CA-8E88-1D60E89A237B} = {CC71FC62-5213-45D3-B637-C1009B343A17}
+		{30FE0529-081B-460F-BECE-47F7375D6018} = {341D2A20-9590-4C29-9CFE-D14D5364D787}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {110AE236-E5CF-49FF-81A2-9BEE5E109CC7}
