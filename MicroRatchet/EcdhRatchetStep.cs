@@ -11,7 +11,6 @@ namespace MicroRatchet
 
         private byte[] KeyData;
         private byte[] NextRootKey;
-        private byte[] RemotePublicKey;
         public SymmetricRacthet ReceivingChain;
         public SymmetricRacthet SendingChain;
 
@@ -30,7 +29,6 @@ namespace MicroRatchet
 
             var e = new EcdhRatchetStep
             {
-                RemotePublicKey = remotePublicKey,
                 KeyData = keyPair.Serialize(),
                 _publicKey = keyPair.GetPublicKey()
             };
@@ -89,7 +87,6 @@ namespace MicroRatchet
 
             var e0 = new EcdhRatchetStep
             {
-                RemotePublicKey = remotePublicKey0,
                 KeyData = keyPair.Serialize(),
                 _publicKey = keyPair.GetPublicKey()
             };
@@ -111,7 +108,7 @@ namespace MicroRatchet
 
             var nextSendHeaderKey = e0.SendingChain.NextHeaderKey;
             e0.SendingChain.NextHeaderKey = null;
-            var e1 = EcdhRatchetStep.InitializeServer(kdf,
+            var e1 = InitializeServer(kdf,
                 keyPair,
                 rootKey,
                 remotePublicKey1,
@@ -124,25 +121,24 @@ namespace MicroRatchet
 
         public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, byte[] remotePublicKey, IKeyAgreement keyPair)
         {
-            var nextRootKey = NextRootKey;
-            NextRootKey = null;
-
-            byte[] nextReceiveHeaderKey = ReceivingChain.NextHeaderKey;
-            ReceivingChain.NextHeaderKey = null;
-            byte[] nextSendHeaderKey = SendingChain.NextHeaderKey;
-            SendingChain.NextHeaderKey = null;
-            return InitializeServer(kdf,
+            var nextStep = InitializeServer(kdf,
                 factory.Deserialize(KeyData),
-                nextRootKey,
+                NextRootKey,
                 remotePublicKey,
                 keyPair,
-                nextReceiveHeaderKey,
-                nextSendHeaderKey);
+                ReceivingChain.NextHeaderKey,
+                SendingChain.NextHeaderKey);
+            
+            NextRootKey = null;
+            KeyData = null;
+            ReceivingChain.NextHeaderKey = null;
+            SendingChain.NextHeaderKey = null;
+
+            return nextStep;
         }
 
         public void Serialize(BinaryWriter bw)
         {
-            WriteBuffer(bw, RemotePublicKey);
             WriteBuffer(bw, KeyData);
             SendingChain.Serialize(bw, true);
             ReceivingChain.Serialize(bw, false);
@@ -153,7 +149,6 @@ namespace MicroRatchet
         {
 
             var step = new EcdhRatchetStep();
-            step.RemotePublicKey = ReadBuffer(br);
             step.KeyData = ReadBuffer(br);
             step.SendingChain.Deserialize(br, true);
             step.ReceivingChain.Deserialize(br, false);
