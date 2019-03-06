@@ -68,7 +68,7 @@ namespace MicroRatchet
             }
         }
 
-        private void ReceiveInitializationRequest(State _state, byte[] data)
+        private (byte[] initializationNonce, byte[] remoteEcdhForInit, byte[] remotePublicKey) ReceiveInitializationRequest(State _state, byte[] data)
         {
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive an init request.");
 
@@ -78,22 +78,24 @@ namespace MicroRatchet
                 using (var br = new BinaryReader(ms))
                 {
                     // read stuff
-                    state.InitializationNonce = br.ReadBytes(32);
-                    state.RemotePublicKey = br.ReadBytes(32);
-                    state.RemoteEcdhForInit = br.ReadBytes(32);
+                    var initializationNonce = br.ReadBytes(32);
+                    var remotePublicKey = br.ReadBytes(32);
+                    var remoteEcdhForInit = br.ReadBytes(32);
 
-                    var verifier = VerifierFactory.Create(state.RemotePublicKey);
+                    var verifier = VerifierFactory.Create(remotePublicKey);
                     if (!verifier.VerifySignedMessage(data))
                     {
                         throw new InvalidOperationException("The signature was invalid");
                     }
 
                     SaveState(state);
+
+                    return (initializationNonce, remoteEcdhForInit, remotePublicKey);
                 }
             }
         }
 
-        private byte[] SendInitializationResponse(State _state)
+        private byte[] SendInitializationResponse(State _state, byte[] initializationNonce, byte[] remoteEcdhForInit)
         {
             // message format:
             // new nonce(32), ecdh pubkey(32),
@@ -102,22 +104,18 @@ namespace MicroRatchet
 
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
 
-            if (state == null || state.RemotePublicKey == null) throw new InvalidOperationException("Could not send initialization response because the state has not been initialized.");
-            if (state.RemoteEcdhForInit == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral key has been deleted. Perhaps the initialization response has already been sent.");
-            if (state.InitializationNonce == null) throw new InvalidOperationException("Could not send initialization response because the ephemeral nonce has been deleted. Perhaps the initialization response has already been sent.");
-
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(32);
             serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
             state.NextInitializationNonce = serverNonce;
             var tempEcdh = KeyAgreementFactory.GenerateNew();
             var tempEcdhPubkey = tempEcdh.GetPublicKey();
-            var sharedSecret = tempEcdh.DeriveKey(state.RemoteEcdhForInit);
+            var sharedSecret = tempEcdh.DeriveKey(remoteEcdhForInit);
 
             // generate server ECDH for root key and root key
             var serverEcdh = KeyAgreementFactory.GenerateNew();
-            state.LocalEcdhForInit = serverEcdh.Serialize();
-            var rootPreKey = serverEcdh.DeriveKey(state.RemoteEcdhForInit);
+            var LocalEcdhForInit = serverEcdh.Serialize();
+            var rootPreKey = serverEcdh.DeriveKey(remoteEcdhForInit);
             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
             state.RootKey = genKeys[0];
             state.FirstSendHeaderKey = genKeys[1];
@@ -147,7 +145,7 @@ namespace MicroRatchet
                     {
                         using (BinaryWriter payloadWriter = new BinaryWriter(payloadStream))
                         {
-                            payloadWriter.Write(state.InitializationNonce);
+                            payloadWriter.Write(initializationNonce);
                             payloadWriter.Write(Signature.PublicKey);
                             payloadWriter.Write(serverEcdh.GetPublicKey());
                             payloadWriter.Write(serverEcdhRatchet0.GetPublicKey());
@@ -240,12 +238,12 @@ namespace MicroRatchet
                             var localStep1EcdhRatchet = KeyAgreementFactory.GenerateNew();
 
                             // initialize client root key and ecdh ratchet
-                            state.RemoteEcdhForInit = rootEcdh;
+                            var RemoteEcdhForInit = rootEcdh;
                             var rootPreKey = localEcdh.DeriveKey(rootEcdh);
                             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
-                            var rootKey = state.RootKey = genKeys[0];
-                            var receiveHeaderKey = state.FirstReceiveHeaderKey = genKeys[1];
-                            var sendHeaderKey = state.FirstSendHeaderKey = genKeys[2];
+                            var rootKey = genKeys[0];
+                            var receiveHeaderKey = genKeys[1];
+                            var sendHeaderKey = genKeys[2];
 
                             state.Ratchets.Add(EcdhRatchetStep.InitializeClient(KeyDerivation, rootKey,
                                 remoteRatchetEcdh0, remoteRatchetEcdh1, localStep0EcdhRatchet,
@@ -561,7 +559,7 @@ namespace MicroRatchet
                     var state = (ClientState)_state;
 
 
-                    if (state.RemoteEcdhForInit == null)
+                    if (state.Ratchets.Count == 0)
                     {
                         var nonce = BigEndianBitConverter.ToInt32(dataReceived);
                         var type = GetMessageType(nonce);
@@ -597,20 +595,13 @@ namespace MicroRatchet
                 var nonce = BigEndianBitConverter.ToInt32(dataReceived);
                 var type = GetMessageType(nonce);
 
-                if (state.InitializationNonce == null)
+                if (type == MessageType.InitializationRequest)
                 {
-                    if (type == MessageType.InitializationRequest)
-                    {
-                        // step 1: client init request
-                        ReceiveInitializationRequest(_state, dataReceived);
-                        return SendInitializationResponse(_state);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Expected initialization request but got something else.");
-                    }
+                    // step 1: client init request
+                    var (initializationNonce, remoteEcdhForInit, remotePublicKey) = ReceiveInitializationRequest(_state, dataReceived);
+                    return SendInitializationResponse(_state, initializationNonce, remoteEcdhForInit);
                 }
-                else
+                else if (type == MessageType.NormalWithEcdh)
                 {
                     // step 2: first message from client
                     ReceiveFirstMessage(_state, dataReceived);

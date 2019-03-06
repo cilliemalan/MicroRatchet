@@ -10,15 +10,8 @@ namespace MicroRatchet
     {
         protected abstract int Version { get; }
         protected abstract bool IsClient { get; }
-
-        // shared fields
-        public long MessageCounter;
-        public byte[] RemotePublicKey;
-        public byte[] LocalEcdhForInit;
-        public byte[] RemoteEcdhForInit;
-        public byte[] RootKey;
-        public byte[] FirstSendHeaderKey;
-        public byte[] FirstReceiveHeaderKey;
+        
+        // after init
         public EcdhRatchet Ratchets = new EcdhRatchet();
 
         protected State()
@@ -91,25 +84,11 @@ namespace MicroRatchet
 
         protected virtual void ReadPayload(BinaryReader br)
         {
-            MessageCounter = br.ReadInt64();
-            RemotePublicKey = ReadBuffer(br);
-            LocalEcdhForInit = ReadBuffer(br);
-            RemoteEcdhForInit = ReadBuffer(br);
-            RootKey = ReadBuffer(br);
-            FirstSendHeaderKey = ReadBuffer(br);
-            FirstReceiveHeaderKey = ReadBuffer(br);
             Ratchets = EcdhRatchet.Deserialize(br);
         }
 
         protected virtual void WritePayload(BinaryWriter bw)
         {
-            bw.Write(MessageCounter);
-            WriteBuffer(bw, RemotePublicKey);
-            WriteBuffer(bw, LocalEcdhForInit);
-            WriteBuffer(bw, RemoteEcdhForInit);
-            WriteBuffer(bw, RootKey);
-            WriteBuffer(bw, FirstSendHeaderKey);
-            WriteBuffer(bw, FirstReceiveHeaderKey);
             Ratchets.Serialize(bw);
         }
 

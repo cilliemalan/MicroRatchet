@@ -9,22 +9,25 @@ namespace MicroRatchet
     {
         protected override int Version => 1;
         protected override bool IsClient => true;
-        
+
+        // used throughout init
         public byte[] InitializationNonce;
-        public byte[] publicKeySignature;
+
+        // used twice
+        public byte[] LocalEcdhForInit;
 
         protected override void ReadPayload(BinaryReader br)
         {
             base.ReadPayload(br);
             InitializationNonce = ReadBuffer(br);
-            publicKeySignature = ReadBuffer(br);
+            LocalEcdhForInit = ReadBuffer(br);
         }
 
         protected override void WritePayload(BinaryWriter bw)
         {
             base.WritePayload(bw);
             WriteBuffer(bw, InitializationNonce);
-            WriteBuffer(bw, publicKeySignature);
+            WriteBuffer(bw, LocalEcdhForInit);
         }
     }
 }

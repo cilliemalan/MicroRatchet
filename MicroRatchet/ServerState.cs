@@ -9,29 +9,42 @@ namespace MicroRatchet
     {
         protected override int Version => 1;
         protected override bool IsClient => false;
-        
-        public byte[] InitializationNonce;
-        public byte[] NextInitializationNonce;
 
+        // not used at all
+        //public byte[] RemotePublicKey;
+
+        // used transiently
+        //public byte[] InitializationNonce;
+        //public byte[] RemoteEcdhForInit;
+
+        // used only once
+        public byte[] RootKey;
+        public byte[] FirstSendHeaderKey;
+        public byte[] FirstReceiveHeaderKey;
         public byte[] LocalEcdhRatchetStep0;
         public byte[] LocalEcdhRatchetStep1;
+        public byte[] NextInitializationNonce;
 
         protected override void ReadPayload(BinaryReader br)
         {
             base.ReadPayload(br);
-            InitializationNonce = ReadBuffer(br);
-            NextInitializationNonce = ReadBuffer(br);
+            RootKey = ReadBuffer(br);
+            FirstSendHeaderKey = ReadBuffer(br);
+            FirstReceiveHeaderKey = ReadBuffer(br);
             LocalEcdhRatchetStep0 = ReadBuffer(br);
             LocalEcdhRatchetStep1 = ReadBuffer(br);
+            NextInitializationNonce = ReadBuffer(br);
         }
 
         protected override void WritePayload(BinaryWriter bw)
         {
             base.WritePayload(bw);
-            WriteBuffer(bw, InitializationNonce);
-            WriteBuffer(bw, NextInitializationNonce);
+            WriteBuffer(bw, RootKey);
+            WriteBuffer(bw, FirstSendHeaderKey);
+            WriteBuffer(bw, FirstReceiveHeaderKey);
             WriteBuffer(bw, LocalEcdhRatchetStep0);
             WriteBuffer(bw, LocalEcdhRatchetStep1);
+            WriteBuffer(bw, NextInitializationNonce);
         }
     }
 }

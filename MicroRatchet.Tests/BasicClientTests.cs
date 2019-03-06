@@ -38,14 +38,7 @@ namespace MicroRatchet.Tests
             var responsePacket = server.ProcessInitialization(clientInitPacket);
             ClientState clientState = (ClientState)State.Deserialize(clientServices.SecureStorage.LoadAsync());
             ServerState serverState = (ServerState)State.Deserialize(serverServices.SecureStorage.LoadAsync());
-
-            Assert.Equal(clientState.InitializationNonce, serverState.InitializationNonce);
-
-            Assert.Equal(clientServices.Signature.PublicKey, serverState.RemotePublicKey);
-
-            Assert.Equal(clientServices.KeyAgreementFactory.Deserialize(clientState.LocalEcdhForInit).DeriveKey(
-                 serverServices.KeyAgreementFactory.Deserialize(serverState.LocalEcdhForInit).GetPublicKey()),
-                 serverServices.KeyAgreementFactory.Deserialize(serverState.LocalEcdhForInit).DeriveKey(serverState.RemoteEcdhForInit));
+            
         }
 
         [Fact]
@@ -62,10 +55,7 @@ namespace MicroRatchet.Tests
             var firstPacket = client.ProcessInitialization(responsePacket);
             ClientState clientState = (ClientState)State.Deserialize(clientServices.SecureStorage.LoadAsync());
             ServerState serverState = (ServerState)State.Deserialize(serverServices.SecureStorage.LoadAsync());
-
-            Assert.Equal(clientState.RootKey, serverState.RootKey);
-            Assert.Equal(clientState.FirstSendHeaderKey, serverState.FirstReceiveHeaderKey);
-            Assert.Equal(clientState.FirstReceiveHeaderKey, serverState.FirstSendHeaderKey);
+            
             Assert.Equal(clientState.Ratchets[0].SendingChain.HeaderKey, serverState.FirstReceiveHeaderKey);
             Assert.Equal(clientState.Ratchets[1].ReceivingChain.HeaderKey, serverState.FirstSendHeaderKey);
         }
@@ -89,17 +79,6 @@ namespace MicroRatchet.Tests
             Assert.NotNull(firstResponse);
             Assert.Equal(2, clientState.Ratchets.Count);
             Assert.Equal(1, serverState.Ratchets.Count);
-
-            //Assert.NotNull(clientState.Ratchets[0].SendingChain.PublicKey);
-            //Assert.NotNull(clientState.Ratchets[0].ReceivingChain.PublicKey);
-            //Assert.Null(serverState.Ratchets[0].SendingChain.PublicKey);
-            //Assert.NotNull(serverState.Ratchets[0].ReceivingChain.PublicKey);
-            //Assert.NotNull(serverState.Ratchets[1].SendingChain.PublicKey);
-            //Assert.Null(serverState.Ratchets[1].ReceivingChain.PublicKey);
-
-            //Assert.Equal(clientState.Ratchets[0].SendingChain.ChainKeys.Single(x => x.generation == 0).chain, serverState.Ratchets[0].ReceiveHalf.ChainKeys.Single(x => x.generation == 0).chain);
-            //Assert.Equal(clientState.Ratchets[0].SendingChain.ChainKeys.Single(x => x.generation == 1).chain, serverState.Ratchets[0].ReceiveHalf.ChainKeys.Single(x => x.generation == 1).chain);
-            //Assert.Equal(clientState.Ratchets[0].ReceivingChain.ChainKeys.Single(x => x.generation == 0).chain, serverState.Ratchets[1].SendHalf.ChainKeys.Single(x => x.generation == 0).chain);
         }
 
         [Fact]
