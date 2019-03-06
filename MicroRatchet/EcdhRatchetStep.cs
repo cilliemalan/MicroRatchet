@@ -1,138 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace MicroRatchet
 {
     internal class EcdhRatchetStep
     {
-        public struct Chain
-        {
-            public byte[] HeaderKey;
-            public byte[] NextHeaderKey;
-            public List<(int generation, byte[] chain)> ChainKeys;
-
-            public (byte[] key, int generation) RatchetAndTrim(IKeyDerivation kdf)
-            {
-                var (gen, chain) = ChainKeys.Last();
-                var nextKeys = kdf.GenerateKeys(chain, null, 2);
-                var nextGen = gen + 1;
-                ChainKeys.Add((nextGen, nextKeys[0]));
-
-
-                //Debug.WriteLine($"      RTC  #:      {nextGen}");
-                //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-                //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-
-                TrimChain();
-                return (nextKeys[1], nextGen);
-            }
-
-            public (byte[], int) RetrieveAndTrim(IKeyDerivation kdf, int step)
-            {
-                // get the latest chain key we have that is smaller than the requested generation
-                var (gen, chain) = ChainKeys.OrderByDescending(x => x.generation)
-                    .Where(x => x.generation < step)
-                    .FirstOrDefault();
-
-                if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
-
-                byte[] key = null;
-                while (gen < step)
-                {
-                    //Debug.WriteLine($"      RTC  #:      {gen + 1}");
-                    //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
-
-                    var nextKeys = kdf.GenerateKeys(chain, null, 2);
-                    gen++;
-                    chain = nextKeys[0];
-                    key = nextKeys[1];
-
-                    //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                    //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
-                }
-
-                // store the key as the latest key we've generated
-                ChainKeys.Add((gen, chain));
-
-                TrimChain();
-                return (key, gen);
-            }
-
-            public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
-            {
-                //Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
-                //Debug.WriteLine($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
-                //Debug.WriteLine($"  C Key NHK:      {Convert.ToBase64String(nextHeaderKey)}");
-
-                HeaderKey = headerKey;
-                NextHeaderKey = nextHeaderKey;
-                ChainKeys = new List<(int generation, byte[] chain)>
-                {
-                    (0, chainKey)
-                };
-            }
-
-            private void TrimChain()
-            {
-                // skipping the last chain key, move from the back
-                // and remove all consecutive ratchet keys. When a discontinuity
-                // is found, don't delete it
-
-                if (ChainKeys.Count == 1) return;
-                else if (ChainKeys.Count == 2)
-                {
-                    if (ChainKeys[0].generation == ChainKeys[1].generation - 1)
-                    {
-                        ChainKeys.RemoveAt(0);
-                    }
-                }
-                else
-                {
-                    var toRetain = new List<(int generation, byte[] chain)>();
-
-                    int lastGeneration = int.MaxValue;
-                    foreach (var ck in ChainKeys.AsEnumerable().OrderByDescending(x => x.generation))
-                    {
-                        if (toRetain.Count > 45) break;
-
-                        if (toRetain.Count == 0)
-                        {
-                            toRetain.Add(ck);
-                        }
-                        else
-                        {
-
-                            if (lastGeneration - ck.generation > 1)
-                            {
-                                toRetain.Add(ck);
-                            }
-
-                            lastGeneration = ck.generation;
-                        }
-                    }
-
-                    if (toRetain[toRetain.Count - 1] != ChainKeys[0])
-                    {
-                        toRetain.Add(ChainKeys[0]);
-                    }
-                    toRetain.Reverse();
-                    ChainKeys = toRetain;
-                }
-            }
-        }
-
         private byte[] _publicKey;
 
         private byte[] KeyData;
         private byte[] NextRootKey;
         private byte[] RemotePublicKey;
-        public Chain ReceivingChain;
-        public Chain SendingChain;
+        public SymmetricRacthet ReceivingChain;
+        public SymmetricRacthet SendingChain;
 
         private EcdhRatchetStep() { }
 
@@ -227,7 +108,7 @@ namespace MicroRatchet
             //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
-            
+
             var e1 = EcdhRatchetStep.InitializeServer(kdf,
                 keyPair,
                 rootKey,
@@ -255,7 +136,7 @@ namespace MicroRatchet
 
         public void Serialize(BinaryWriter bw)
         {
-            void SerializeChain(ref Chain se)
+            void SerializeChain(ref SymmetricRacthet se)
             {
                 WriteBuffer(bw, se.HeaderKey);
                 WriteBuffer(bw, se.NextHeaderKey);
@@ -283,7 +164,7 @@ namespace MicroRatchet
 
         public static EcdhRatchetStep Deserialize(BinaryReader br)
         {
-            void DeserializeChain(ref Chain se)
+            void DeserializeChain(ref SymmetricRacthet se)
             {
                 se.HeaderKey = ReadBuffer(br);
                 se.NextHeaderKey = ReadBuffer(br);
