@@ -227,11 +227,7 @@ namespace MicroRatchet
             //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
-
-            // next root key
-            //Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
-            e0.NextRootKey = rootKey;
-
+            
             var e1 = EcdhRatchetStep.InitializeServer(kdf,
                 keyPair,
                 rootKey,
@@ -245,9 +241,12 @@ namespace MicroRatchet
 
         public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, byte[] remotePublicKey, IKeyAgreement keyPair)
         {
-            return EcdhRatchetStep.InitializeServer(kdf,
+            var nextRootKey = NextRootKey;
+            NextRootKey = null;
+
+            return InitializeServer(kdf,
                 factory.Deserialize(KeyData),
-                NextRootKey,
+                nextRootKey,
                 remotePublicKey,
                 keyPair,
                 ReceivingChain.NextHeaderKey,
