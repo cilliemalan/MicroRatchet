@@ -7,9 +7,14 @@ namespace MicroRatchet
 {
     internal struct SymmetricRacthet
     {
+        public const int NumLostKeysToStore = 10;
+
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
-        private List<(int generation, byte[] chain)> ChainKeys;
+        private Dictionary<int, byte[]> LostKeys;
+
+        private int Generation;
+        private byte[] ChainKey;
 
         public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
@@ -19,10 +24,9 @@ namespace MicroRatchet
 
             HeaderKey = headerKey;
             NextHeaderKey = nextHeaderKey;
-            ChainKeys = new List<(int generation, byte[] chain)>
-            {
-                (0, chainKey)
-            };
+            LostKeys = new Dictionary<int, byte[]>();
+            Generation = 0;
+            ChainKey = chainKey;
         }
 
         public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
@@ -42,10 +46,20 @@ namespace MicroRatchet
 
         public (byte[], int) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
         {
+            // check lost keys
+            if (LostKeys.TryGetValue(toGeneration, out var lostKey))
+            {
+                return (lostKey, toGeneration);
+            }
+
             // get the latest chain key we have that is smaller than the requested generation
             var (gen, chain) = GetLastGenerationBefore(toGeneration);
 
-            if (chain == null) throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
+            if (chain == null)
+            {
+                throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
+            }
+
 
             byte[] key = null;
             while (gen < toGeneration)
@@ -57,60 +71,62 @@ namespace MicroRatchet
                 gen++;
                 chain = nextKeys[0];
                 key = nextKeys[1];
-                AddGeneration(gen, chain);
+
+                if (gen != toGeneration)
+                {
+                    LostKeys[gen] = key;
+                }
 
                 //Debug.WriteLine($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
                 //Debug.WriteLine($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
             }
 
+            SetSingleGeneration(gen, chain);
             return (key, gen);
         }
 
-        private void AddGeneration(int gen, byte[] key)
+        private void SetSingleGeneration(int gen, byte[] chain)
         {
-            ChainKeys.Add((gen, key));
-        }
-
-        private void SetSingleGeneration(int gen, byte[] key)
-        {
-            ChainKeys[0] = (gen, key);
+            Generation = gen;
+            ChainKey = chain;
         }
 
         private (int generation, byte[] chain) GetLastGeneration()
         {
-            return ChainKeys.Last();
+            return (Generation, ChainKey);
         }
 
         private (int generation, byte[] chain) GetLastGenerationBefore(int generation)
         {
-            return ChainKeys.OrderByDescending(x => x.generation)
-                            .Where(x => x.generation < generation)
-                            .FirstOrDefault();
+            if (generation <= Generation)
+            {
+                return default;
+            }
+            else
+            {
+                return (Generation, ChainKey);
+            }
         }
 
         public void Serialize(BinaryWriter bw, bool isSendingChain)
         {
             WriteBuffer(bw, HeaderKey);
             WriteBuffer(bw, NextHeaderKey);
-            if (isSendingChain)
+            bw.Write(Generation);
+            WriteBuffer(bw, ChainKey);
+            if (!isSendingChain)
             {
-                var (generation, chain) = ChainKeys[0];
-                bw.Write(generation);
-                WriteBuffer(bw, chain);
-            }
-            else
-            {
-                if (ChainKeys == null)
+                if (LostKeys == null)
                 {
                     bw.Write(-1);
                 }
                 else
                 {
-                    bw.Write(ChainKeys.Count);
-                    foreach (var (generation, chain) in ChainKeys)
+                    bw.Write(Math.Min(LostKeys.Count, NumLostKeysToStore));
+                    foreach (var kvp in LostKeys.OrderByDescending(x => x.Key).Take(NumLostKeysToStore))
                     {
-                        bw.Write(generation);
-                        WriteBuffer(bw, chain);
+                        bw.Write(kvp.Key);
+                        WriteBuffer(bw, kvp.Value);
                     }
                 }
             }
@@ -120,22 +136,17 @@ namespace MicroRatchet
         {
             HeaderKey = ReadBuffer(br);
             NextHeaderKey = ReadBuffer(br);
-            if (isSendingChain)
+            Generation = br.ReadInt32();
+            ChainKey = ReadBuffer(br);
+            if (!isSendingChain)
             {
-                ChainKeys = new List<(int, byte[])>
+                int numLostKeys = br.ReadInt32();
+                if (numLostKeys >= 0)
                 {
-                    (br.ReadInt32(), ReadBuffer(br))
-                };
-            }
-            else
-            {
-                int numChainKeys = br.ReadInt32();
-                if (numChainKeys >= 0)
-                {
-                    ChainKeys = new List<(int, byte[])>();
-                    for (int i = 0; i < numChainKeys; i++)
+                    LostKeys = new Dictionary<int, byte[]>();
+                    for (int i = 0; i < numLostKeys; i++)
                     {
-                        ChainKeys.Add((br.ReadInt32(), ReadBuffer(br)));
+                        LostKeys[br.ReadInt32()] = ReadBuffer(br);
                     }
                 }
             }
