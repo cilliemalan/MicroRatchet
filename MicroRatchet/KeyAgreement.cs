@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -119,15 +120,17 @@ namespace MicroRatchet
             return _publicKey;
         }
 
-        public byte[] Serialize() => _privateKey.Concat(GetPublicKey()).ToArray();
+        public void Serialize(Stream stream)
+        {
+            if (_privateKey.Length != 32) throw new InvalidOperationException("Private key must be 32 bytes");
+            stream.Write(_privateKey, 0, 32);
+        }
 
-        public static KeyAgreement Deserialize(byte[] data)
+        public static KeyAgreement Deserialize(Stream stream)
         {
             byte[] pri = new byte[32];
-            byte[] pub = new byte[32];
-            Array.Copy(data, pri, 32);
-            Array.Copy(data, 32, pub, 0, 32);
-            return new KeyAgreement(pri, pub);
+            stream.Read(pri, 0, 32);
+            return new KeyAgreement(pri, null);
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace MicroRatchet
+﻿using System.IO;
+
+namespace MicroRatchet
 {
     public interface IKeyAgreement
     {
@@ -7,6 +9,6 @@
         int PrivateKeySize { get; }
         byte[] DeriveKey(byte[] otherPublicKey);
         byte[] GetPublicKey();
-        byte[] Serialize();
+        void Serialize(Stream stream);
     }
 }

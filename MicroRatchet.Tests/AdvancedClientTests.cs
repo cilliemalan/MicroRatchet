@@ -71,9 +71,9 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            var cs = State.Load(client.Services.Storage);
-            var ss = State.Load(server.Services.Storage);
-            Assert.Equal(5, cs.Ratchets.Count);
+            var cs = ClientState.Load(client.Services.Storage);
+            var ss = ServerState.Load(server.Services.Storage);
+            Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
 
@@ -102,6 +102,9 @@ namespace MicroRatchet.Tests
         public void LargeVolumeTest(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false)
         {
             var (client, server) = CreateAndInitialize();
+            var cservices = client.Services;
+            var sservices = server.Services;
+
             RandomNumberGenerator rng = new RandomNumberGenerator();
             Random r = new Random();
             var clientMessages = new HashSet<byte[]>(Enumerable.Range(0, clientMessagesCount).Select(_ => rng.Generate(32)));
@@ -193,7 +196,7 @@ namespace MicroRatchet.Tests
                     }
                 }
             }
-            
+
             Assert.All(messagesReceivedByClient, message => serverMessages.Contains(message));
             Assert.All(messagesReceivedByServer, message => clientMessages.Contains(message));
         }

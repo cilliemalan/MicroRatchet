@@ -7,14 +7,14 @@ namespace MicroRatchet
 {
     internal struct SymmetricRacthet
     {
-        public const int NumLostKeysToStore = 10;
+        public const int NumLostKeysToStore = 25;
 
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
-        private Dictionary<int, byte[]> LostKeys;
+        public Dictionary<int, byte[]> LostKeys;
 
-        private int Generation;
-        private byte[] ChainKey;
+        public int Generation;
+        public byte[] ChainKey;
 
         public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
@@ -58,7 +58,9 @@ namespace MicroRatchet
             // check lost keys
             if (LostKeys.TryGetValue(toGeneration, out var lostKey))
             {
-                return (lostKey, toGeneration);
+                var result = (lostKey, toGeneration);
+                LostKeys.Remove(toGeneration);
+                return result;
             }
 
             // get the latest chain key we have that is smaller than the requested generation

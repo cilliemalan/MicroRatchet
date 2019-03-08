@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace MicroRatchet
@@ -7,6 +8,6 @@ namespace MicroRatchet
     public interface IKeyAgreementFactory
     {
         IKeyAgreement GenerateNew();
-        IKeyAgreement Deserialize(byte[] data);
+        IKeyAgreement Deserialize(Stream stream);
     }
 }

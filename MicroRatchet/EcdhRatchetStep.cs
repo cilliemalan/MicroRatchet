@@ -8,9 +8,8 @@ namespace MicroRatchet
 {
     internal class EcdhRatchetStep
     {
-        private byte[] _publicKey;
-        private byte[] KeyData;
-        private byte[] NextRootKey;
+        public IKeyAgreement EcdhKey;
+        public byte[] NextRootKey;
         public SymmetricRacthet ReceivingChain;
         public SymmetricRacthet SendingChain;
 
@@ -29,8 +28,7 @@ namespace MicroRatchet
 
             var e = new EcdhRatchetStep
             {
-                KeyData = keyPair.Serialize(),
-                _publicKey = keyPair.GetPublicKey()
+                EcdhKey = keyPair,
             };
 
             // receive chain
@@ -66,21 +64,12 @@ namespace MicroRatchet
 
         internal void ClearKeyData()
         {
-            _publicKey = null;
-            KeyData = null;
+            EcdhKey = null;
             NextRootKey = null;
             SendingChain.Reset();
         }
 
-        public byte[] GetPublicKey(IKeyAgreementFactory kexfac)
-        {
-            if (_publicKey == null)
-            {
-                _publicKey = kexfac.Deserialize(KeyData).GetPublicKey();
-            }
-
-            return _publicKey;
-        }
+        public byte[] GetPublicKey(IKeyAgreementFactory kexfac) => EcdhKey.GetPublicKey();
 
         public static EcdhRatchetStep[] InitializeClient(IKeyDerivation kdf,
             byte[] rootKey, byte[] remotePublicKey0, byte[] remotePublicKey1, IKeyAgreement keyPair,
@@ -95,8 +84,7 @@ namespace MicroRatchet
 
             var e0 = new EcdhRatchetStep
             {
-                KeyData = keyPair.Serialize(),
-                _publicKey = keyPair.GetPublicKey()
+                EcdhKey = keyPair
             };
 
             // receive chain doesn't exist
@@ -130,7 +118,7 @@ namespace MicroRatchet
         public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, byte[] remotePublicKey, IKeyAgreement keyPair)
         {
             var nextStep = InitializeServer(kdf,
-                factory.Deserialize(KeyData),
+                EcdhKey,
                 NextRootKey,
                 remotePublicKey,
                 keyPair,
@@ -138,26 +126,25 @@ namespace MicroRatchet
                 SendingChain.NextHeaderKey);
             
             NextRootKey = null;
-            KeyData = null;
+            EcdhKey = null;
             ReceivingChain.NextHeaderKey = null;
             SendingChain.NextHeaderKey = null;
 
             return nextStep;
         }
 
+        [Obsolete]
         public void Serialize(BinaryWriter bw)
         {
-            WriteBuffer(bw, KeyData);
             SendingChain.Serialize(bw, true);
             ReceivingChain.Serialize(bw, false);
             WriteBuffer(bw, NextRootKey);
         }
 
+        [Obsolete]
         public static EcdhRatchetStep Deserialize(BinaryReader br)
         {
-
             var step = new EcdhRatchetStep();
-            step.KeyData = ReadBuffer(br);
             step.SendingChain.Deserialize(br, true);
             step.ReceivingChain.Deserialize(br, false);
             step.NextRootKey = ReadBuffer(br);
@@ -185,6 +172,24 @@ namespace MicroRatchet
             if (c == 255) return null;
             if (c > 0) return br.ReadBytes(c);
             else return new byte[0];
+        }
+
+        public static EcdhRatchetStep Create(IKeyAgreement EcdhKey, byte[] NextRootKey,
+            int receivingGeneration, byte[] receivingHeaderKey, byte[] receivingNextHeaderKey, byte[] receivingChainKey,
+            int sendingGeneration, byte[] sendingHeaderKey, byte[] sendingNextHeaderKey, byte[] sendingChainKey)
+        {
+            var step = new EcdhRatchetStep()
+            {
+                EcdhKey = EcdhKey,
+                NextRootKey = NextRootKey
+            };
+
+            step.ReceivingChain.Initialize(receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
+            step.ReceivingChain.Generation = receivingGeneration;
+            step.SendingChain.Initialize(sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
+            step.SendingChain.Generation = sendingGeneration;
+
+            return step;
         }
     }
 }

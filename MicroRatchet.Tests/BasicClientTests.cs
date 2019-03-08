@@ -17,12 +17,11 @@ namespace MicroRatchet.Tests
 
             var clientInitPacket = client.ProcessInitialization();
             client.SaveState();
-            ClientState clientState = (ClientState)State.Load(clientServices.Storage);
+            ClientState clientState = ClientState.Load(clientServices.Storage);
 
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
-
-            Assert.Equal(64, clientState.LocalEcdhForInit.Length);
+            
             Assert.Equal(32, clientState.InitializationNonce.Length);
         }
 
@@ -39,8 +38,8 @@ namespace MicroRatchet.Tests
             var responsePacket = server.ProcessInitialization(clientInitPacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = (ClientState)State.Load(clientServices.Storage);
-            ServerState serverState = (ServerState)State.Load(serverServices.Storage);
+            ClientState clientState = ClientState.Load(clientServices.Storage);
+            ServerState serverState = ServerState.Load(serverServices.Storage);
             
         }
 
@@ -58,8 +57,8 @@ namespace MicroRatchet.Tests
             var firstPacket = client.ProcessInitialization(responsePacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = (ClientState)State.Load(clientServices.Storage);
-            ServerState serverState = (ServerState)State.Load(serverServices.Storage);
+            ClientState clientState = ClientState.Load(clientServices.Storage);
+            ServerState serverState = ServerState.Load(serverServices.Storage);
             
             Assert.Equal(clientState.Ratchets[0].SendingChain.HeaderKey, serverState.FirstReceiveHeaderKey);
             Assert.Equal(clientState.Ratchets[1].ReceivingChain.HeaderKey, serverState.FirstSendHeaderKey);
@@ -80,8 +79,8 @@ namespace MicroRatchet.Tests
             var firstResponse = server.ProcessInitialization(firstPacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = (ClientState)State.Load(clientServices.Storage);
-            ServerState serverState = (ServerState)State.Load(serverServices.Storage);
+            ClientState clientState = ClientState.Load(clientServices.Storage);
+            ServerState serverState = ServerState.Load(serverServices.Storage);
 
             Assert.NotNull(firstResponse);
             Assert.Equal(2, clientState.Ratchets.Count);
@@ -104,8 +103,8 @@ namespace MicroRatchet.Tests
             var lastResult = client.ProcessInitialization(firstResponse);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = (ClientState)State.Load(clientServices.Storage);
-            ServerState serverState = (ServerState)State.Load(serverServices.Storage);
+            ClientState clientState = ClientState.Load(clientServices.Storage);
+            ServerState serverState = ServerState.Load(serverServices.Storage);
 
             Assert.Null(lastResult);
         }
@@ -131,6 +130,60 @@ namespace MicroRatchet.Tests
             client = new MicroRatchetClient(clientServices, true);
             var lastResult = client.ProcessInitialization(firstResponse);
             client.SaveState();
+
+            Assert.Null(lastResult);
+        }
+
+        [Fact]
+        public void ClientMessagesReinstantiation()
+        {
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+
+            RandomNumberGenerator rng = new RandomNumberGenerator();
+            byte[] message1 = rng.Generate(64);
+            byte[] message2 = rng.Generate(64);
+            byte[] message3 = rng.Generate(64);
+
+            var client = new MicroRatchetClient(clientServices, true);
+            var clientInitPacket = client.ProcessInitialization();
+            client.SaveState();
+            var server = new MicroRatchetClient(serverServices, false);
+            var responsePacket = server.ProcessInitialization(clientInitPacket);
+            server.SaveState();
+            client = new MicroRatchetClient(clientServices, true);
+            var firstPacket = client.ProcessInitialization(responsePacket);
+            client.SaveState();
+            server = new MicroRatchetClient(serverServices, false);
+            var firstResponse = server.ProcessInitialization(firstPacket);
+            server.SaveState();
+            client = new MicroRatchetClient(clientServices, true);
+            var lastResult = client.ProcessInitialization(firstResponse);
+            client.SaveState();
+
+            client = new MicroRatchetClient(clientServices, true, 80);
+            var pl1 = client.Send(message1);
+            client.SaveState();
+            client = new MicroRatchetClient(clientServices, true, 80);
+            var pl2 = client.Send(message2);
+            client.SaveState();
+            client = new MicroRatchetClient(clientServices, true, 80);
+            var pl3 = client.Send(message3);
+            client.SaveState();
+
+            server = new MicroRatchetClient(serverServices, false, 80);
+            var r1 = server.Receive(pl1);
+            server.SaveState();
+            server = new MicroRatchetClient(serverServices, false, 80);
+            var r2 = server.Receive(pl2);
+            server.SaveState();
+            server = new MicroRatchetClient(serverServices, false, 80);
+            var r3 = server.Receive(pl3);
+            server.SaveState();
+
+            Assert.Equal(message1, r1);
+            Assert.Equal(message2, r2);
+            Assert.Equal(message3, r3);
 
             Assert.Null(lastResult);
         }
@@ -387,9 +440,9 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            var cs = State.Load(client.Services.Storage);
-            var ss = State.Load(server.Services.Storage);
-            Assert.Equal(5, cs.Ratchets.Count);
+            var cs = ClientState.Load(client.Services.Storage);
+            var ss = ServerState.Load(server.Services.Storage);
+            Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
 

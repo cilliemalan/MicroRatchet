@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -181,6 +182,19 @@ namespace MicroRatchet
             asInt = RotateLeft(asInt ^ int1, 7);
             asInt = RotateLeft(asInt ^ int0, 7);
             return BigEndianBitConverter.GetBytes(asInt);
+        }
+
+        [Obsolete]
+        public static IKeyAgreement Deserialize(this IKeyAgreementFactory fac, byte[] data) => fac.Deserialize(new MemoryStream(data));
+
+        [Obsolete]
+        public static byte[] SerializeToBytes(this IKeyAgreement ka)
+        {
+            using (var ms = new MemoryStream())
+            {
+                ka.Serialize(ms);
+                return ms.ToArray();
+            }
         }
     }
 }
