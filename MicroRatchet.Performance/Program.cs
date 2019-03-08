@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace MicroRatchet.Performance
@@ -9,9 +10,9 @@ namespace MicroRatchet.Performance
         static void Main(string[] args)
         {
             int clientMessagesCount = 100000;
-            int serverMessagesCount = 1000;
-            double clientDropChance = 0.1;
-            double serverDropChance = 0.1;
+            int serverMessagesCount = 100000;
+            double clientDropChance = 0.0;
+            double serverDropChance = 0.0;
 
 
             var (client, server) = CreateAndInitialize();
@@ -30,6 +31,11 @@ namespace MicroRatchet.Performance
 
             int clientSent = 0, serverSent = 0, clientReceived = 0, serverReceived = 0, clientDropped = 0, serverDropped = 0;
             Console.WriteLine($"Sending {clientMessagesCount}/{clientDropChance:P0} and {serverMessagesCount}/{serverDropChance:P0}");
+
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
+            double oldTime = 0;
+            int oldCnt = 0;
             for (int i = 0; ; i++)
             {
                 bool anyMessagesToReceive = messagesSentFromClient.TryPeek(out var _) || messagesSentFromServer.TryPeek(out var _);
@@ -39,19 +45,32 @@ namespace MicroRatchet.Performance
                     break;
                 }
 
-                if (i % 5 == 0)
+                if (i % 1000 == 0)
                 {
                     var totalReceived = clientReceived + serverReceived + clientDropped + serverDropped;
                     var totalAll = clientMessagesCount + serverMessagesCount;
                     var percentage = (double)totalReceived / totalAll;
-                    Console.Write($"\r{percentage:P0} - c: {clientSent}/{clientDropped} -> {serverReceived}  s: {serverSent}/{serverDropped} -> {clientReceived}   ");
+
+                    var newTime = sw.Elapsed.TotalSeconds;
+                    var deltaTime = newTime - oldTime;
+                    var deltaCnt = totalReceived - oldCnt;
+
+                    double perSecond = 0;
+                    if(oldTime != 0)
+                    {
+                        perSecond = deltaCnt / deltaTime;
+                    }
+                    Console.Write($"\r{percentage:P0} - c: {clientSent}/{clientDropped} -> {serverReceived}  s: {serverSent}/{serverDropped} -> {clientReceived}   ({perSecond:F0}/s)  ");
+
+                    oldCnt = totalReceived;
+                    oldTime = newTime;
                 }
 
                 var clientOrServer = r.Next(2);
                 var sendOrReceive = r.Next(2);
-                double ratio = (double)clientMessagesCount / serverMessagesCount / 10;
-                int maxClient = (int)(10 * ratio);
-                int maxServer = (int)(20 / ratio);
+                double ratio = (double)clientMessagesCount / serverMessagesCount;
+                int maxClient = 100;
+                int maxServer = (int)(100 / ratio);
                 var maxMessages = r.Next(clientOrServer == 0 ? maxClient : maxServer) + 1;
 
                 if (anyMessagesToSend && (sendOrReceive == 0 || !anyMessagesToReceive))
@@ -147,7 +166,7 @@ namespace MicroRatchet.Performance
             var firstResponse = server.ProcessInitialization(firstPacket);
             var lastResult = client.ProcessInitialization(firstResponse);
 
-            return (new MicroRatchetClient(clientServices, true, 80), new MicroRatchetClient(serverServices, false, 80));
+            return (client, server);
         }
     }
 }
