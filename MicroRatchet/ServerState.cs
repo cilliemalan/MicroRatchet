@@ -61,7 +61,7 @@ namespace MicroRatchet
             }
         }
 
-        private void LoadInternal(IStorageProvider storage)
+        private void LoadInternal(IStorageProvider storage, IKeyAgreementFactory kexFac)
         {
             using (var memory = storage.LockCold())
             {
@@ -94,16 +94,16 @@ namespace MicroRatchet
 
                 if (hasRatchet)
                 {
-                    ReadRatchet(memory);
+                    ReadRatchet(memory, kexFac);
                 }
                 Debug.WriteLine($"Read {memory.Position} bytes of server state");
             }
         }
 
-        public static ServerState Load(IStorageProvider storage)
+        public static ServerState Load(IStorageProvider storage, IKeyAgreementFactory kexFac)
         {
             var state = new ServerState();
-            state.LoadInternal(storage);
+            state.LoadInternal(storage, kexFac);
             return state;
         }
     }

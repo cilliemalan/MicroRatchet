@@ -43,7 +43,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -52,7 +52,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage).Store(sstorage);
+                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -62,7 +62,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -71,7 +71,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage).Store(sstorage);
+                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -80,7 +80,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -90,7 +90,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -99,7 +99,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -108,7 +108,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage).Store(cstorage);
+                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -118,7 +118,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage).Store(sstorage);
+                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -127,7 +127,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage).Store(sstorage);
+                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -136,7 +136,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage).Store(sstorage);
+                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 

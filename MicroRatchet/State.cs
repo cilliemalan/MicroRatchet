@@ -34,7 +34,7 @@ namespace MicroRatchet
 
         public abstract void Store(IStorageProvider storage);
 
-        protected void ReadRatchet(Stream stream)
+        protected void ReadRatchet(Stream stream, IKeyAgreementFactory kexFac)
         {
             List<EcdhRatchetStep> steps = new List<EcdhRatchetStep>();
             bool last = true;
@@ -54,7 +54,7 @@ namespace MicroRatchet
                     var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0);
                     var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 4);
 
-                    var ecdh = KeyAgreement.Deserialize(stream);
+                    var ecdh = kexFac.Deserialize(stream);
                     var nextRootKey = new byte[32];
                     var sHeaderKey = new byte[32];
                     var sNextHeaderKey = new byte[32];

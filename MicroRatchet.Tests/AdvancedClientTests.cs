@@ -71,8 +71,8 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            var cs = ClientState.Load(client.Services.Storage);
-            var ss = ServerState.Load(server.Services.Storage);
+            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance);
+            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }

@@ -664,7 +664,7 @@ namespace MicroRatchet
         {
             if (_state == null)
             {
-                _state = IsClient ? (State)ClientState.Load(Storage) : ServerState.Load(Storage);
+                _state = IsClient ? (State)ClientState.Load(Storage, KeyAgreementFactory) : ServerState.Load(Storage, KeyAgreementFactory);
             }
 
             return _state;
