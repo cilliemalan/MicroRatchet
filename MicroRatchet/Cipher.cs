@@ -42,7 +42,7 @@ namespace MicroRatchet
             Digest d = new Digest();
             var digest = d.ComputeDigest(iv);
             byte[] newiv = new byte[16];
-            for (int i = 0; i < 16; i++) newiv[i] = (byte)(digest[i] ^ digest[i + 16]);
+            for (int i = 0; i < 16; i++) newiv[i] = digest[i];
             return newiv;
         }
 
