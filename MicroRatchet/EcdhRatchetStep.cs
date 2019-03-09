@@ -20,6 +20,9 @@ namespace MicroRatchet
             byte[] rootKey, byte[] remotePublicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
         {
+            int keySize = rootKey.Length;
+            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
+            if(receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
             //Debug.WriteLine($"--Initialize ECDH Ratchet");
             //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
@@ -36,37 +39,30 @@ namespace MicroRatchet
             var rcinfo = previousKeyPair.DeriveKey(remotePublicKey);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
-            var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3);
+            var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3, keySize);
             //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(rckeys[0])}");
             //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(rckeys[1])}");
             //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(rckeys[2])}");
             rootKey = rckeys[0];
-            e.ReceivingChain.Initialize(receiveHeaderKey, rckeys[1], rckeys[2]);
+            e.ReceivingChain.Initialize(keySize, receiveHeaderKey, rckeys[1], rckeys[2]);
 
             // send chain
             //Debug.WriteLine("  --Sending Chain");
             var scinfo = keyPair.DeriveKey(remotePublicKey);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
-            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
+            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
             //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
             //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
             //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
-            e.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
+            e.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
 
             // next root key
 
             //Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
             e.NextRootKey = rootKey;
             return e;
-        }
-
-        internal void ClearKeyData()
-        {
-            EcdhKey = null;
-            NextRootKey = null;
-            SendingChain.Reset();
         }
 
         public byte[] GetPublicKey(IKeyAgreementFactory kexfac) => EcdhKey.GetPublicKey();
@@ -76,6 +72,9 @@ namespace MicroRatchet
             byte[] receiveHeaderKey, byte[] sendHeaderKey,
             IKeyAgreement nextKeyPair)
         {
+            int keySize = rootKey.Length;
+            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
+            if (receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
             //Debug.WriteLine($"--Initialize ECDH Ratchet CLIENT");
             //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(remotePublicKey0)}");
@@ -86,6 +85,8 @@ namespace MicroRatchet
             {
                 EcdhKey = keyPair
             };
+            e0.SendingChain.KeySize = keySize;
+            e0.SendingChain.KeySize = keySize;
 
             // receive chain doesn't exist
             //Debug.WriteLine("  --Receiving Chain");
@@ -95,12 +96,12 @@ namespace MicroRatchet
             var scinfo = keyPair.DeriveKey(remotePublicKey0);
             //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
             //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
-            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3);
+            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
             //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
             //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
             //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
-            e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
+            e0.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
 
             var nextSendHeaderKey = e0.SendingChain.NextHeaderKey;
             e0.SendingChain.NextHeaderKey = null;
@@ -132,61 +133,21 @@ namespace MicroRatchet
 
             return nextStep;
         }
-
-        [Obsolete]
-        public void Serialize(BinaryWriter bw)
-        {
-            SendingChain.Serialize(bw, true);
-            ReceivingChain.Serialize(bw, false);
-            WriteBuffer(bw, NextRootKey);
-        }
-
-        [Obsolete]
-        public static EcdhRatchetStep Deserialize(BinaryReader br)
-        {
-            var step = new EcdhRatchetStep();
-            step.SendingChain.Deserialize(br, true);
-            step.ReceivingChain.Deserialize(br, false);
-            step.NextRootKey = ReadBuffer(br);
-
-            return step;
-        }
-
-        private static void WriteBuffer(BinaryWriter bw, byte[] data)
-        {
-            if (data == null)
-            {
-                bw.Write((byte)255);
-            }
-            else
-            {
-                if (data.Length >= 255) throw new InvalidOperationException("The data is too big");
-                bw.Write((byte)data.Length);
-                if (data.Length != 0) bw.Write(data);
-            }
-        }
-
-        private static byte[] ReadBuffer(BinaryReader br)
-        {
-            int c = br.ReadByte();
-            if (c == 255) return null;
-            if (c > 0) return br.ReadBytes(c);
-            else return new byte[0];
-        }
-
+        
         public static EcdhRatchetStep Create(IKeyAgreement EcdhKey, byte[] NextRootKey,
             int receivingGeneration, byte[] receivingHeaderKey, byte[] receivingNextHeaderKey, byte[] receivingChainKey,
             int sendingGeneration, byte[] sendingHeaderKey, byte[] sendingNextHeaderKey, byte[] sendingChainKey)
         {
+            int keySize = (NextRootKey ?? sendingHeaderKey ?? receivingHeaderKey).Length;
             var step = new EcdhRatchetStep()
             {
                 EcdhKey = EcdhKey,
                 NextRootKey = NextRootKey
             };
 
-            step.ReceivingChain.Initialize(receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
+            step.ReceivingChain.Initialize(keySize, receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
             step.ReceivingChain.Generation = receivingGeneration;
-            step.SendingChain.Initialize(sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
+            step.SendingChain.Initialize(keySize, sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
             step.SendingChain.Generation = sendingGeneration;
 
             return step;

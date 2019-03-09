@@ -22,7 +22,7 @@ namespace MicroRatchet
         private State _state;
 
         public IServices Services { get; }
-        
+
         public MicroRatchetConfiguration Configuration { get; }
 
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
@@ -109,6 +109,7 @@ namespace MicroRatchet
             // new ecdh pubkey(32) x3, signature(64)>, mac(16)
 
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
+            var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(32);
@@ -121,7 +122,7 @@ namespace MicroRatchet
             // generate server ECDH for root key and root key
             var serverEcdh = KeyAgreementFactory.GenerateNew();
             var rootPreKey = serverEcdh.DeriveKey(remoteEcdhForInit);
-            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
+            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
             state.RootKey = genKeys[0];
             state.FirstSendHeaderKey = genKeys[1];
             state.FirstReceiveHeaderKey = genKeys[2];
@@ -183,6 +184,7 @@ namespace MicroRatchet
         private void ReceiveInitializationResponse(State _state, byte[] data)
         {
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive an init response.");
+            var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // new nonce(32), ecdh pubkey(32), <nonce(32), server pubkey(32), 
             // new ecdh pubkey(32) x3, signature(64)>, mac(16)
@@ -244,7 +246,7 @@ namespace MicroRatchet
                             // initialize client root key and ecdh ratchet
                             var RemoteEcdhForInit = rootEcdh;
                             var rootPreKey = localEcdh.DeriveKey(rootEcdh);
-                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
+                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
                             var rootKey = genKeys[0];
                             var receiveHeaderKey = genKeys[1];
                             var sendHeaderKey = genKeys[2];
@@ -555,7 +557,8 @@ namespace MicroRatchet
             _state = LoadState();
             if (_state == null)
             {
-                _state = State.Initialize(Configuration.IsClient, Configuration.UseAes256 ? 32 : 16);
+                int keySize = Configuration.UseAes256 ? 32 : 16;
+                _state = State.Initialize(Configuration.IsClient, keySize);
             }
 
             byte[] sendback;
@@ -684,7 +687,7 @@ namespace MicroRatchet
         {
             if (_state != null)
             {
-                _state.Store(Storage);
+                _state.Store(Storage, Configuration.NumberOfRatchetsToKeep, Configuration.MaxLostKeys);
             }
         }
 

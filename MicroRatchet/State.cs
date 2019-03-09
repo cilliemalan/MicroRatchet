@@ -35,7 +35,7 @@ namespace MicroRatchet
             }
         }
 
-        public abstract void Store(IStorageProvider storage);
+        public abstract void Store(IStorageProvider storage, int numberOfRatchetsToStore, int numLostKeysToStore);
 
         protected void ReadRatchet(Stream stream, IKeyAgreementFactory kexFac)
         {
@@ -158,12 +158,12 @@ namespace MicroRatchet
             foreach (var step in Enumerable.Reverse(steps)) Ratchets.Add(step);
         }
 
-        protected void WriteRatchet(Stream stream)
+        protected void WriteRatchet(Stream stream, int numberOfRatchetsToStore, int numLostKeysToStore)
         {
             bool last = true;
             bool secondToLast = false;
             // store ratchets from newest to oldest
-            var reverseRatchets = Ratchets.AsEnumerable().Reverse().ToArray();
+            var reverseRatchets = Ratchets.AsEnumerable().Reverse().Take(numberOfRatchetsToStore).ToArray();
             foreach (var ratchet in reverseRatchets)
             {
                 if (last)
@@ -278,7 +278,7 @@ namespace MicroRatchet
                 .Where(x => x.ratchet.ReceivingChain.LostKeys != null)
                 .SelectMany(x => x.ratchet.ReceivingChain.LostKeys.OrderByDescending(k => k.Key).Select((k, ki) => (nkey: ki, x.gen, kgen: k.Key, key: k.Value)))
                 .OrderBy(x => (x.nkey, -x.gen))
-                .Take(SymmetricRacthet.NumLostKeysToStore)
+                .Take(numLostKeysToStore)
                 .Select((a) => (a.gen, a.kgen, a.key))
                 .ToArray();
 
@@ -293,7 +293,7 @@ namespace MicroRatchet
                     break;
                 }
 
-                if (numLostKeysStored > SymmetricRacthet.NumLostKeysToStore)
+                if (numLostKeysStored > numLostKeysToStore)
                 {
                     stream.WriteByte(0);
                     break;

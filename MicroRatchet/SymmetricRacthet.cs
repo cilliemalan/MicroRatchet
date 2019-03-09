@@ -7,7 +7,7 @@ namespace MicroRatchet
 {
     internal struct SymmetricRacthet
     {
-        public const int NumLostKeysToStore = 25;
+        public int KeySize { get; set; }
 
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
@@ -16,12 +16,18 @@ namespace MicroRatchet
         public int Generation;
         public byte[] ChainKey;
 
-        public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
+        public void Initialize(int keySize, byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
+            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
+            if ((headerKey != null && headerKey.Length != keySize) ||
+                (chainKey != null && chainKey.Length != keySize) ||
+                (nextHeaderKey != null && nextHeaderKey.Length != keySize)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
+
             //Debug.WriteLine($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
             //Debug.WriteLine($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
             //Debug.WriteLine($"  C Key NHK:      {Convert.ToBase64String(nextHeaderKey)}");
 
+            KeySize = keySize;
             HeaderKey = headerKey;
             NextHeaderKey = nextHeaderKey;
             LostKeys = new Dictionary<int, byte[]>();
@@ -41,7 +47,7 @@ namespace MicroRatchet
         public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
         {
             var (gen, chain) = GetLastGeneration();
-            var nextKeys = kdf.GenerateKeys(chain, null, 2);
+            var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
             var nextGen = gen + 1;
             SetSingleGeneration(nextGen, nextKeys[0]);
 
@@ -78,7 +84,7 @@ namespace MicroRatchet
                 //Debug.WriteLine($"      RTC  #:      {gen + 1}");
                 //Debug.WriteLine($"      RTC IN:      {Convert.ToBase64String(chain)}");
 
-                var nextKeys = kdf.GenerateKeys(chain, null, 2);
+                var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
                 gen++;
                 chain = nextKeys[0];
                 key = nextKeys[1];
@@ -117,72 +123,6 @@ namespace MicroRatchet
             {
                 return (Generation, ChainKey);
             }
-        }
-
-        public void Serialize(BinaryWriter bw, bool isSendingChain)
-        {
-            WriteBuffer(bw, HeaderKey);
-            WriteBuffer(bw, NextHeaderKey);
-            bw.Write(Generation);
-            WriteBuffer(bw, ChainKey);
-            if (!isSendingChain)
-            {
-                if (LostKeys == null)
-                {
-                    bw.Write(-1);
-                }
-                else
-                {
-                    bw.Write(Math.Min(LostKeys.Count, NumLostKeysToStore));
-                    foreach (var kvp in LostKeys.OrderByDescending(x => x.Key).Take(NumLostKeysToStore))
-                    {
-                        bw.Write(kvp.Key);
-                        WriteBuffer(bw, kvp.Value);
-                    }
-                }
-            }
-        }
-
-        public void Deserialize(BinaryReader br, bool isSendingChain)
-        {
-            HeaderKey = ReadBuffer(br);
-            NextHeaderKey = ReadBuffer(br);
-            Generation = br.ReadInt32();
-            ChainKey = ReadBuffer(br);
-            if (!isSendingChain)
-            {
-                int numLostKeys = br.ReadInt32();
-                if (numLostKeys >= 0)
-                {
-                    LostKeys = new Dictionary<int, byte[]>();
-                    for (int i = 0; i < numLostKeys; i++)
-                    {
-                        LostKeys[br.ReadInt32()] = ReadBuffer(br);
-                    }
-                }
-            }
-        }
-
-        private static void WriteBuffer(BinaryWriter bw, byte[] data)
-        {
-            if (data == null)
-            {
-                bw.Write((byte)255);
-            }
-            else
-            {
-                if (data.Length >= 255) throw new InvalidOperationException("The data is too big");
-                bw.Write((byte)data.Length);
-                if (data.Length != 0) bw.Write(data);
-            }
-        }
-
-        private static byte[] ReadBuffer(BinaryReader br)
-        {
-            int c = br.ReadByte();
-            if (c == 255) return null;
-            if (c > 0) return br.ReadBytes(c);
-            else return new byte[0];
         }
     }
 }

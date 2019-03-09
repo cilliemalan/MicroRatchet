@@ -118,7 +118,7 @@ namespace MicroRatchet
             return sig.Verify(new ArraySegment<byte>(message, 0, message.Length - sig.SignatureSize), signature);
         }
 
-        public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize = 32)
+        public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize)
         {
             int i = 0;
             return kdf.GenerateBytes(key, info, keySize * numKeys)

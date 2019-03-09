@@ -9,10 +9,6 @@ namespace MicroRatchet
 {
     internal class EcdhRatchet
     {
-        // the number of past ratchets to retain just in case
-        // an ancient message comes in completely out of order.
-        public const int RetainCount = 7;
-
         private List<EcdhRatchetStep> _steps = new List<EcdhRatchetStep>();
 
         public EcdhRatchetStep this[int index] => _steps[index];
@@ -33,43 +29,17 @@ namespace MicroRatchet
         {
             _steps.AddRange(steps);
 
-            if (_steps.Count > RetainCount)
-            {
-                _steps.RemoveRange(0, _steps.Count - RetainCount);
-            }
-
             if (_steps.Count > 2)
             {
                 // the third-to-last step and older will never again be used for sending
                 var oldstep = _steps[_steps.Count - 3];
-                oldstep.ClearKeyData();
+                oldstep.SendingChain.Reset();
             }
         }
 
         public IEnumerable<EcdhRatchetStep> Enumerate() =>
             _steps.Where(x => x.ReceivingChain.HeaderKey != null)
             .Reverse();
-
-        public void Serialize(BinaryWriter bw)
-        {
-            bw.Write(_steps.Count);
-            foreach (var e in _steps)
-            {
-                e.Serialize(bw);
-            }
-        }
-
-        public static EcdhRatchet Deserialize(BinaryReader br)
-        {
-            var ratchet = new EcdhRatchet();
-            int numSteps = br.ReadInt32();
-            for (int i = 0; i < numSteps; i++)
-            {
-                ratchet._steps.Add(EcdhRatchetStep.Deserialize(br));
-            }
-
-            return ratchet;
-        }
 
         public IEnumerable<EcdhRatchetStep> AsEnumerable() => _steps.AsEnumerable();
     }
