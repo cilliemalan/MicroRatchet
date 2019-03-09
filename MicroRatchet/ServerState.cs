@@ -17,6 +17,12 @@ namespace MicroRatchet
         public IKeyAgreement LocalEcdhRatchetStep0;
         public IKeyAgreement LocalEcdhRatchetStep1;
 
+        internal ServerState(int keySize)
+            : base(keySize)
+        {
+
+        }
+
         // used a few times
         public byte[] NextInitializationNonce;
 
@@ -37,15 +43,15 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (RootKey != null && RootKey.Length != 32) throw new InvalidOperationException("RootKey must be 32 bytes");
-                    if (FirstSendHeaderKey != null && FirstSendHeaderKey.Length != 32) throw new InvalidOperationException("FirstSendHeaderKey must be 32 bytes");
-                    if (FirstReceiveHeaderKey != null && FirstReceiveHeaderKey.Length != 32) throw new InvalidOperationException("FirstReceiveHeaderKey must be 32 bytes");
-                    if (NextInitializationNonce != null && NextInitializationNonce.Length != 32) throw new InvalidOperationException("NextInitializationNonce must be 32 bytes");
+                    if (RootKey != null && RootKey.Length != KeySizeInBytes) throw new InvalidOperationException($"RootKey must be {KeySizeInBytes} bytes");
+                    if (FirstSendHeaderKey != null && FirstSendHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"FirstSendHeaderKey must be {KeySizeInBytes} bytes");
+                    if (FirstReceiveHeaderKey != null && FirstReceiveHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"FirstReceiveHeaderKey must be {KeySizeInBytes} bytes");
+                    if (NextInitializationNonce != null && NextInitializationNonce.Length != KeySizeInBytes) throw new InvalidOperationException($"NextInitializationNonce must be {KeySizeInBytes} bytes");
 
-                    if (RootKey != null) memory.Write(RootKey, 0, 32); else memory.Seek(32, SeekOrigin.Current);
-                    if (FirstSendHeaderKey != null) memory.Write(FirstSendHeaderKey, 0, 32); else memory.Seek(32, SeekOrigin.Current);
-                    if (FirstReceiveHeaderKey != null) memory.Write(FirstReceiveHeaderKey, 0, 32); else memory.Seek(32, SeekOrigin.Current);
-                    if (NextInitializationNonce != null) memory.Write(NextInitializationNonce, 0, 32); else memory.Seek(32, SeekOrigin.Current);
+                    if (RootKey != null) memory.Write(RootKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
+                    if (FirstSendHeaderKey != null) memory.Write(FirstSendHeaderKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
+                    if (FirstReceiveHeaderKey != null) memory.Write(FirstReceiveHeaderKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
+                    if (NextInitializationNonce != null) memory.Write(NextInitializationNonce, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
                 }
                 if (hasEcdh)
                 {
@@ -75,15 +81,15 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (RootKey == null || RootKey.Length != 32) RootKey = new byte[32];
-                    if (FirstSendHeaderKey == null || FirstSendHeaderKey.Length != 32) FirstSendHeaderKey = new byte[32];
-                    if (FirstReceiveHeaderKey == null || FirstReceiveHeaderKey.Length != 32) FirstReceiveHeaderKey = new byte[32];
-                    if (NextInitializationNonce == null || NextInitializationNonce.Length != 32) NextInitializationNonce = new byte[32];
+                    if (RootKey == null || RootKey.Length != KeySizeInBytes) RootKey = new byte[KeySizeInBytes];
+                    if (FirstSendHeaderKey == null || FirstSendHeaderKey.Length != KeySizeInBytes) FirstSendHeaderKey = new byte[KeySizeInBytes];
+                    if (FirstReceiveHeaderKey == null || FirstReceiveHeaderKey.Length != KeySizeInBytes) FirstReceiveHeaderKey = new byte[KeySizeInBytes];
+                    if (NextInitializationNonce == null || NextInitializationNonce.Length != KeySizeInBytes) NextInitializationNonce = new byte[KeySizeInBytes];
 
-                    memory.Read(RootKey, 0, 32);
-                    memory.Read(FirstSendHeaderKey, 0, 32);
-                    memory.Read(FirstReceiveHeaderKey, 0, 32);
-                    memory.Read(NextInitializationNonce, 0, 32);
+                    memory.Read(RootKey, 0, KeySizeInBytes);
+                    memory.Read(FirstSendHeaderKey, 0, KeySizeInBytes);
+                    memory.Read(FirstReceiveHeaderKey, 0, KeySizeInBytes);
+                    memory.Read(NextInitializationNonce, 0, KeySizeInBytes);
                 }
 
                 if (hasEcdh)
@@ -100,9 +106,9 @@ namespace MicroRatchet
             }
         }
 
-        public static ServerState Load(IStorageProvider storage, IKeyAgreementFactory kexFac)
+        public static ServerState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize)
         {
-            var state = new ServerState();
+            var state = new ServerState(keySize);
             state.LoadInternal(storage, kexFac);
             return state;
         }

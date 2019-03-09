@@ -10,6 +10,12 @@ namespace MicroRatchet
     {
         protected override int Version => 1;
 
+        internal ClientState(int keySizeInBytes)
+            : base(keySizeInBytes)
+        {
+
+        }
+
         // used throughout init
         public byte[] InitializationNonce;
 
@@ -33,9 +39,9 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (InitializationNonce.Length != 32) throw new InvalidOperationException("InitializationNonce must be 32 bytes");
+                    if (InitializationNonce.Length != KeySizeInBytes) throw new InvalidOperationException($"InitializationNonce must be {KeySizeInBytes} bytes");
 
-                    if (InitializationNonce != null) memory.Write(InitializationNonce, 0, 32); else memory.Seek(32, SeekOrigin.Current);
+                    if (InitializationNonce != null) memory.Write(InitializationNonce, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
                 }
 
                 if (hasEcdh)
@@ -72,9 +78,9 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (InitializationNonce == null || InitializationNonce.Length != 32) InitializationNonce = new byte[32];
-                    
-                    memory.Read(InitializationNonce, 0, 32);
+                    if (InitializationNonce == null || InitializationNonce.Length != KeySizeInBytes) InitializationNonce = new byte[KeySizeInBytes];
+
+                    memory.Read(InitializationNonce, 0, KeySizeInBytes);
                 }
 
                 if (hasEcdh)
@@ -92,9 +98,9 @@ namespace MicroRatchet
             }
         }
 
-        public static ClientState Load(IStorageProvider storage, IKeyAgreementFactory kexFac)
+        public static ClientState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize)
         {
-            var state = new ClientState();
+            var state = new ClientState(keySize);
             state.LoadInternal(storage, kexFac);
             return state;
         }

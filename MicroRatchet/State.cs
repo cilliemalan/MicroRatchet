@@ -9,25 +9,28 @@ namespace MicroRatchet
 {
     internal abstract class State
     {
+        protected int KeySizeInBytes { get; }
+
         protected abstract int Version { get; }
 
         // after init
         public EcdhRatchet Ratchets = new EcdhRatchet();
 
-        protected State()
+        protected State(int keySizeInBytes)
         {
+            KeySizeInBytes = keySizeInBytes;
         }
 
-        public static State Initialize(bool isClient)
+        public static State Initialize(bool isClient, int keySizeInBytes)
         {
             if (isClient)
             {
-                var state = new ClientState();
+                var state = new ClientState(keySizeInBytes);
                 return state;
             }
             else
             {
-                var state = new ServerState();
+                var state = new ServerState(keySizeInBytes);
                 return state;
             }
         }
@@ -51,24 +54,24 @@ namespace MicroRatchet
                     var genbytes = new byte[8];
                     stream.Read(genbytes, 0, 8);
                     genbytes[0] &= 0b0001_1111;
-                    var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0);
-                    var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 4);
+                    var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0); // hot
+                    var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 4); // hot and important
 
                     var ecdh = kexFac.Deserialize(stream);
-                    var nextRootKey = new byte[32];
-                    var sHeaderKey = new byte[32];
-                    var sNextHeaderKey = new byte[32];
-                    var sChainKey = new byte[32];
-                    var rHeaderKey = new byte[32];
-                    var rNextHeaderKey = new byte[32];
-                    var rChainKey = new byte[32];
-                    stream.Read(nextRootKey, 0, 32);
-                    stream.Read(sHeaderKey, 0, 32);
-                    stream.Read(sNextHeaderKey, 0, 32);
-                    stream.Read(sChainKey, 0, 32);
-                    stream.Read(rHeaderKey, 0, 32);
-                    stream.Read(rNextHeaderKey, 0, 32);
-                    stream.Read(rChainKey, 0, 32);
+                    var nextRootKey = new byte[KeySizeInBytes];
+                    var sHeaderKey = new byte[KeySizeInBytes];
+                    var sNextHeaderKey = new byte[KeySizeInBytes];
+                    var sChainKey = new byte[KeySizeInBytes];
+                    var rHeaderKey = new byte[KeySizeInBytes];
+                    var rNextHeaderKey = new byte[KeySizeInBytes];
+                    var rChainKey = new byte[KeySizeInBytes];
+                    stream.Read(nextRootKey, 0, KeySizeInBytes); // cold
+                    stream.Read(sHeaderKey, 0, KeySizeInBytes); // cold
+                    stream.Read(sNextHeaderKey, 0, KeySizeInBytes); // cold
+                    stream.Read(sChainKey, 0, KeySizeInBytes); // hot and important
+                    stream.Read(rHeaderKey, 0, KeySizeInBytes); // cold
+                    stream.Read(rNextHeaderKey, 0, KeySizeInBytes); // cold
+                    stream.Read(rChainKey, 0, KeySizeInBytes); // hot
                     steps.Add(EcdhRatchetStep.Create(ecdh, nextRootKey, rgeneration, rHeaderKey, rNextHeaderKey, rChainKey,
                         sgeneration, sHeaderKey, sNextHeaderKey, sChainKey));
                 }
@@ -76,34 +79,36 @@ namespace MicroRatchet
                 {
                     if ((b & 0b1000_0000) != 0)
                     {
+                        // send and receive chain
                         var genbytes = new byte[8];
                         stream.Read(genbytes, 0, 8);
                         genbytes[0] &= 0b0001_1111;
-                        var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0);
-                        var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 4);
+                        var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0); // hot
+                        var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 4); // hot and important
 
-                        var sHeaderKey = new byte[32];
-                        var sChainKey = new byte[32];
-                        var rHeaderKey = new byte[32];
-                        var rChainKey = new byte[32];
-                        stream.Read(sHeaderKey, 0, 32);
-                        stream.Read(sChainKey, 0, 32);
-                        stream.Read(rHeaderKey, 0, 32);
-                        stream.Read(rChainKey, 0, 32);
+                        var sHeaderKey = new byte[KeySizeInBytes];
+                        var sChainKey = new byte[KeySizeInBytes];
+                        var rHeaderKey = new byte[KeySizeInBytes];
+                        var rChainKey = new byte[KeySizeInBytes];
+                        stream.Read(sHeaderKey, 0, KeySizeInBytes); // cold
+                        stream.Read(sChainKey, 0, KeySizeInBytes); // hot and important
+                        stream.Read(rHeaderKey, 0, KeySizeInBytes); // cold
+                        stream.Read(rChainKey, 0, KeySizeInBytes); // hot
                         steps.Add(EcdhRatchetStep.Create(null, null, rgeneration, rHeaderKey, null, rChainKey,
                             sgeneration, sHeaderKey, null, sChainKey));
                     }
                     else
                     {
+                        // only sending chain - the client starts with only a sending chain as the first generation
                         var genbytes = new byte[4];
                         stream.Read(genbytes, 0, 4);
                         genbytes[0] &= 0b0001_1111;
-                        var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 0);
+                        var sgeneration = BigEndianBitConverter.ToInt32(genbytes, 0); // hot and important
 
-                        var sHeaderKey = new byte[32];
-                        var sChainKey = new byte[32];
-                        stream.Read(sHeaderKey, 0, 32);
-                        stream.Read(sChainKey, 0, 32);
+                        var sHeaderKey = new byte[KeySizeInBytes];
+                        var sChainKey = new byte[KeySizeInBytes];
+                        stream.Read(sHeaderKey, 0, KeySizeInBytes); // cold
+                        stream.Read(sChainKey, 0, KeySizeInBytes); // hot and important
                         steps.Add(EcdhRatchetStep.Create(null, null, 0, null, null, null,
                             sgeneration, sHeaderKey, null, sChainKey));
                     }
@@ -113,12 +118,12 @@ namespace MicroRatchet
                     var genbytes = new byte[4];
                     stream.Read(genbytes, 0, 4);
                     genbytes[0] &= 0b0001_1111;
-                    var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0);
+                    var rgeneration = BigEndianBitConverter.ToInt32(genbytes, 0); // hot
 
-                    var rHeaderKey = new byte[32];
-                    var rChainKey = new byte[32];
-                    stream.Read(rHeaderKey, 0, 32);
-                    stream.Read(rChainKey, 0, 32);
+                    var rHeaderKey = new byte[KeySizeInBytes];
+                    var rChainKey = new byte[KeySizeInBytes];
+                    stream.Read(rHeaderKey, 0, KeySizeInBytes); // cold
+                    stream.Read(rChainKey, 0, KeySizeInBytes); // hot
                     steps.Add(EcdhRatchetStep.Create(null, null, rgeneration, rHeaderKey, null, rChainKey,
                         0, null, null, null));
                 }
@@ -127,7 +132,7 @@ namespace MicroRatchet
                 if (last) { last = false; secondToLast = true; }
             }
 
-            for (; ; )
+            for (; ; ) // 36 bytes per key
             {
                 // check if this is still a lost record
                 long spaceleft = stream.Length - stream.Position;
@@ -138,9 +143,9 @@ namespace MicroRatchet
 
 
                 byte[] genbytes = new byte[4];
-                byte[] keybytes = new byte[32];
+                byte[] keybytes = new byte[KeySizeInBytes];
                 stream.Read(genbytes, 0, 4);
-                stream.Read(keybytes, 0, 32);
+                stream.Read(keybytes, 0, KeySizeInBytes);
                 var compoundgen = BigEndianBitConverter.ToUInt32(genbytes, 0);
                 int gen = (int)((compoundgen & 0b11111111_00000000_00000000_00000000) >> 24);
                 int kgen = (int)(compoundgen & 0b00000000_11111111_11111111_11111111);
@@ -172,13 +177,13 @@ namespace MicroRatchet
                     if (ratchet.ReceivingChain.HeaderKey == null) throw new InvalidOperationException("The last ratchet must have the receiving header key");
                     if (ratchet.ReceivingChain.ChainKey == null) throw new InvalidOperationException("The last ratchet must have the receiving chain key");
 
-                    if (ratchet.NextRootKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.SendingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.SendingChain.NextHeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.SendingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.ReceivingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.ReceivingChain.NextHeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.ReceivingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
+                    if (ratchet.NextRootKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.SendingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.SendingChain.NextHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.SendingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.NextHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
 
                     var rgeneration = BigEndianBitConverter.GetBytes(ratchet.ReceivingChain.Generation);
                     var sgeneration = BigEndianBitConverter.GetBytes(ratchet.SendingChain.Generation);
@@ -187,13 +192,13 @@ namespace MicroRatchet
                     stream.Write(sgeneration, 0, 4);
 
                     ratchet.EcdhKey.Serialize(stream);
-                    stream.Write(ratchet.NextRootKey, 0, 32);
-                    stream.Write(ratchet.SendingChain.HeaderKey, 0, 32);
-                    stream.Write(ratchet.SendingChain.NextHeaderKey, 0, 32);
-                    stream.Write(ratchet.SendingChain.ChainKey, 0, 32);
-                    stream.Write(ratchet.ReceivingChain.HeaderKey, 0, 32);
-                    stream.Write(ratchet.ReceivingChain.NextHeaderKey, 0, 32);
-                    stream.Write(ratchet.ReceivingChain.ChainKey, 0, 32);
+                    stream.Write(ratchet.NextRootKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.SendingChain.HeaderKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.SendingChain.NextHeaderKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.SendingChain.ChainKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.ReceivingChain.HeaderKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.ReceivingChain.NextHeaderKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.ReceivingChain.ChainKey, 0, KeySizeInBytes);
                 }
                 else if (secondToLast)
                 {
@@ -208,10 +213,10 @@ namespace MicroRatchet
                         if (ratchet.ReceivingChain.HeaderKey == null) throw new InvalidOperationException("The second last ratchet must have the receiving header key");
                         if (ratchet.ReceivingChain.ChainKey == null) throw new InvalidOperationException("The second last ratchet must have the receiving chain key");
 
-                        if (ratchet.SendingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                        if (ratchet.SendingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                        if (ratchet.ReceivingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                        if (ratchet.ReceivingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
+                        if (ratchet.SendingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.SendingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.ReceivingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.ReceivingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
 
                         var rgeneration = BigEndianBitConverter.GetBytes(ratchet.ReceivingChain.Generation);
                         var sgeneration = BigEndianBitConverter.GetBytes(ratchet.SendingChain.Generation);
@@ -219,10 +224,10 @@ namespace MicroRatchet
                         stream.Write(rgeneration, 0, 4);
                         stream.Write(sgeneration, 0, 4);
 
-                        stream.Write(ratchet.SendingChain.HeaderKey, 0, 32);
-                        stream.Write(ratchet.SendingChain.ChainKey, 0, 32);
-                        stream.Write(ratchet.ReceivingChain.HeaderKey, 0, 32);
-                        stream.Write(ratchet.ReceivingChain.ChainKey, 0, 32);
+                        stream.Write(ratchet.SendingChain.HeaderKey, 0, KeySizeInBytes);
+                        stream.Write(ratchet.SendingChain.ChainKey, 0, KeySizeInBytes);
+                        stream.Write(ratchet.ReceivingChain.HeaderKey, 0, KeySizeInBytes);
+                        stream.Write(ratchet.ReceivingChain.ChainKey, 0, KeySizeInBytes);
                     }
                     else
                     {
@@ -230,15 +235,15 @@ namespace MicroRatchet
                         if (ratchet.ReceivingChain.HeaderKey != null) throw new InvalidOperationException("The second last send only ratchet must NOT have the receiving header key");
                         if (ratchet.ReceivingChain.ChainKey != null) throw new InvalidOperationException("The second last send only ratchet must NOT have the receiving chain key");
 
-                        if (ratchet.SendingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                        if (ratchet.SendingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
+                        if (ratchet.SendingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.SendingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
 
                         var sgeneration = BigEndianBitConverter.GetBytes(ratchet.SendingChain.Generation);
                         sgeneration[0] |= 0b0100_0000;
                         stream.Write(sgeneration, 0, 4);
 
-                        stream.Write(ratchet.SendingChain.HeaderKey, 0, 32);
-                        stream.Write(ratchet.SendingChain.ChainKey, 0, 32);
+                        stream.Write(ratchet.SendingChain.HeaderKey, 0, KeySizeInBytes);
+                        stream.Write(ratchet.SendingChain.ChainKey, 0, KeySizeInBytes);
                     }
                 }
                 else if (ratchet.ReceivingChain.ChainKey != null)
@@ -252,15 +257,15 @@ namespace MicroRatchet
                     if (ratchet.ReceivingChain.HeaderKey == null) throw new InvalidOperationException("The third last ratchet must have the receiving header key");
                     if (ratchet.ReceivingChain.ChainKey == null) throw new InvalidOperationException("The third last ratchet must have the receiving chain key");
 
-                    if (ratchet.ReceivingChain.HeaderKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
-                    if (ratchet.ReceivingChain.ChainKey.Length != 32) throw new InvalidOperationException("ratchet.NextRootKey must be 32 bytes");
+                    if (ratchet.ReceivingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
 
                     var rgeneration = BigEndianBitConverter.GetBytes(ratchet.ReceivingChain.Generation);
                     rgeneration[0] |= 0b1000_0000;
                     stream.Write(rgeneration, 0, 4);
 
-                    stream.Write(ratchet.ReceivingChain.HeaderKey, 0, 32);
-                    stream.Write(ratchet.ReceivingChain.ChainKey, 0, 32);
+                    stream.Write(ratchet.ReceivingChain.HeaderKey, 0, KeySizeInBytes);
+                    stream.Write(ratchet.ReceivingChain.ChainKey, 0, KeySizeInBytes);
                 }
 
 
@@ -280,10 +285,10 @@ namespace MicroRatchet
             int numLostKeysStored = 0;
             foreach (var (gen, kgen, key) in lostKeys)
             {
-                if (key.Length != 32) throw new InvalidOperationException("keys must be 32 bytes");
+                if (key.Length != KeySizeInBytes) throw new InvalidOperationException($"keys must be {KeySizeInBytes} bytes");
 
                 long spaceleft = stream.Length - stream.Position;
-                if (spaceleft < 33)
+                if (spaceleft < (KeySizeInBytes + 1))
                 {
                     break;
                 }
@@ -299,7 +304,7 @@ namespace MicroRatchet
                 compoundkgen &= 0b01111111_11111111_11111111_11111111;
                 var genbytes = BigEndianBitConverter.GetBytes(compoundkgen);
                 stream.Write(genbytes, 0, 4);
-                stream.Write(key, 0, 32);
+                stream.Write(key, 0, KeySizeInBytes);
 
                 numLostKeysStored++;
             }

@@ -8,6 +8,7 @@ namespace MicroRatchet.Tests
 {
     public class StateTests
     {
+        private const int ks = 32;
         private class InMemoryStorage : IStorageProvider
         {
             public byte[] hot;
@@ -39,11 +40,14 @@ namespace MicroRatchet.Tests
             byte[] message3 = rng.Generate(64);
 
             var client = new MicroRatchetClient(clientServices, true);
+            var kex = clientServices.KeyAgreementFactory;
+            var ks = client.Configuration.UseAes256 ? 32 : 16;
+
             var clientInitPacket = client.ProcessInitialization();
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -52,7 +56,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
+                ServerState.Load(sstorage, kex, ks).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -62,7 +66,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -71,7 +75,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
+                ServerState.Load(sstorage, kex, ks).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -80,7 +84,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -90,7 +94,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -99,7 +103,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -108,7 +112,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
-                ClientState.Load(cstorage, DefaultKexFactory.Instance).Store(cstorage);
+                ClientState.Load(cstorage, kex, ks).Store(cstorage);
                 Assert.Equal(oldState, cstorage.cold);
             }
 
@@ -118,7 +122,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
+                ServerState.Load(sstorage, kex, ks).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -127,7 +131,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
+                ServerState.Load(sstorage, kex, ks).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 
@@ -136,7 +140,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
-                ServerState.Load(sstorage, DefaultKexFactory.Instance).Store(sstorage);
+                ServerState.Load(sstorage, kex, ks).Store(sstorage);
                 Assert.Equal(oldState, sstorage.cold);
             }
 

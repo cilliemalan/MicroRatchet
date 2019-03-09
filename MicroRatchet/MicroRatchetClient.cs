@@ -22,15 +22,22 @@ namespace MicroRatchet
         private State _state;
 
         public IServices Services { get; }
-        public int Mtu { get; }
-        public bool IsClient { get; }
+        
+        public MicroRatchetConfiguration Configuration { get; }
 
-        public MicroRatchetClient(IServices services, bool isClient, int Mtu = 1000)
+        public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
-            Services = services ?? throw new ArgumentException(nameof(services));
-            IsClient = isClient;
-            this.Mtu = Mtu;
+            Services = services ?? throw new ArgumentNullException(nameof(services));
+            Configuration = config ?? throw new ArgumentNullException(nameof(config));
+            KeyDerivation = new KeyDerivation(Services.Digest);
+        }
 
+        public MicroRatchetClient(IServices services, bool isClient, int? Mtu = null)
+        {
+            Services = services ?? throw new ArgumentNullException(nameof(services));
+            Configuration = new MicroRatchetConfiguration();
+            Configuration.IsClient = isClient;
+            if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
             KeyDerivation = new KeyDerivation(Services.Digest);
         }
 
@@ -63,7 +70,7 @@ namespace MicroRatchet
                     ms.TryGetBuffer(out var msbuffer);
                     bw.Write(Signature.Sign(msbuffer));
 
-                    if (ms.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
+                    if (ms.Length > Configuration.Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return ms.ToArray();
                 }
             }
@@ -113,7 +120,6 @@ namespace MicroRatchet
 
             // generate server ECDH for root key and root key
             var serverEcdh = KeyAgreementFactory.GenerateNew();
-            var LocalEcdhForInit = serverEcdh.SerializeToBytes();
             var rootPreKey = serverEcdh.DeriveKey(remoteEcdhForInit);
             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3);
             state.RootKey = genKeys[0];
@@ -168,7 +174,7 @@ namespace MicroRatchet
                     var mac = Mac.Compute();
                     messageWriter.Write(mac);
 
-                    if (messageStream.Length > Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
+                    if (messageStream.Length > Configuration.Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return messageStream.ToArray();
                 }
             }
@@ -372,6 +378,7 @@ namespace MicroRatchet
             // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
 
             var state = _state;
+            int mtu = Configuration.Mtu;
 
 
             // get the payload key and nonce
@@ -383,13 +390,13 @@ namespace MicroRatchet
             var headerSize = 4 + (includeEcdh ? 32 : 0);
             var overhead = headerSize + 12;
             var messageSize = message.Length;
-            var maxMessageSize = Mtu - overhead;
+            var maxMessageSize = mtu - overhead;
 
             // build the payload: <payload, padding>
             byte[] payload;
             if (pad && messageSize < maxMessageSize)
             {
-                payload = new byte[Mtu - overhead];
+                payload = new byte[mtu - overhead];
                 Array.Copy(message, payload, message.Length);
             }
             else if (messageSize > maxMessageSize)
@@ -446,7 +453,7 @@ namespace MicroRatchet
             Array.Copy(encryptedHeader, 0, result, 0, encryptedHeader.Length);
             Array.Copy(encryptedPayload, 0, result, encryptedHeader.Length, encryptedPayload.Length);
             Array.Copy(mac, 0, result, encryptedHeader.Length + encryptedPayload.Length, mac.Length);
-            if (result.Length > Mtu) throw new InvalidOperationException("Could not create message within MTU");
+            if (result.Length > mtu) throw new InvalidOperationException("Could not create message within MTU");
             return result;
         }
 
@@ -548,11 +555,11 @@ namespace MicroRatchet
             _state = LoadState();
             if (_state == null)
             {
-                _state = State.Initialize(IsClient);
+                _state = State.Initialize(Configuration.IsClient, Configuration.UseAes256 ? 32 : 16);
             }
 
             byte[] sendback;
-            if (IsClient)
+            if (Configuration.IsClient)
             {
                 //Debug.WriteLine("\n\n###CLIENT");
                 if (dataReceived == null)
@@ -646,7 +653,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            bool canIncludeEcdh = payload.Length <= Mtu - 48;
+            bool canIncludeEcdh = payload.Length <= Configuration.Mtu - 48;
             EcdhRatchetStep step;
             if (canIncludeEcdh)
             {
@@ -664,7 +671,10 @@ namespace MicroRatchet
         {
             if (_state == null)
             {
-                _state = IsClient ? (State)ClientState.Load(Storage, KeyAgreementFactory) : ServerState.Load(Storage, KeyAgreementFactory);
+                int keySize = Configuration.UseAes256 ? 32 : 16;
+                _state = Configuration.IsClient
+                    ? (State)ClientState.Load(Storage, KeyAgreementFactory, keySize)
+                    : ServerState.Load(Storage, KeyAgreementFactory, keySize);
             }
 
             return _state;

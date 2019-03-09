@@ -17,7 +17,7 @@ namespace MicroRatchet.Tests
 
             var clientInitPacket = client.ProcessInitialization();
             client.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
 
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
@@ -38,8 +38,8 @@ namespace MicroRatchet.Tests
             var responsePacket = server.ProcessInitialization(clientInitPacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
+            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
             
         }
 
@@ -57,8 +57,8 @@ namespace MicroRatchet.Tests
             var firstPacket = client.ProcessInitialization(responsePacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
+            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
             
             Assert.Equal(clientState.Ratchets[0].SendingChain.HeaderKey, serverState.FirstReceiveHeaderKey);
             Assert.Equal(clientState.Ratchets[1].ReceivingChain.HeaderKey, serverState.FirstSendHeaderKey);
@@ -79,8 +79,8 @@ namespace MicroRatchet.Tests
             var firstResponse = server.ProcessInitialization(firstPacket);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
+            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
 
             Assert.NotNull(firstResponse);
             Assert.Equal(2, clientState.Ratchets.Count);
@@ -103,8 +103,8 @@ namespace MicroRatchet.Tests
             var lastResult = client.ProcessInitialization(firstResponse);
             client.SaveState();
             server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
+            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
 
             Assert.Null(lastResult);
         }
@@ -440,8 +440,8 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance);
-            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance);
+            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
+            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
