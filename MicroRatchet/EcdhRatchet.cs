@@ -37,6 +37,14 @@ namespace MicroRatchet
             }
         }
 
+        public void Trim(int maxSteps, int trimTo)
+        {
+            if(_steps.Count > maxSteps)
+            {
+                _steps.RemoveRange(0, _steps.Count - trimTo);
+            }
+        }
+
         public IEnumerable<EcdhRatchetStep> Enumerate() =>
             _steps.Where(x => x.ReceivingChain.HeaderKey != null)
             .Reverse();

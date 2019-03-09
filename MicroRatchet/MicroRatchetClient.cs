@@ -537,6 +537,7 @@ namespace MicroRatchet
                     // this is the hottest line in the deconstruct process:
                     EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
                     state.Ratchets.Add(newRatchet);
+                    state.Ratchets.Trim(Configuration.NumberOfRatchetsToKeep * 2, Configuration.NumberOfRatchetsToKeep);
                     ratchetUsed = newRatchet;
                 }
             }
