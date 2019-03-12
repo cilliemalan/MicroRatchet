@@ -116,3 +116,21 @@ void mr_rng_generate_cb(int status, mr_rng_ctx ctx, mr_ctx mr_ctx)
 	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
 	_ctx->next(status, mr_ctx, ctx);
 }
+
+void hmac_init_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, mr_ctx, ctx);
+}
+
+void hmac_process_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, mr_ctx, ctx);
+}
+
+void hmac_compute_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, mr_ctx, ctx);
+}
