@@ -24,7 +24,7 @@ TEST(Sha, ShaProcess) {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
-	result = call_and_wait(mr_sha_process, mr_ctx, sha, data, sizeof(data));
+	result = call_and_wait(mr_sha_process, mr_ctx, sha, data, (unsigned int)sizeof(data));
 	EXPECT_EQ(E_SUCCESS, result);
 }
 
@@ -37,9 +37,9 @@ void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_outp
 	auto sha = mr_sha_create(mr_ctx);
 	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
 	EXPECT_EQ(E_SUCCESS, result);
-	if(data && sizeof(data) > 0) result = call_and_wait(mr_sha_process, mr_ctx, sha, data, sizeof(data));
+	if(data && sizeof(data) > 0) result = call_and_wait(mr_sha_process, mr_ctx, sha, data, (unsigned int)sizeof(data));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, sizeof(output));
+	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	ASSERT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 }
@@ -57,7 +57,7 @@ TEST(Sha, ShaComputeEmpty) {
 	auto sha = mr_sha_create(mr_ctx);
 	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, sizeof(output));
+	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	ASSERT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 }
