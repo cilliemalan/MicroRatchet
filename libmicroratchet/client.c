@@ -1,9 +1,6 @@
 #include "pch.h"
 #include "microratchet.h"
-
-typedef struct {
-	mr_config* config;
-} _mr_ctx;
+#include "internal.h"
 
 mr_ctx mrclient_create(mr_config* config)
 {

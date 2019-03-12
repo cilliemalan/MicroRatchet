@@ -290,10 +290,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="internal.h" />
     <ClInclude Include="microratchet.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="callbacks.c" />
     <ClCompile Include="client.c" />
     <ClCompile Include="kdf.c" />
     <ClCompile Include="pch.c">

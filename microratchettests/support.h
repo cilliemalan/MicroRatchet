@@ -1,20 +1,21 @@
 #pragma once
 
-void init_wait(void* a, void* b, void* c);
-int wait_getvalue(void* a, void* b, void* c);
+
+void init_wait(mr_ctx mr_ctx);
+int wait_getvalue(mr_ctx mr_ctx);
+void wait_abandon(mr_ctx ctx);
 
 template<class TCtx, class... Args>
 static int call_and_wait(int(*call)(TCtx, Args...), mr_ctx ctx, TCtx _ctx, Args... args)
 {
-	auto a = static_cast<void*>(ctx);
-	auto b = static_cast<void*>(_ctx);
-	auto c = static_cast<void*>(*call);
-	init_wait(a, b, c);
-
+	init_wait(ctx);
 	int r = call(_ctx, args...);
-	if (r != E_SUCCESS) return r;
-
-	return wait_getvalue(a, b, c);
+	if (r != E_SUCCESS)
+	{
+		wait_abandon(ctx);
+		return r;
+	}
+	return wait_getvalue(ctx);
 }
 
 inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* outputbuffer)

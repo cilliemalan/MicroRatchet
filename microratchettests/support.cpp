@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <microratchet.h>
 #include "support.h"
+#include <internal.h>
 
 
 // allocation functions for mr
@@ -37,57 +38,43 @@ void mr_free(mr_ctx ctx, void* pointer)
 }
 
 
+static std::map<void*, std::promise<int>> nexts;
 
-static std::map<std::tuple<void*, void*, void*>, std::promise<int>> promises;
-
-void init_wait(void* a, void* b, void* c)
+static void test_next(int status, mr_ctx mr_ctx)
 {
-	std::tuple<void*, void*, void*> k{ a,b,c };
-	auto i = promises.find(k);
-	if (i == promises.end())
+	auto i = nexts.find(mr_ctx);
+	i->second.set_value(status);
+}
+
+void init_wait(mr_ctx mr_ctx)
+{
+	auto i = nexts.find(mr_ctx);
+	if (i == nexts.end())
 	{
 		std::promise<int> n;
-		promises.emplace(std::make_pair(k, std::move(n)));
+		nexts.emplace(std::make_pair(mr_ctx, std::move(n)));
 	}
 	else
 	{
 		std::promise<int> n;
-		promises[k] = std::move(n);
+		nexts[mr_ctx] = std::move(n);
 	}
+
+	_mr_ctx* ctx = reinterpret_cast<_mr_ctx*>(mr_ctx);
+	ctx->next = test_next;
 }
 
-template<class TCtx, class TFnc>
-static void wait_setvalue(mr_ctx mr_ctx, TCtx ctx, TFnc call, int status)
+int wait_getvalue(mr_ctx mr_ctx)
 {
-	void* a = static_cast<void*>(mr_ctx);
-	void* b = static_cast<void*>(ctx);
-	void* c = static_cast<void*>(call);
-
-	wait_setvalue(a, b, c, status);
-}
-
-static void wait_setvalue(void* a, void* b, void* c, int value)
-{
-	std::tuple<void*, void*, void*> k{ a,b,c };
-	auto i = promises.find(k);
-	i->second.set_value(value);
-}
-
-int wait_getvalue(void* a, void* b, void* c)
-{
-	std::tuple<void*, void*, void*> k{ a,b,c };
-	auto i = promises.find(k);
+	auto i = nexts.find(mr_ctx);
 	auto f = i->second.get_future();
 	f.wait();
 	int result = f.get();
-	promises.erase(i);
+	nexts.erase(i);
 	return result;
 }
 
-
-
-#define REGISTER_CB(cs, fn) void mr_##cs##_##fn##_cb(int status, mr_##cs##_ctx ctx, mr_ctx mr_ctx) { wait_setvalue(mr_ctx, ctx, mr_##cs##_##fn, status); }
-
-REGISTER_CB(sha, init)
-REGISTER_CB(sha, compute)
-REGISTER_CB(sha, process)
+void wait_abandon(mr_ctx ctx)
+{
+	nexts.erase(ctx);
+}

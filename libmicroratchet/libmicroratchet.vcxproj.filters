@@ -21,6 +21,9 @@
     <ClInclude Include="microratchet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.c">
@@ -30,6 +33,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="client.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="callbacks.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
