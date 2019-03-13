@@ -114,6 +114,7 @@ int hmac_process(_hmac_ctx *ctx, mr_ctx mr_ctx_, const unsigned char* data, unsi
 	_mr_ctx* mr_ctx = mr_ctx_;
 	mr_ctx->user = ctx;
 	ctx->next = mr_ctx->next;
+	mr_ctx->next = hmac_after_process_digest;
 	_C(mr_sha_process(mr_ctx->sha_ctx, data, datalen));
 
 	return E_SUCCESS;
@@ -134,6 +135,9 @@ int hmac_compute(_hmac_ctx *ctx, mr_ctx mr_ctx_, unsigned char* output, unsigned
 	_mr_ctx* mr_ctx = mr_ctx_;
 	if (!output) return E_INVALIDARGUMENT;
 	if (spaceavail != 32) return E_INVALIDSIZE;
+
+	ctx->data = output;
+	ctx->datalen = spaceavail;
 
 	mr_ctx->user = ctx;
 	ctx->next = mr_ctx->next;
