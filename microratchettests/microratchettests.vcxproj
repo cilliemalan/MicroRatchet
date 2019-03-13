@@ -59,6 +59,7 @@
     <ClInclude Include="support.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="aes.cpp" />
     <ClCompile Include="client.cpp" />
     <ClCompile Include="hmac.cpp" />
     <ClCompile Include="sha.cpp" />
