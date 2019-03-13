@@ -2,11 +2,6 @@
 #include "microratchet.h"
 #include "internal.h"
 
-int test()
-{
-	return 5;
-}
-
 static void hmac_after_init_smallkey(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
 static void hmac_after_init_largekey(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
 static void hmac_after_init_key_process(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
