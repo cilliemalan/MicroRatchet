@@ -40,7 +40,7 @@ extern "C" {
 	void mr_sha_destroy(mr_sha_ctx ctx);
 
 
-	///// AES 128/256
+	///// AES 128/256 in CTR mode /w sha256 hashed iv (sha256 the iv, whatever it is, and use the first 16 bytes of the sha256 hash)
 	
 	mr_aes_ctx mr_aes_create(mr_ctx mr_ctx);
 	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
