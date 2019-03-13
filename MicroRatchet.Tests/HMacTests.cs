@@ -157,7 +157,6 @@ namespace MicroRatchet.Tests
             byte[] bcoutput = new byte[bcHmac.GetMacSize()];
             int bcoutLen = bcHmac.DoFinal(bcoutput, 0);
 
-            Debug.WriteLine($"{{{string.Join(", ", output.Select(b => $"0x{b:x}"))}}}");
             Assert.Equal(expected.Length, bcoutput.Length);
             Assert.Equal(expected, bcoutput);
             Assert.Equal(expected.Length, output.Length);
