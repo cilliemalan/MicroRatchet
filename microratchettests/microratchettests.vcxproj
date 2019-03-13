@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="client.cpp" />
+    <ClCompile Include="hmac.cpp" />
     <ClCompile Include="sha.cpp" />
     <ClCompile Include="support.cpp" />
     <ClCompile Include="test.cpp" />
