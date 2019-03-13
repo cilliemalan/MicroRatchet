@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
 #define _N(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { ctx->next(__r, ctx, mr_ctx); return; } }
 #define _E(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { (mr_ctx->next = ctx->next)(__r, ctx, mr_ctx); return; } }
@@ -31,3 +36,6 @@ void hmac_process_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx);
 int hmac_compute(_mr_ctx *mr_ctx, _hmac_ctx *hmac, unsigned char* output, unsigned int spaceavail);
 void hmac_compute_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx);
 
+#ifdef __cplusplus
+}
+#endif
