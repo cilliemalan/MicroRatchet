@@ -4,21 +4,21 @@
 
 static mr_config _cfg{ 1000, 1, 0, 3, 10, 1, 0 };
 
-TEST(Sha, ShaCreate) {
+TEST(Sha, Create) {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	EXPECT_NE(nullptr, sha);
 	mrclient_destroy(mr_ctx);
 }
 
-TEST(Sha, ShaInit) {
+TEST(Sha, Init) {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
 	EXPECT_EQ(E_SUCCESS, result);
 }
 
-TEST(Sha, ShaProcess) {
+TEST(Sha, Process) {
 	const unsigned char data[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 
 	auto mr_ctx = mrclient_create(&_cfg);
@@ -44,7 +44,7 @@ void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_outp
 	ASSERT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 }
 
-TEST(Sha, ShaComputeEmpty) {
+TEST(Sha, ComputeEmpty) {
 	unsigned char output[32];
 	unsigned char expected[32]{
 		0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
@@ -62,7 +62,7 @@ TEST(Sha, ShaComputeEmpty) {
 	ASSERT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 }
 
-TEST(Sha, ShaComputeShort1) {
+TEST(Sha, ComputeShort1) {
 	const unsigned char input[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 	const unsigned char output[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
@@ -74,7 +74,7 @@ TEST(Sha, ShaComputeShort1) {
 	testsha(input, output);
 }
 
-TEST(Sha, ShaComputeShort2) {
+TEST(Sha, ComputeShort2) {
 	const unsigned char input[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
 	const unsigned char output[32]{
 		0xAE, 0xB6, 0xB8, 0xE3, 0xE2, 0xF5, 0x96, 0x04,
@@ -86,7 +86,7 @@ TEST(Sha, ShaComputeShort2) {
 	testsha(input, output);
 }
 
-TEST(Sha, ShaComputeLong) {
+TEST(Sha, ComputeLong) {
 	const unsigned char input[]{
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -117,7 +117,7 @@ TEST(Sha, ShaComputeLong) {
 	testsha(input, output);
 }
 
-TEST(Sha, ShaComputeTwice) {
+TEST(Sha, ComputeTwice) {
 	const unsigned char input1[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 	const unsigned char expected1[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
