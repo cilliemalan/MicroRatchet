@@ -44,7 +44,7 @@ int mr_sha_process(mr_sha_ctx ctx, const unsigned char* data, unsigned int howmu
 int mr_sha_compute(mr_sha_ctx ctx, unsigned char* output, unsigned int spaceavail)
 {
 	if (!ctx || !output) return E_INVALIDARG;
-	if (spaceavail != 32) return E_INVALIDSIZE;
+	if (spaceavail < 32) return E_INVALIDSIZE;
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_Sha256Final(&_ctx->wc_sha, output);
