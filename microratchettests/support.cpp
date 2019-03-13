@@ -40,7 +40,7 @@ void mr_free(mr_ctx ctx, void* pointer)
 
 static std::map<void*, std::promise<int>> nexts;
 
-static void test_next(int status, mr_ctx mr_ctx, void* ctx)
+static void test_next(int status, void* ctx, mr_ctx mr_ctx)
 {
 	auto i = nexts.find(mr_ctx);
 	i->second.set_value(status);

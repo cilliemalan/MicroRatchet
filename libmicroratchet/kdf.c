@@ -19,8 +19,9 @@ static void hmac_after_compute_second_compute(int status, mr_sha_ctx sha_ctx, _m
 static void hmac_after_compute_second_process(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
 
 // init
-int hmac_init(_mr_ctx *mr_ctx, _hmac_ctx *ctx, const unsigned char* key, unsigned int keylen)
+int hmac_init(_hmac_ctx *ctx, mr_ctx mr_ctx_, const unsigned char* key, unsigned int keylen)
 {
+	_mr_ctx* mr_ctx = mr_ctx_;
 	mr_ctx->user = ctx;
 
 	ctx->data = (unsigned char*)key;
@@ -53,7 +54,7 @@ static void hmac_after_init_smallkey(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr
 	if (iremain > 0) memset(ctx->ipad + keylen, 0, iremain);
 	memcpy(ctx->ipad, key, keylen);
 
-	hmac_after_init_key_compute(E_SUCCESS, mr_ctx, sha_ctx);
+	hmac_after_init_key_compute(E_SUCCESS, sha_ctx, mr_ctx);
 }
 
 static void hmac_after_init_largekey(int status, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx)
@@ -108,8 +109,9 @@ static void hmac_after_init_first_process(int status, mr_sha_ctx sha_ctx, _mr_ct
 }
 
 // process
-int hmac_process(_mr_ctx *mr_ctx, _hmac_ctx *ctx, const unsigned char* data, unsigned int datalen)
+int hmac_process(_hmac_ctx *ctx, mr_ctx mr_ctx_, const unsigned char* data, unsigned int datalen)
 {
+	_mr_ctx* mr_ctx = mr_ctx_;
 	mr_ctx->user = ctx;
 	ctx->next = mr_ctx->next;
 	_C(mr_sha_process(mr_ctx->sha_ctx, data, datalen));
@@ -127,8 +129,9 @@ static void hmac_after_process_digest(int status, mr_sha_ctx sha_ctx, _mr_ctx *m
 }
 
 // compute
-int hmac_compute(_mr_ctx *mr_ctx, _hmac_ctx *ctx, unsigned char* output, unsigned int spaceavail)
+int hmac_compute(_hmac_ctx *ctx, mr_ctx mr_ctx_, unsigned char* output, unsigned int spaceavail)
 {
+	_mr_ctx* mr_ctx = mr_ctx_;
 	if (!output) return E_INVALIDARGUMENT;
 	if (spaceavail != 32) return E_INVALIDSIZE;
 
