@@ -65,14 +65,14 @@ extern "C" {
 	///// ECDH
 	
 	mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx);
-	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, int publickeyspaceavail, int* publickeysize);
+	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
 	void mr_ecdh_generate_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, int spaceavail, int* amountread);
+	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
 	void mr_ecdh_load_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, int otherpublickeysize, unsigned char* derivedkey, int derivedkeyspaceavail, int* derivedkeysize);
+	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail, unsigned int* derivedkeysize);
 	void mr_ecdh_derivekey_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
-	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, int spaceavail, int* amountstored);
+	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
 	void mr_ecdh_store_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	void mr_ecdh_destroy(mr_gmac_ctx ctx);
 
@@ -80,19 +80,19 @@ extern "C" {
 	///// ECDSA
 	
 	mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx);
-	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, int publickeyspaceavail, int* publickeysize);
+	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
 	void mr_ecdsa_generate_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, int spaceavail, int* amountread);
+	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
 	void mr_ecdsa_load_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, int digestsize, unsigned char* signature, int signaturespaceavail, int* signaturesize);
+	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize);
 	void mr_ecdsa_sign_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdsa_verify(mr_ecdsa_ctx ctx, const unsigned char* signature, int signaturesize, int* result);
+	int mr_ecdsa_verify(mr_ecdsa_ctx ctx, const unsigned char* signature, unsigned int signaturesize, unsigned int* result);
 	void mr_ecdsa_verify_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
-	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, int spaceavail, int* amountstored);
+	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
 	void mr_ecdsa_store_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	void mr_ecdsa_destroy(mr_ecdsa_ctx ctx);
-	int mr_ecdsa_verify_other(const unsigned char* signature, int signaturesize, const unsigned char* digest, int digestsize, unsigned char* publickey, int publickeysize, int* result);
+	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned char* publickey, unsigned int publickeysize, unsigned int* result);
 	void mr_ecdsa_verify_other_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 
 
