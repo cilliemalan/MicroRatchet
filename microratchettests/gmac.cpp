@@ -11,7 +11,7 @@ TEST(GMac, Init) {
 	const unsigned char key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 	const unsigned char iv[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-	int result = call_and_wait(mr_gmac_init, mr_ctx, gmac, key, sizeof(key), iv, sizeof(iv));
+	int result = call_and_wait(mr_gmac_init, mr_ctx, gmac, key, (unsigned int)sizeof(key), iv, (unsigned int)sizeof(iv));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_gmac_destroy(gmac);
@@ -25,10 +25,10 @@ TEST(GMac, Process) {
 	const unsigned char iv[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 	const unsigned char info[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
-	int result = call_and_wait(mr_gmac_init, mr_ctx, gmac, key, sizeof(key), iv, sizeof(iv));
+	int result = call_and_wait(mr_gmac_init, mr_ctx, gmac, key, (unsigned int)sizeof(key), iv, (unsigned int)sizeof(iv));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	result = call_and_wait(mr_gmac_process, mr_ctx, gmac, info, sizeof(info));
+	result = call_and_wait(mr_gmac_process, mr_ctx, gmac, info, (unsigned int)sizeof(info));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_gmac_destroy(gmac);
