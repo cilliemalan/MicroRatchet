@@ -7,7 +7,7 @@ typedef struct {
 	WC_RNG rng;
 } _mr_rng_ctx;
 
-mr_rng_ctx rng_create(mr_ctx mr_ctx)
+mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 {
 	_mr_rng_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), &ctx);
