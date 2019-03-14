@@ -60,9 +60,9 @@ int mr_gmac_compute(mr_gmac_ctx _ctx, unsigned char* output, unsigned int spacea
 {
 	_mr_gmac_ctx* ctx = _ctx;
 	if (!output || !ctx)return E_INVALIDARGUMENT;
-	if (spaceavail < 16) return E_INVALIDSIZE;
+	if (spaceavail < 4) return E_INVALIDSIZE;
 
-	memcpy(output, ctx->authtag, sizeof(ctx->authtag));
+	memcpy(output, ctx->authtag, spaceavail);
 	memset(ctx->authtag, 0, sizeof(ctx->authtag));
 	mr_gmac_compute_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
