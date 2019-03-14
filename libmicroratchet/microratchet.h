@@ -99,7 +99,7 @@ extern "C" {
 	///// RNG
 	
 	mr_rng_ctx rng_create(mr_ctx mr_ctx);
-	int mr_rng_generate(mr_rng_ctx ctx, unsigned char* output, int outputsize);
+	int mr_rng_generate(mr_rng_ctx ctx, unsigned char* output, unsigned int outputsize);
 	void mr_rng_generate_cb(int status, mr_rng_ctx ctx, mr_ctx mr_ctx);
 	void mr_rng_destroy(mr_rng_ctx ctx);
 
