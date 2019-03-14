@@ -53,9 +53,9 @@ extern "C" {
 	///// GMAC
 	
 	mr_gmac_ctx mr_gmac_create(mr_ctx mr_ctx);
-	int mr_gmac_init(mr_gmac_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize, unsigned int macsize);
+	int mr_gmac_init(mr_gmac_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
 	void mr_gmac_init_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
-	int mr_gmac_process(mr_gmac_ctx ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
+	int mr_gmac_process(mr_gmac_ctx ctx, const unsigned char* data, unsigned int amount);
 	void mr_gmac_process_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
 	int mr_gmac_compute(mr_gmac_ctx ctx, unsigned char* output, unsigned int spaceavail);
 	void mr_gmac_compute_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
