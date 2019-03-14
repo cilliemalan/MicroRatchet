@@ -32,5 +32,8 @@
     <ClCompile Include="gmac.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="rng.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
