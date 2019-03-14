@@ -24,6 +24,13 @@ TEST(Ecdh, Generate) {
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_EQ(pubkeysize, 32);
 
+	bool allcc = true;
+	for (auto d : pubkey) if (d != 0xCC)
+	{
+		allcc = false; break;
+	}
+	EXPECT_FALSE(allcc);
+
 	mr_ecdh_destroy(ecdh);
 	mrclient_destroy(mr_ctx);
 }
