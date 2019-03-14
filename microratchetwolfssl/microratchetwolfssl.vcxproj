@@ -321,6 +321,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="sha.c" />
+    <ClCompile Include="gmac.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\thirdParty\wolfssl.vcxproj">
