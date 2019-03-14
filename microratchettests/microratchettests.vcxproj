@@ -61,6 +61,7 @@
   <ItemGroup>
     <ClCompile Include="aes.cpp" />
     <ClCompile Include="client.cpp" />
+    <ClCompile Include="gmac.cpp" />
     <ClCompile Include="hmac.cpp" />
     <ClCompile Include="sha.cpp" />
     <ClCompile Include="support.cpp" />
