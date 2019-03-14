@@ -138,7 +138,6 @@ namespace MicroRatchet.Tests
             c.Initialize(key, iv);
             var encrypted = c.Encrypt(input);
 
-            Debug.WriteLine($"{{{string.Join(", ", encrypted.Select(b => $"0x{b:x2}"))}}}");
             Assert.Equal(output, encrypted);
         }
     }
