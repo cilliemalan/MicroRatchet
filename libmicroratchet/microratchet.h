@@ -92,8 +92,8 @@ extern "C" {
 	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
 	void mr_ecdsa_store_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	void mr_ecdsa_destroy(mr_ecdsa_ctx ctx);
-	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned char* publickey, unsigned int publickeysize, unsigned int* result);
-	void mr_ecdsa_verify_other_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
+	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned char* publickey, unsigned int publickeysize, unsigned int* result, void* user);
+	void mr_ecdsa_verify_other_cb(int status, void* user);
 
 
 	///// RNG

@@ -105,10 +105,10 @@ void mr_ecdsa_store_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx)
 	_ctx->next(status, ctx, mr_ctx);
 }
 
-void mr_ecdsa_verify_other_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx)
+void mr_ecdsa_verify_other_cb(int status, mr_ctx mr_ctx)
 {
 	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
-	_ctx->next(status, ctx, mr_ctx);
+	_ctx->next(status, 0, mr_ctx);
 }
 
 void mr_rng_generate_cb(int status, mr_rng_ctx ctx, mr_ctx mr_ctx)
