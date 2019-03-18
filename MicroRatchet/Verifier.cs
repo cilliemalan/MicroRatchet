@@ -5,6 +5,7 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Math.EC;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace MicroRatchet
@@ -38,7 +39,7 @@ namespace MicroRatchet
             {
                 ECDsaSigner signer = new ECDsaSigner();
                 signer.Init(false, new ECPublicKeyParameters(_pubkeypoint, domainParms));
-                var hash = new Digest().ComputeDigest(data);
+                var hash = data.ToArray();
                 var r = new BigInteger(1, signature, 0, 32);
                 var s = new BigInteger(1, signature, 32, 32);
                 return signer.VerifySignature(hash, r, s);

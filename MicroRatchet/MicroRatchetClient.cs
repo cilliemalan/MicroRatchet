@@ -68,7 +68,8 @@ namespace MicroRatchet
                     bw.Write(pubkey);
                     bw.Write(clientEcdh.GetPublicKey());
                     ms.TryGetBuffer(out var msbuffer);
-                    bw.Write(Signature.Sign(msbuffer));
+                    byte[] digest = Digest.ComputeDigest(msbuffer);
+                    bw.Write(Signature.Sign(digest));
 
                     if (ms.Length > Configuration.Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return ms.ToArray();
@@ -91,7 +92,7 @@ namespace MicroRatchet
                     var remoteEcdhForInit = br.ReadBytes(32);
 
                     var verifier = VerifierFactory.Create(remotePublicKey);
-                    if (!verifier.VerifySignedMessage(data))
+                    if (!verifier.VerifySignedMessage(Digest, data))
                     {
                         throw new InvalidOperationException("The signature was invalid");
                     }
@@ -159,7 +160,8 @@ namespace MicroRatchet
 
                             // sign the message
                             payloadStream.TryGetBuffer(out var buffer);
-                            payloadWriter.Write(Signature.Sign(buffer));
+                            byte[] digest = Digest.ComputeDigest(buffer);
+                            payloadWriter.Write(Signature.Sign(digest));
                             payload = payloadStream.ToArray();
                         }
                     }
@@ -230,7 +232,7 @@ namespace MicroRatchet
                             }
 
                             var verifier = VerifierFactory.Create(serverPubKey);
-                            if (!verifier.VerifySignedMessage(payload))
+                            if (!verifier.VerifySignedMessage(Digest, payload))
                             {
                                 throw new InvalidOperationException("The signature was invalid");
                             }

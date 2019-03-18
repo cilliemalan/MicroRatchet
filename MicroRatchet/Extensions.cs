@@ -110,13 +110,14 @@ namespace MicroRatchet
         public static bool Verify(this IVerifier sig, byte[] data, int offset, int count, byte[] signature) =>
             sig.Verify(new ArraySegment<byte>(data, offset, count), signature);
 
-        public static bool VerifySignedMessage(this IVerifier sig, byte[] message)
+        public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, byte[] message)
         {
             if (message.Length <= sig.SignatureSize) throw new InvalidOperationException("The message size is smaller than or equal to the size of a signature");
 
             var signature = new byte[sig.SignatureSize];
             Array.Copy(message, message.Length - sig.SignatureSize, signature, 0, sig.SignatureSize);
-            return sig.Verify(new ArraySegment<byte>(message, 0, message.Length - sig.SignatureSize), signature);
+            var hash = digest.ComputeDigest(new ArraySegment<byte>(message, 0, message.Length - sig.SignatureSize));
+            return sig.Verify(hash, signature);
         }
 
         public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize)

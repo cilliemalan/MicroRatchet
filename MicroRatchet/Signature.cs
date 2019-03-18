@@ -31,7 +31,7 @@ namespace MicroRatchet
         {
             ECDsaSigner signer = new ECDsaSigner();
             signer.Init(true, new ECPrivateKeyParameters(new BigInteger(_key), domainParms));
-            var hash = new Digest().ComputeDigest(data);
+            byte[] hash = data.ToArray();
             var sig = signer.GenerateSignature(hash);
             var r = sig[0];
             var s = sig[1];
