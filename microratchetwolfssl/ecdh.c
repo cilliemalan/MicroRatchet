@@ -26,32 +26,8 @@ int mr_ecdh_generate(mr_ecdh_ctx _ctx, unsigned char* publickey, unsigned int pu
 	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
 	if (!publickey || !ctx || !publickeysize) return E_INVALIDARGUMENT;
 
-	WC_RNG rng;
-	int result = wc_InitRng(&rng);
-	if (result != 0) return E_INVALIDOP;
-	int pubkeylen = 0;
-	for (;;)
-	{
-		result = wc_ecc_make_key_ex(&rng, 32, &ctx->key, ECC_SECP256R1);
-		if (result != 0) return E_INVALIDOP;
-
-		// try until we have a private key with an even public key y component.
-		if (mp_iseven(ctx->key.pubkey.y))
-		{
-			// try until the public key x component is under or at 256 bits.
-			pubkeylen = mp_unsigned_bin_size(ctx->key.pubkey.x);
-			if (pubkeylen <= 32)
-			{
-				break;
-			}
-		}
-	}
-
-	memset(publickey, 0, 32);
-	result = mp_to_unsigned_bin(ctx->key.pubkey.x, publickey + (32 - pubkeylen));
-	if (result != 0) return E_INVALIDOP;
-	*publickeysize = 32;
-
+	int result = ecc_generate(&ctx->key, publickey, publickeyspaceavail, publickeysize);
+	if (result != 0) return result;
 	mr_ecdh_generate_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
@@ -60,11 +36,8 @@ int mr_ecdh_load(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
-	memset(key, 0, sizeof(ctx->key));
-
-	int result = wc_ecc_import_private_key_ex(data, spaceavail, 0, 0, key, ECC_SECP256R1);
-	if (result != 0) return E_INVALIDOP;
-
+	int result = ecc_load(key, data, spaceavail);
+	if (result != 0) return result;
 	mr_ecdh_load_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
@@ -90,19 +63,15 @@ int mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const unsigned char* otherpublickey, uns
 int mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	return mp_unsigned_bin_size(ctx->key.pubkey.x);
+	return ecc_store_size_needed(&ctx->key.k);
 }
 
 int mr_ecdh_store(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	int len = mp_unsigned_bin_size(ctx->key.pubkey.x);
+	int len = ecc_store_size_needed(&ctx->key.k);
 	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
-	int r = mp_to_unsigned_bin(&ctx->key.k, data);
-	if (r != 0) return E_INVALIDOP;
-
-	*amountstored = (unsigned int)len;
-
+	int result = ecc_store(&ctx->key.k, data, spaceavail, amountstored);
 	mr_ecdh_store_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
