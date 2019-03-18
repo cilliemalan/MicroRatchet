@@ -40,6 +40,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	ASSERT_STREQ(sbuffer1, sbuffer2); \
+	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
 #define ASSERT_BUFFERNE(b1, l1, b2, l2) { \
@@ -53,6 +54,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	ASSERT_STRNE(sbuffer1, sbuffer2); \
+	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
 
@@ -67,6 +69,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	EXPECT_STREQ(sbuffer1, sbuffer2); \
+	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
 #define EXPECT_BUFFERNE(b1, l1, b2, l2) { \
@@ -80,4 +83,5 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	EXPECT_STRNE(sbuffer1, sbuffer2); \
+	delete[] sbuffer1; delete[] sbuffer2; \
 }
