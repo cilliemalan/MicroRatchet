@@ -125,9 +125,9 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	unsigned char storage2[64];
 	unsigned int storage2used;
 
-	result = call_and_wait(mr_ecdh_store, mr_ctx, ecdh1, storage1, sizeof(storage1), &storage1used);
+	result = call_and_wait(mr_ecdh_store, mr_ctx, ecdh1, storage1, (unsigned int)sizeof(storage1), &storage1used);
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_ecdh_store, mr_ctx, ecdh2, storage2, sizeof(storage2), &storage2used);
+	result = call_and_wait(mr_ecdh_store, mr_ctx, ecdh2, storage2, (unsigned int)sizeof(storage2), &storage2used);
 	EXPECT_EQ(E_SUCCESS, result);
 
 	// destroy the first two ecdhes

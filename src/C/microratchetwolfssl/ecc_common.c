@@ -169,7 +169,7 @@ int ecc_verify(const ecc_key *key, const unsigned char* signature, unsigned int 
 	if (res != 0) return E_INVALIDOP;
 
 
-	res = wc_ecc_verify_hash_ex(&r, &s, digest, digestsize, result, key);
+	res = wc_ecc_verify_hash_ex(&r, &s, digest, digestsize, result, (ecc_key*)key);
 	if (res != 0) return E_INVALIDOP;
 
 	return E_SUCCESS;
