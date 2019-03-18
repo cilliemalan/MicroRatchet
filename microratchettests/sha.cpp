@@ -49,7 +49,7 @@ void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_outp
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
+	EXPECT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 
 	mr_sha_destroy(sha);
 	mrclient_destroy(mr_ctx);
@@ -70,7 +70,7 @@ TEST(Sha, ComputeEmpty) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
+	EXPECT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 
 	mr_sha_destroy(sha);
 	mrclient_destroy(mr_ctx);
@@ -156,12 +156,12 @@ TEST(Sha, ComputeTwice) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(expected1, sizeof(expected1), output, sizeof(output));
+	EXPECT_BUFFEREQ(expected1, sizeof(expected1), output, sizeof(output));
 	result = call_and_wait(mr_sha_process, mr_ctx, sha, input2, (unsigned int)sizeof(input2));
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
+	EXPECT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
 
 	mr_sha_destroy(sha);
 	mrclient_destroy(mr_ctx);

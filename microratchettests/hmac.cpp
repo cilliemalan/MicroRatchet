@@ -81,7 +81,7 @@ TEST(HMac, Compute1) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 	mrclient_destroy(mr_ctx);
 }
 
@@ -111,7 +111,7 @@ TEST(HMac, Compute2) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 	mrclient_destroy(mr_ctx);
 }
 
@@ -131,7 +131,7 @@ TEST(HMac, ComputeEmpty) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 	mrclient_destroy(mr_ctx);
 }
 
@@ -161,7 +161,7 @@ TEST(HMac, ComputeLargeKey) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 	mrclient_destroy(mr_ctx);
 }
 
@@ -186,7 +186,7 @@ TEST(HMac, ComputeMultiProcess) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 	mrclient_destroy(mr_ctx);
 }
 
@@ -225,12 +225,12 @@ TEST(HMac, ComputeMultiUse) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected1, sizeof(expected1));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected1, sizeof(expected1));
 
 	result = call_and_wait(hmac_process, mr_ctx, &hmac, mr_ctx, info2, (unsigned int)sizeof(info2));
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(hmac_compute, mr_ctx, &hmac, mr_ctx, output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected2, sizeof(expected2));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected2, sizeof(expected2));
 	mrclient_destroy(mr_ctx);
 }

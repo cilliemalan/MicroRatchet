@@ -54,7 +54,7 @@ void computetest(
 	result = call_and_wait(mr_gmac_compute, mr_ctx, gmac, output, expectedsize);
 	EXPECT_EQ(E_SUCCESS, result);
 
-	ASSERT_BUFFEREQ(output, expectedsize, expected, expectedsize);
+	EXPECT_BUFFEREQ(output, expectedsize, expected, expectedsize);
 	mr_gmac_destroy(gmac);
 	mrclient_destroy(mr_ctx);
 	delete[] output;

@@ -81,7 +81,7 @@ TEST(Aes, Process256) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);
@@ -113,7 +113,7 @@ TEST(Aes, Process256Reverse) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);
@@ -143,7 +143,7 @@ TEST(Aes, Process128) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);
@@ -173,7 +173,7 @@ TEST(Aes, Process128Reverse) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);
@@ -205,7 +205,7 @@ TEST(Aes, ProcessBlank256) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);
@@ -235,7 +235,7 @@ TEST(Aes, ProcessBlank128) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_aes_process, mr_ctx, aes, input, (unsigned int)sizeof(input), output, (unsigned int)sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
+	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
 	mrclient_destroy(mr_ctx);

@@ -60,7 +60,7 @@ TEST(Ecdh, Derive) {
 	result = call_and_wait(mr_ecdh_derivekey, mr_ctx, ecdh2, (const unsigned char*)pubkey1, pubkey1size, derived2, (unsigned int)sizeof(derived2), &derived2size);
 	EXPECT_EQ(E_SUCCESS, result);
 
-	ASSERT_BUFFEREQ(derived1, derived1size, derived2, derived2size);
+	EXPECT_BUFFEREQ(derived1, derived1size, derived2, derived2size);
 
 	mr_ecdh_destroy(ecdh1);
 	mr_ecdh_destroy(ecdh2);
@@ -103,7 +103,7 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_ecdh_derivekey, mr_ctx, ecdh2, (const unsigned char*)pubkey1, pubkey1size, derived2, (unsigned int)sizeof(derived2), &derived2size);
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(derived1, derived1size, derived2, derived2size);
+	EXPECT_BUFFEREQ(derived1, derived1size, derived2, derived2size);
 
 	// derive a key with the other two
 	unsigned char derived3[32];
@@ -114,10 +114,10 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	EXPECT_EQ(E_SUCCESS, result);
 	result = call_and_wait(mr_ecdh_derivekey, mr_ctx, ecdh4, (const unsigned char*)pubkey3, pubkey3size, derived4, (unsigned int)sizeof(derived4), &derived4size);
 	EXPECT_EQ(E_SUCCESS, result);
-	ASSERT_BUFFEREQ(derived3, derived3size, derived4, derived4size);
+	EXPECT_BUFFEREQ(derived3, derived3size, derived4, derived4size);
 
 	// 1&2 and 3&4 must not be the same
-	ASSERT_BUFFERNE(derived1, derived1size, derived3, derived3size);
+	EXPECT_BUFFERNE(derived1, derived1size, derived3, derived3size);
 
 	// store the first two ecdhes
 	unsigned char storage1[64];
@@ -151,10 +151,10 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	EXPECT_EQ(E_SUCCESS, result);
 
 	// and check them
-	ASSERT_BUFFEREQ(derived1, derived1size, derived5, derived5size);
-	ASSERT_BUFFEREQ(derived2, derived2size, derived6, derived6size);
-	ASSERT_BUFFERNE(derived3, derived3size, derived6, derived6size);
-	ASSERT_BUFFERNE(derived4, derived4size, derived6, derived6size);
+	EXPECT_BUFFEREQ(derived1, derived1size, derived5, derived5size);
+	EXPECT_BUFFEREQ(derived2, derived2size, derived6, derived6size);
+	EXPECT_BUFFERNE(derived3, derived3size, derived6, derived6size);
+	EXPECT_BUFFERNE(derived4, derived4size, derived6, derived6size);
 
 	mr_ecdh_destroy(ecdh3);
 	mr_ecdh_destroy(ecdh4);
