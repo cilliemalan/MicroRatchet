@@ -71,7 +71,7 @@ int mr_ecdh_store(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key.k);
 	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
-	int result = ecc_store(&ctx->key.k, data, spaceavail, amountstored);
+	int result = ecc_store(&ctx->key, data, spaceavail, amountstored);
 	mr_ecdh_store_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }

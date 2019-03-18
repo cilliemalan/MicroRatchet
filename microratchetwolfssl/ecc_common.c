@@ -118,11 +118,11 @@ int ecc_store_size_needed(const mp_int* key)
 	return mp_unsigned_bin_size((mp_int*)key);
 }
 
-int ecc_store(const ecc_point* key, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored)
+int ecc_store(const ecc_key* key, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored)
 {
-	int len = mp_unsigned_bin_size((mp_int*)key->x);
+	int len = mp_unsigned_bin_size((mp_int*)&key->k);
 	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
-	int r = mp_to_unsigned_bin((mp_int*)key->x, data);
+	int r = mp_to_unsigned_bin((mp_int*)&key->k, data);
 	if (r != 0) return E_INVALIDOP;
 	*amountstored = (unsigned int)len;
 	return E_SUCCESS;
