@@ -15,7 +15,7 @@ int ecc_import_public(const unsigned char* otherpublickey, unsigned int otherpub
 	result = mp_set(pub->z, 1);
 	if (result != 0) return E_INVALIDOP;
 
-	// load y
+	// load x
 	result = mp_read_unsigned_bin(pub->x, otherpublickey, otherpublickeysize);
 	if (result != 0) return E_INVALIDOP;
 
