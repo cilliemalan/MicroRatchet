@@ -127,3 +127,51 @@ int ecc_store(const ecc_key* key, unsigned char* data, unsigned int spaceavail, 
 	*amountstored = (unsigned int)len;
 	return E_SUCCESS;
 }
+
+int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize)
+{
+	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
+	if (signaturespaceavail < 64) return E_INVALIDSIZE;
+
+	// why????
+	WC_RNG rng;
+	int result = wc_InitRng(&rng);
+	if (result != 0) return E_INVALIDOP;
+
+	mp_int r, s;
+	result = mp_init_multi(&r, &s, 0, 0, 0, 0);
+	if (result != 0) return E_INVALIDOP;
+	result = wc_ecc_sign_hash_ex(digest, digestsize, &rng, key, &r, &s);
+	if (result != 0) return E_INVALIDOP;
+	int l = mp_unsigned_bin_size(&r);
+	if (l > 32) return E_INVALIDOP;
+	result = mp_to_unsigned_bin(&r, signature + (32 - l));
+	if (result != 0) return E_INVALIDOP;
+	l = mp_unsigned_bin_size(&s);
+	if (l > 32) return E_INVALIDOP;
+	result = mp_to_unsigned_bin(&s, signature + (64 - l));
+	if (result != 0) return E_INVALIDOP;
+
+	*signaturesize = 64;
+	return E_SUCCESS;
+}
+
+int ecc_verify(const ecc_key *key, const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned int* result)
+{
+	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
+	if (signaturesize != 64) return E_INVALIDSIZE;
+
+	mp_int r, s;
+	int res = mp_init_multi(&r, &s, 0, 0, 0, 0);
+	if (res != 0) return E_INVALIDOP;
+	res = mp_read_unsigned_bin(&r, signature, 32);
+	if (res != 0) return E_INVALIDOP;
+	res = mp_read_unsigned_bin(&s, signature + 32, 32);
+	if (res != 0) return E_INVALIDOP;
+
+
+	res = wc_ecc_verify_hash_ex(&r, &s, digest, digestsize, result, key);
+	if (res != 0) return E_INVALIDOP;
+
+	return E_SUCCESS;
+}
