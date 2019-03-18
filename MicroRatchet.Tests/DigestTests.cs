@@ -100,7 +100,8 @@ namespace MicroRatchet.Tests
         {
             var c = new Digest();
             c.Dispose();
-            Assert.Throws<ObjectDisposedException>(() => c.ComputeDigest(new byte[0]));
+            Assert.Throws<ObjectDisposedException>(() => c.Process(new byte[0]));
+            Assert.Throws<ObjectDisposedException>(() => c.Compute());
         }
     }
 }

@@ -10,6 +10,7 @@ namespace MicroRatchet
     {
         public static byte[] ComputeDigest(this IDigest digest, ArraySegment<byte> data)
         {
+            digest.Reset();
             digest.Process(data);
             return digest.Compute();
         }
