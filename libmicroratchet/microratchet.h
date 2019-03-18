@@ -67,7 +67,7 @@ extern "C" {
 	mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx);
 	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
 	void mr_ecdh_generate_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
-	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
+	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail);
 	void mr_ecdh_load_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail, unsigned int* derivedkeysize);
 	void mr_ecdh_derivekey_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
