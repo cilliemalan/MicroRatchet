@@ -141,7 +141,7 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	mp_int r, s;
 	result = mp_init_multi(&r, &s, 0, 0, 0, 0);
 	if (result != 0) return E_INVALIDOP;
-	result = wc_ecc_sign_hash_ex(digest, digestsize, &rng, key, &r, &s);
+	result = wc_ecc_sign_hash_ex(digest, digestsize, &rng, (ecc_key*)key, &r, &s);
 	if (result != 0) return E_INVALIDOP;
 	int l = mp_unsigned_bin_size(&r);
 	if (l > 32) return E_INVALIDOP;

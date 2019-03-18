@@ -123,7 +123,7 @@ TEST(Ecdsa, VerifyOther) {
 	EXPECT_EQ(E_SUCCESS, result);
 
 	unsigned int res;
-	result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, (const unsigned char*)signature, signaturesize, digest, sizeof(digest), pubkey, pubkeysize, &res, mr_ctx);
+	result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, (const unsigned char*)signature, signaturesize, (const unsigned char*)digest, sizeof(digest), (const unsigned char*)pubkey, pubkeysize, &res, mr_ctx);
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 

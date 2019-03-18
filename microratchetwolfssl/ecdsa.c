@@ -92,7 +92,7 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 	}
 }
 
-int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned char* publickey, unsigned int publickeysize, unsigned int* result, void* user)
+int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, const unsigned char* publickey, unsigned int publickeysize, unsigned int* result, void* user)
 {
 	ecc_key key;
 	memset(&key, 0, sizeof(key));
