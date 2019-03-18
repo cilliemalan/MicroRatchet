@@ -18,6 +18,9 @@
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ecc_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aes.c">
@@ -36,6 +39,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="rng.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ecc_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
