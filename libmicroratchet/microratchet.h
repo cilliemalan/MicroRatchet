@@ -74,7 +74,7 @@ extern "C" {
 	int mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
 	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
 	void mr_ecdh_store_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
-	void mr_ecdh_destroy(mr_gmac_ctx ctx);
+	void mr_ecdh_destroy(mr_ecdh_ctx ctx);
 
 
 	///// ECDSA
