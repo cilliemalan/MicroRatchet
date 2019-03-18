@@ -133,7 +133,6 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
 	if (signaturespaceavail < 64) return E_INVALIDSIZE;
 
-	// why????
 	WC_RNG rng;
 	int result = wc_InitRng(&rng);
 	if (result != 0) return E_INVALIDOP;
