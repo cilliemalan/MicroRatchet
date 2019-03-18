@@ -56,6 +56,7 @@ TEST(Ecdsa, Sign) {
 
 	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, sizeof(digest), signature, sizeof(signature), &signaturesize);
 	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(64, signaturesize);
 
 	bool allcc = true;
 	bool allz = true;
