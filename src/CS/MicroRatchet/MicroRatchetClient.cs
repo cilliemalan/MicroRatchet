@@ -698,7 +698,7 @@ namespace MicroRatchet
             }
         }
 
-        public byte[] Send(byte[] payload)
+        public SendResult Send(byte[] payload)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -719,7 +719,10 @@ namespace MicroRatchet
                 step = state.Ratchets.SecondToLast;
             }
 
-            return ConstructMessage(state, payload, false, canIncludeEcdh, step);
+            return new SendResult
+            {
+                Messages = new[] { ConstructMessage(state, payload, false, canIncludeEcdh, step) }
+            };
         }
 
         private State LoadState()

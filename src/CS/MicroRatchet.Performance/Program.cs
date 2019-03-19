@@ -59,12 +59,12 @@ namespace MicroRatchet.Performance
                 var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(32)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
-                var m1 = client.Send(new byte[32]);
-                var m2 = client.Send(new byte[32]);
-                var m3 = client.Send(new byte[32]);
+                var m1 = client.Send(new byte[32]).Message;
+                var m2 = client.Send(new byte[32]).Message;
+                var m3 = client.Send(new byte[32]).Message;
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]));
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
 
@@ -85,15 +85,15 @@ namespace MicroRatchet.Performance
                 Console.WriteLine("Testing ratchet speed...");
                 var (client, server) = CreateAndInitialize(false);
                 var messagesToSend = Enumerable.Range(0, messageCount / 200).Select(_ => rng.Generate(32)).ToArray();
-                server.Receive(client.Send(new byte[32]));
-                client.Receive(server.Send(new byte[32]));
+                server.Receive(client.Send(new byte[32]).Message);
+                client.Receive(server.Send(new byte[32]).Message);
                 sw.Reset();
                 sw.Start();
                 for (int i = 0; i < messageCount / 200; i++)
                 {
-                    var m1 = client.Send(messagesToSend[i]);
+                    var m1 = client.Send(messagesToSend[i]).Message;
                     server.Receive(m1);
-                    var m2 = server.Send(messagesToSend[i]);
+                    var m2 = server.Send(messagesToSend[i]).Message;
                     client.Receive(m2);
                 }
                 sw.Stop();
@@ -168,7 +168,7 @@ namespace MicroRatchet.Performance
                                 if (payload != null)
                                 {
                                     payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                                    var message = client.Send(payload);
+                                    var message = client.Send(payload).Message;
                                     if (r.NextDouble() > clientDropChance)
                                     {
                                         clientSent++;
@@ -189,7 +189,7 @@ namespace MicroRatchet.Performance
                                 if (payload != null)
                                 {
                                     payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                                    var message = server.Send(payload);
+                                    var message = server.Send(payload).Message;
                                     if (r.NextDouble() > serverDropChance)
                                     {
                                         serverSent++;

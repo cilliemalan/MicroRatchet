@@ -90,7 +90,7 @@ namespace MicroRatchet.Tests
 
 
             client = new MicroRatchetClient(clientServices, true, 80);
-            var pl1 = client.Send(message1);
+            var pl1 = client.Send(message1).Message;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
@@ -99,7 +99,7 @@ namespace MicroRatchet.Tests
             }
 
             client = new MicroRatchetClient(clientServices, true, 80);
-            var pl2 = client.Send(message2);
+            var pl2 = client.Send(message2).Message;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
@@ -108,7 +108,7 @@ namespace MicroRatchet.Tests
             }
 
             client = new MicroRatchetClient(clientServices, true, 80);
-            var pl3 = client.Send(message3);
+            var pl3 = client.Send(message3).Message;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
