@@ -209,13 +209,19 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
-            var firstResponse = server.ProcessInitialization(firstPacket);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var packet = client.InitiateInitialization();
 
-            Assert.Null(lastResult);
+            while (!client.IsInitialized || !server.IsInitialized)
+            {
+                packet = server.Receive(packet).ToSendBack;
+                if (packet != null) packet = client.Receive(packet).ToSendBack;
+            }
+
+            //var clientInitPacket = client.ProcessInitialization();
+            //var responsePacket = server.ProcessInitialization(clientInitPacket);
+            //var firstPacket = client.ProcessInitialization(responsePacket);
+            //var firstResponse = server.ProcessInitialization(firstPacket);
+            //var lastResult = client.ProcessInitialization(firstResponse);
 
             client.SaveState();
             server.SaveState();

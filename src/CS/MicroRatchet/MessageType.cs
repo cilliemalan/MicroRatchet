@@ -11,9 +11,9 @@ namespace MicroRatchet
         MultiPartMessage = 0b010,
         // Reserved - 0b011
         InitializationRequest = 0b100,
-        InitializationWithEcdh = 0b100,
+        InitializationWithoutEcdh = 0b100,
         InitializationResponse = 0b101,
-        InitializationWithoutEcdh = 0b101,
+        InitializationWithEcdh = 0b101,
         // Reserved - 0b110
         // Reserved - 0b111
     }

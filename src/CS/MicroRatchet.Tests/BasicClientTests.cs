@@ -15,7 +15,7 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true);
 
-            var clientInitPacket = client.ProcessInitialization();
+            var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
 
@@ -34,8 +34,8 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
@@ -52,9 +52,9 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
@@ -73,10 +73,10 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
-            var firstResponse = server.ProcessInitialization(firstPacket);
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
@@ -96,11 +96,11 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
-            var firstResponse = server.ProcessInitialization(firstPacket);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
@@ -116,19 +116,19 @@ namespace MicroRatchet.Tests
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
 
             var client = new MicroRatchetClient(clientServices, true);
-            var clientInitPacket = client.ProcessInitialization();
+            var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
             var server = new MicroRatchetClient(serverServices, false);
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var firstPacket = client.ProcessInitialization(responsePacket);
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             server = new MicroRatchetClient(serverServices, false);
-            var firstResponse = server.ProcessInitialization(firstPacket);
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
 
             Assert.Null(lastResult);
@@ -146,19 +146,19 @@ namespace MicroRatchet.Tests
             byte[] message3 = rng.Generate(64);
 
             var client = new MicroRatchetClient(clientServices, true);
-            var clientInitPacket = client.ProcessInitialization();
+            var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
             var server = new MicroRatchetClient(serverServices, false);
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var firstPacket = client.ProcessInitialization(responsePacket);
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             server = new MicroRatchetClient(serverServices, false);
-            var firstResponse = server.ProcessInitialization(firstPacket);
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
 
             client = new MicroRatchetClient(clientServices, true, 80);
@@ -454,11 +454,11 @@ namespace MicroRatchet.Tests
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
-            var firstResponse = server.ProcessInitialization(firstPacket);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
 
             Assert.Null(lastResult);
 

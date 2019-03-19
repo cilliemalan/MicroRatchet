@@ -248,11 +248,17 @@ namespace MicroRatchet.Performance
             client.Configuration.UseAes256 = aes256;
             server.Configuration.UseAes256 = aes256;
 
-            var clientInitPacket = client.ProcessInitialization();
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
-            var firstPacket = client.ProcessInitialization(responsePacket);
-            var firstResponse = server.ProcessInitialization(firstPacket);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var packet = client.InitiateInitialization();
+
+            while (!client.IsInitialized || !server.IsInitialized)
+            {
+                packet = server.Receive(packet).ToSendBack;
+                if (packet != null) packet = client.Receive(packet).ToSendBack;
+            }
+            //var responsePacket = server.ProcessInitialization(clientInitPacket);
+            //var firstPacket = client.ProcessInitialization(responsePacket);
+            //var firstResponse = server.ProcessInitialization(firstPacket);
+            //var lastResult = client.ProcessInitialization(firstResponse);
             client.SaveState();
             server.SaveState();
 

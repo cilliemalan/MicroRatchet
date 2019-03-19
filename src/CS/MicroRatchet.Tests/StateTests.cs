@@ -43,7 +43,7 @@ namespace MicroRatchet.Tests
             var kex = clientServices.KeyAgreementFactory;
             var ks = client.Configuration.UseAes256 ? 32 : 16;
 
-            var clientInitPacket = client.ProcessInitialization();
+            var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
@@ -52,7 +52,7 @@ namespace MicroRatchet.Tests
             }
 
             var server = new MicroRatchetClient(serverServices, false);
-            var responsePacket = server.ProcessInitialization(clientInitPacket);
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -62,7 +62,7 @@ namespace MicroRatchet.Tests
 
 
             client = new MicroRatchetClient(clientServices, true);
-            var firstPacket = client.ProcessInitialization(responsePacket);
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
@@ -71,7 +71,7 @@ namespace MicroRatchet.Tests
             }
 
             server = new MicroRatchetClient(serverServices, false);
-            var firstResponse = server.ProcessInitialization(firstPacket);
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -80,7 +80,7 @@ namespace MicroRatchet.Tests
             }
 
             client = new MicroRatchetClient(clientServices, true);
-            var lastResult = client.ProcessInitialization(firstResponse);
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();

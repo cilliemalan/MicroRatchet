@@ -24,6 +24,7 @@ namespace MicroRatchet
         public IServices Services { get; }
 
         public MicroRatchetConfiguration Configuration { get; }
+        public bool IsInitialized => LoadState().IsInitialized;
 
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
@@ -269,7 +270,7 @@ namespace MicroRatchet
         {
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can send the first client message.");
 
-            return ConstructMessage(state, state.InitializationNonce, true, true, state.Ratchets.SecondToLast);
+            return ConstructMessage(state, state.InitializationNonce, true, true, state.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
         }
 
         private void ReceiveFirstMessage(State _state, byte[] payload)
@@ -277,9 +278,9 @@ namespace MicroRatchet
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
             var messageType = GetMessageType(payload[0]);
-            if (messageType != MessageType.NormalWithEcdh)
+            if (messageType != MessageType.InitializationWithEcdh)
             {
-                throw new InvalidOperationException("The payload was invalid");
+                throw new InvalidOperationException("The message had an unexpected message type");
             }
 
             // extract the nonce
@@ -300,7 +301,7 @@ namespace MicroRatchet
 
             // get the encrypted payload
             byte[] encryptedPayload;
-            int headerSize = messageType == MessageType.NormalWithEcdh ? 36 : 4;
+            int headerSize = 36;
             encryptedPayload = new byte[payload.Length - headerSize - 12];
             Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
 
@@ -353,14 +354,14 @@ namespace MicroRatchet
 
             var payload = state.NextInitializationNonce;
             state.NextInitializationNonce = null;
-            return ConstructMessage(state, payload, true, false, state.Ratchets.Last);
+            return ConstructMessage(state, payload, true, false, state.Ratchets.Last, MessageType.InitializationWithoutEcdh);
         }
 
         private void ReceiveFirstResponse(State _state, byte[] data)
         {
             if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive the first response.");
 
-            var contents = DeconstructMessage(state, data);
+            var contents = DeconstructMessage(state, data, MessageType.InitializationWithoutEcdh, false);
             if (contents == null || contents.Length < 32)
             {
                 throw new InvalidOperationException("The first response from the server was not valid");
@@ -375,7 +376,7 @@ namespace MicroRatchet
             state.InitializationNonce = null;
         }
 
-        private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step)
+        private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
         {
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
@@ -388,7 +389,7 @@ namespace MicroRatchet
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
-            var messageType = includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal;
+            var messageType = overrideMessageType ?? (includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal);
 
             // calculate some sizes
             var headerSize = 4 + (includeEcdh ? 32 : 0);
@@ -461,15 +462,24 @@ namespace MicroRatchet
             return result;
         }
 
-        private byte[] DeconstructMessage(State _state, byte[] payload)
+        private byte[] DeconstructMessage(State _state, byte[] payload, MessageType? expectedMessageType = null, bool? overrideHasEcdh = null)
         {
             var state = _state;
 
             var messageType = GetMessageType(payload[0]);
-            if (messageType != MessageType.Normal && messageType != MessageType.NormalWithEcdh)
+            if (expectedMessageType.HasValue)
             {
-                throw new InvalidOperationException("The payload was invalid");
+                if (expectedMessageType.Value != messageType)
+                {
+                    throw new InvalidOperationException("The message had an unexpected message type");
+                }
             }
+            else if (messageType != MessageType.Normal && messageType != MessageType.NormalWithEcdh)
+            {
+                throw new InvalidOperationException("The message had an unexpected message type");
+            }
+
+            bool hasEcdh = overrideHasEcdh ?? (messageType == MessageType.NormalWithEcdh);
 
             // extract the nonce
             byte[] nonce = new byte[4];
@@ -514,7 +524,7 @@ namespace MicroRatchet
 
             // get the encrypted payload
             byte[] encryptedPayload;
-            int headerSize = messageType == MessageType.NormalWithEcdh ? 36 : 4;
+            int headerSize = hasEcdh ? 36 : 4;
             encryptedPayload = new byte[payload.Length - headerSize - 12];
             Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
 
@@ -525,7 +535,7 @@ namespace MicroRatchet
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
-            if (messageType == MessageType.NormalWithEcdh)
+            if (hasEcdh)
             {
                 // the message contains ecdh parameters
                 var clientEcdhPublic = new byte[32];
@@ -555,7 +565,7 @@ namespace MicroRatchet
             return decryptedInnerPayload;
         }
 
-        public byte[] ProcessInitialization(byte[] dataReceived = null)
+        private byte[] ProcessInitialization(byte[] dataReceived = null)
         {
             _state = LoadState();
             if (_state == null)
@@ -591,7 +601,7 @@ namespace MicroRatchet
                             throw new InvalidOperationException("Expected an initialization response but got something else.");
                         }
                     }
-                    else if (type == MessageType.Normal)
+                    else if (type == MessageType.InitializationWithoutEcdh)
                     {
                         // step 3: receive first message from server
                         ReceiveFirstResponse(_state, dataReceived);
@@ -619,7 +629,7 @@ namespace MicroRatchet
                     var (initializationNonce, remoteEcdhForInit, remotePublicKey) = ReceiveInitializationRequest(_state, dataReceived);
                     sendback = SendInitializationResponse(_state, initializationNonce, remoteEcdhForInit);
                 }
-                else if (type == MessageType.NormalWithEcdh)
+                else if (type == MessageType.InitializationWithEcdh)
                 {
                     // step 2: first message from client
                     ReceiveFirstMessage(_state, dataReceived);
@@ -632,6 +642,22 @@ namespace MicroRatchet
             }
 
             return sendback;
+        }
+
+        public byte[] InitiateInitialization()
+        {
+            var state = LoadState();
+
+            if (state.IsInitialized)
+            {
+                throw new InvalidOperationException("The client is already initialized");
+            }
+            if (!Configuration.IsClient)
+            {
+                throw new InvalidOperationException("only a client can initiate initialization");
+            }
+
+            return ProcessInitialization();
         }
 
         public ReceiveResult Receive(byte[] data)

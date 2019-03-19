@@ -10,6 +10,8 @@ namespace MicroRatchet
     {
         protected override int Version => 1;
 
+        public override bool IsInitialized => base.IsInitialized && InitializationNonce == null;
+
         internal ClientState(int keySizeInBytes)
             : base(keySizeInBytes)
         {
