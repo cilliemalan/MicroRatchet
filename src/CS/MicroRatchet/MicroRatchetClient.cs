@@ -117,13 +117,12 @@ namespace MicroRatchet
             var serverNonce = RandomNumberGenerator.Generate(32);
             serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
             state.NextInitializationNonce = serverNonce;
-            var tempEcdh = KeyAgreementFactory.GenerateNew();
-            var tempEcdhPubkey = tempEcdh.GetPublicKey();
-            var sharedSecret = tempEcdh.DeriveKey(remoteEcdhForInit);
+            var rootPreEcdh = KeyAgreementFactory.GenerateNew();
+            var rootPreEcdhPubkey = rootPreEcdh.GetPublicKey();
+            var sharedSecret = rootPreEcdh.DeriveKey(remoteEcdhForInit);
 
             // generate server ECDH for root key and root key
-            var serverEcdh = KeyAgreementFactory.GenerateNew();
-            var rootPreKey = serverEcdh.DeriveKey(remoteEcdhForInit);
+            var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
             state.RootKey = genKeys[0];
             state.FirstSendHeaderKey = genKeys[1];
@@ -138,14 +137,14 @@ namespace MicroRatchet
             state.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
 
             // new nonce(32), ecdh pubkey(32),
-            // [nonce(32), server pubkey(32), new ecdh pubkey(32) x3, signature(64)], mac(16)
+            // [nonce(32), server pubkey(32), new ecdh pubkey(32) x2, signature(64)], mac(16)
 
             using (MemoryStream messageStream = new MemoryStream())
             {
                 using (BinaryWriter messageWriter = new BinaryWriter(messageStream))
                 {
                     messageWriter.Write(serverNonce);
-                    messageWriter.Write(tempEcdhPubkey);
+                    messageWriter.Write(rootPreEcdhPubkey);
 
                     // create the payload
                     byte[] payload;
@@ -155,7 +154,6 @@ namespace MicroRatchet
                         {
                             payloadWriter.Write(initializationNonce);
                             payloadWriter.Write(Signature.PublicKey);
-                            payloadWriter.Write(serverEcdh.GetPublicKey());
                             payloadWriter.Write(serverEcdhRatchet0.GetPublicKey());
                             payloadWriter.Write(serverEcdhRatchet1.GetPublicKey());
 
@@ -190,7 +188,7 @@ namespace MicroRatchet
             var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // new nonce(32), ecdh pubkey(32), <nonce(32), server pubkey(32), 
-            // new ecdh pubkey(32) x3, signature(64)>, mac(16)
+            // new ecdh pubkey(32) x2, signature(64)>, mac(16)
 
             using (var ms = new MemoryStream(data))
             {
@@ -198,16 +196,16 @@ namespace MicroRatchet
                 {
                     // decrypt
                     var nonce = br.ReadBytes(32);
-                    var ecdh = br.ReadBytes(32);
-                    IKeyAgreement localEcdh = state.LocalEcdhForInit;
-                    var tempSharedSecret = localEcdh.DeriveKey(ecdh);
-                    Cipher.Initialize(tempSharedSecret, nonce);
+                    var rootEcdhKey = br.ReadBytes(32);
+                    IKeyAgreement rootEcdh = state.LocalEcdhForInit;
+                    var rootPreKey = rootEcdh.DeriveKey(rootEcdhKey);
+                    Cipher.Initialize(rootPreKey, nonce);
                     var payload = Cipher.Decrypt(data, 64, data.Length - 64 - 16);
 
                     // check mac
                     br.BaseStream.Seek(data.Length - 16, SeekOrigin.Begin);
                     var mac = br.ReadBytes(16);
-                    Mac.Init(tempSharedSecret, nonce, 128);
+                    Mac.Init(rootPreKey, nonce, 128);
                     Mac.Process(new ArraySegment<byte>(data, 64, data.Length - 64 - 16));
                     var checkMac = Mac.Compute();
 
@@ -222,7 +220,6 @@ namespace MicroRatchet
                         {
                             var oldNonce = brp.ReadBytes(32);
                             var serverPubKey = brp.ReadBytes(32);
-                            var rootEcdh = brp.ReadBytes(32);
                             var remoteRatchetEcdh0 = brp.ReadBytes(32);
                             var remoteRatchetEcdh1 = brp.ReadBytes(32);
                             var signature = brp.ReadBytes(64);
@@ -247,8 +244,6 @@ namespace MicroRatchet
                             var localStep1EcdhRatchet = KeyAgreementFactory.GenerateNew();
 
                             // initialize client root key and ecdh ratchet
-                            var RemoteEcdhForInit = rootEcdh;
-                            var rootPreKey = localEcdh.DeriveKey(rootEcdh);
                             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
                             var rootKey = genKeys[0];
                             var receiveHeaderKey = genKeys[1];
