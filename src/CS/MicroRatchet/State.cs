@@ -13,7 +13,8 @@ namespace MicroRatchet
 
         protected abstract int Version { get; }
 
-        // after init
+        public virtual bool IsInitialized => (Ratchets?.Count ?? 0) != 0;
+        
         public EcdhRatchet Ratchets = new EcdhRatchet();
 
         protected State(int keySizeInBytes)

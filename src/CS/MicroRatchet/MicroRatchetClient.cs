@@ -576,8 +576,7 @@ namespace MicroRatchet
                 else
                 {
                     var state = (ClientState)_state;
-                    var nonce = BigEndianBitConverter.ToInt32(dataReceived);
-                    var type = GetMessageType(nonce);
+                    var type = GetMessageType(dataReceived[0]);
 
                     if (state.Ratchets.Count == 0)
                     {
@@ -612,8 +611,7 @@ namespace MicroRatchet
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
 
-                var nonce = BigEndianBitConverter.ToInt32(dataReceived);
-                var type = GetMessageType(nonce);
+                var type = GetMessageType(dataReceived[0]);
 
                 if (type == MessageType.InitializationRequest)
                 {
@@ -636,17 +634,42 @@ namespace MicroRatchet
             return sendback;
         }
 
-        public byte[] Receive(byte[] data)
+        public ReceiveResult Receive(byte[] data)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             var state = LoadState();
 
-            if (state == null || state.Ratchets.IsEmpty)
-            {
-                throw new InvalidOperationException("The client has not been initialized.");
-            }
+            var messageType = GetMessageType(data[0]);
 
-            return DeconstructMessage(state, data);
+            if (IsInitializationMessge(messageType))
+            {
+                if (state.IsInitialized)
+                {
+                    throw new InvalidOperationException("Received initialization message after initialization has been completed");
+                }
+
+                var toSendBack = ProcessInitialization(data);
+
+                return new ReceiveResult
+                {
+                    Payload = null,
+                    ReceivedDataType = ReceivedDataType.InitializationWithResponse,
+                    ToSendBack = toSendBack
+                };
+            }
+            else if (IsNormalMessage(messageType))
+            {
+                return new ReceiveResult
+                {
+                    Payload = DeconstructMessage(state, data),
+                    ToSendBack = null,
+                    ReceivedDataType = ReceivedDataType.Normal
+                };
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         public byte[] Send(byte[] payload)
@@ -654,9 +677,9 @@ namespace MicroRatchet
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
 
-            if (state == null || state.Ratchets.IsEmpty)
+            if (!state.IsInitialized)
             {
-                throw new InvalidOperationException("The client has not been initialized.");
+                throw new InvalidOperationException("The MicroRatchetClient is not initialized");
             }
 
             bool canIncludeEcdh = payload.Length <= Configuration.Mtu - 48;
@@ -700,5 +723,8 @@ namespace MicroRatchet
         private static int SetMessageType(ref int i, MessageType type) => i & 0b00011111_11111111_11111111_11111111 | ((int)type << 29);
         private static byte ClearMessageType(byte b) => (byte)(b & 0b0001_1111);
         private static int ClearMessageType(int i) => i & 0b00011111_11111111_11111111_11111111;
+        private static bool IsInitializationMessge(MessageType messageType) => messageType == MessageType.InitializationRequest || messageType == MessageType.InitializationResponse;
+        private static bool IsNormalMessage(MessageType messageType) => messageType == MessageType.Normal || messageType == MessageType.NormalWithEcdh;
+        private static bool IsMultipartMessage(MessageType messageType) => messageType == MessageType.MultiPartMessage;
     }
 }

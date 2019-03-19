@@ -118,7 +118,7 @@ namespace MicroRatchet.Tests
 
 
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r1 = server.Receive(pl1);
+            var r1 = server.Receive(pl1).Payload;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -127,7 +127,7 @@ namespace MicroRatchet.Tests
             }
 
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r2 = server.Receive(pl2);
+            var r2 = server.Receive(pl2).Payload;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -136,7 +136,7 @@ namespace MicroRatchet.Tests
             }
 
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r3 = server.Receive(pl3);
+            var r3 = server.Receive(pl3).Payload;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();

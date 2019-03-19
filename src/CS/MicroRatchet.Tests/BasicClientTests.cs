@@ -172,13 +172,13 @@ namespace MicroRatchet.Tests
             client.SaveState();
 
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r1 = server.Receive(pl1);
+            var r1 = server.Receive(pl1).Payload;
             server.SaveState();
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r2 = server.Receive(pl2);
+            var r2 = server.Receive(pl2).Payload;
             server.SaveState();
             server = new MicroRatchetClient(serverServices, false, 80);
-            var r3 = server.Receive(pl3);
+            var r3 = server.Receive(pl3).Payload;
             server.SaveState();
 
             Assert.Equal(message1, r1);
@@ -202,9 +202,9 @@ namespace MicroRatchet.Tests
             var pl2 = client.Send(message2);
             var pl3 = client.Send(message3);
 
-            var r1 = server.Receive(pl1);
-            var r2 = server.Receive(pl2);
-            var r3 = server.Receive(pl3);
+            var r1 = server.Receive(pl1).Payload;
+            var r2 = server.Receive(pl2).Payload;
+            var r3 = server.Receive(pl3).Payload;
 
             Assert.Equal(message1, r1);
             Assert.Equal(message2, r2);
@@ -229,11 +229,11 @@ namespace MicroRatchet.Tests
             var pl4 = client.Send(message4);
             var pl5 = client.Send(message5);
 
-            var r5 = server.Receive(pl5);
-            var r1 = server.Receive(pl1);
-            var r3 = server.Receive(pl3);
-            var r4 = server.Receive(pl4);
-            var r2 = server.Receive(pl2);
+            var r5 = server.Receive(pl5).Payload;
+            var r1 = server.Receive(pl1).Payload;
+            var r3 = server.Receive(pl3).Payload;
+            var r4 = server.Receive(pl4).Payload;
+            var r2 = server.Receive(pl2).Payload;
 
             Assert.Equal(message1, r1);
             Assert.Equal(message2, r2);
@@ -260,11 +260,11 @@ namespace MicroRatchet.Tests
             var pl4 = client.Send(message4);
             var pl5 = client.Send(message5);
 
-            var r5 = server.Receive(pl5);
-            var r1 = server.Receive(pl1);
-            //var r3 = server.Receive(pl3);
-            var r4 = server.Receive(pl4);
-            var r2 = server.Receive(pl2);
+            var r5 = server.Receive(pl5).Payload;
+            var r1 = server.Receive(pl1).Payload;
+            //var r3 = server.Receive(pl3).Payload;
+            var r4 = server.Receive(pl4).Payload;
+            var r2 = server.Receive(pl2).Payload;
 
             Assert.Equal(message1, r1);
             Assert.Equal(message2, r2);
@@ -287,22 +287,22 @@ namespace MicroRatchet.Tests
             byte[] smessage3 = rng.Generate(64);
 
             var cp1 = client.Send(cmessage1);
-            var sr1 = server.Receive(cp1);
+            var sr1 = server.Receive(cp1).Payload;
 
             var sp1 = server.Send(smessage1);
-            var cr1 = client.Receive(sp1);
+            var cr1 = client.Receive(sp1).Payload;
 
             var cp2 = client.Send(cmessage2);
-            var sr2 = server.Receive(cp2);
+            var sr2 = server.Receive(cp2).Payload;
 
             var sp2 = server.Send(smessage2);
-            var cr2 = client.Receive(sp2);
+            var cr2 = client.Receive(sp2).Payload;
 
             var cp3 = client.Send(cmessage3);
-            var sr3 = server.Receive(cp3);
+            var sr3 = server.Receive(cp3).Payload;
 
             var sp3 = server.Send(smessage3);
-            var cr3 = client.Receive(sp3);
+            var cr3 = client.Receive(sp3).Payload;
 
             Assert.Equal(cmessage1, sr1);
             Assert.Equal(cmessage2, sr2);
@@ -326,22 +326,22 @@ namespace MicroRatchet.Tests
             byte[] smessage3 = rng.Generate(64);
 
             var cp1 = client.Send(cmessage1);
-            var sr1 = server.Receive(cp1);
+            var sr1 = server.Receive(cp1).Payload;
 
             var sp1 = server.Send(smessage1);
-            var cr1 = client.Receive(sp1);
+            var cr1 = client.Receive(sp1).Payload;
 
             //var cp2 = client.Send(cmessage2);
-            //var sr2 = server.Receive(cp2);
+            //var sr2 = server.Receive(cp2).Payload;
 
             //var sp2 = server.Send(smessage2);
-            //var cr2 = client.Receive(sp2);
+            //var cr2 = client.Receive(sp2).Payload;
 
             var cp3 = client.Send(cmessage3);
-            var sr3 = server.Receive(cp3);
+            var sr3 = server.Receive(cp3).Payload;
 
             var sp3 = server.Send(smessage3);
-            var cr3 = client.Receive(sp3);
+            var cr3 = client.Receive(sp3).Payload;
 
             Assert.Equal(cmessage1, sr1);
             //Assert.Equal(cmessage2, sr2);
@@ -369,25 +369,25 @@ namespace MicroRatchet.Tests
             byte[] smessage5 = rng.Generate(64);
 
             var cp1 = client.Send(cmessage1);
-            var sr1 = server.Receive(cp1);
+            var sr1 = server.Receive(cp1).Payload;
             var sp1 = server.Send(smessage1);
-            var cr1 = client.Receive(sp1);
+            var cr1 = client.Receive(sp1).Payload;
             var sp4 = server.Send(smessage4);
             var cp3 = client.Send(cmessage3);
             var cp2 = client.Send(cmessage2);
-            var sr3 = server.Receive(cp3);
+            var sr3 = server.Receive(cp3).Payload;
             var cp5 = client.Send(cmessage5);
             var cp4 = client.Send(cmessage4);
-            var cr4 = client.Receive(sp4);
+            var cr4 = client.Receive(sp4).Payload;
             var sp3 = server.Send(smessage3);
-            var sr5 = server.Receive(cp5);
+            var sr5 = server.Receive(cp5).Payload;
             var sp2 = server.Send(smessage2);
-            var cr3 = client.Receive(sp3);
-            var sr2 = server.Receive(cp2);
-            var cr2 = client.Receive(sp2);
-            var sr4 = server.Receive(cp4);
+            var cr3 = client.Receive(sp3).Payload;
+            var sr2 = server.Receive(cp2).Payload;
+            var cr2 = client.Receive(sp2).Payload;
+            var sr4 = server.Receive(cp4).Payload;
             var sp5 = server.Send(smessage5);
-            var cr5 = client.Receive(sp5);
+            var cr5 = client.Receive(sp5).Payload;
 
             Assert.Equal(cmessage1, sr1);
             Assert.Equal(cmessage2, sr2);
@@ -415,27 +415,27 @@ namespace MicroRatchet.Tests
             byte[] smessage3 = rng.Generate(32);
 
             var cp1 = client.Send(cmessage1);
-            var sr1 = server.Receive(cp1);
+            var sr1 = server.Receive(cp1).Payload;
             Assert.Equal(cmessage1, sr1);
 
             var sp1 = server.Send(smessage1);
-            var cr1 = client.Receive(sp1);
+            var cr1 = client.Receive(sp1).Payload;
             Assert.Equal(smessage1, cr1);
 
             var cp2 = client.Send(cmessage2);
-            var sr2 = server.Receive(cp2);
+            var sr2 = server.Receive(cp2).Payload;
             Assert.Equal(cmessage2, sr2);
 
             var sp2 = server.Send(smessage2);
-            var cr2 = client.Receive(sp2);
+            var cr2 = client.Receive(sp2).Payload;
             Assert.Equal(smessage2, cr2);
 
             var cp3 = client.Send(cmessage3);
-            var sr3 = server.Receive(cp3);
+            var sr3 = server.Receive(cp3).Payload;
             Assert.Equal(cmessage3, sr3);
 
             var sp3 = server.Send(smessage3);
-            var cr3 = client.Receive(sp3);
+            var cr3 = client.Receive(sp3).Payload;
             Assert.Equal(smessage3, cr3);
 
             client.SaveState();

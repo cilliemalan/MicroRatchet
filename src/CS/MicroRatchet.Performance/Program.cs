@@ -212,7 +212,7 @@ namespace MicroRatchet.Performance
                                 messagesSentFromServer.TryDequeue(out var message);
                                 if (message != null)
                                 {
-                                    var payload = client.Receive(message);
+                                    var payload = client.Receive(message).Payload;
                                     messagesReceivedByClient.Add(payload);
                                     clientReceived++;
                                 }
@@ -225,7 +225,7 @@ namespace MicroRatchet.Performance
                                 messagesSentFromClient.TryDequeue(out var message);
                                 if (message != null)
                                 {
-                                    var payload = server.Receive(message);
+                                    var payload = server.Receive(message).Payload;
                                     messagesReceivedByServer.Add(payload);
                                     serverReceived++;
                                 }
