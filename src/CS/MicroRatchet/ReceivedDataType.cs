@@ -9,6 +9,6 @@ namespace MicroRatchet
         Normal,
         Invalid,
         InitializationWithResponse,
-        Multipart
+        Partial
     }
 }
