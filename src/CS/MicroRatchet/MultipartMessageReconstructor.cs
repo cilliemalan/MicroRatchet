@@ -14,7 +14,7 @@ namespace MicroRatchet
         Dictionary<int, (int ctr, int total)> _messages = new Dictionary<int, (int ctr, int total)>();
         Dictionary<(int seq, int num), byte[]> _payloads = new Dictionary<(int seq, int num), byte[]>();
 
-        public MultipartMessageReconstructor(int payloadMtu, int maximumDataStored = 1024, int timeout = 20)
+        public MultipartMessageReconstructor(int payloadMtu, int maximumDataStored = 50 * 1024, int timeout = 20)
         {
             _maximumDataStored = maximumDataStored;
             _timeout = timeout;
