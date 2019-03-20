@@ -700,7 +700,7 @@ namespace MicroRatchet
             return nonceToRetransmit;
         }
 
-        private SendResult ProcessInitialization(byte[] dataReceived = null)
+        private MessageInfo ProcessInitialization(byte[] dataReceived = null)
         {
             _state = LoadState();
             if (_state == null)
@@ -778,7 +778,7 @@ namespace MicroRatchet
 
             if (sendback != null)
             {
-                return new SendResult { Messages = new[] { sendback } };
+                return new MessageInfo { Messages = new[] { sendback } };
             }
             else
             {
@@ -786,7 +786,7 @@ namespace MicroRatchet
             }
         }
 
-        public SendResult InitiateInitialization()
+        public MessageInfo InitiateInitialization()
         {
             var state = LoadState();
 
@@ -878,7 +878,7 @@ namespace MicroRatchet
             throw new NotSupportedException("Unexpected message type received");
         }
 
-        private SendResult SendSingle(byte[] payload)
+        private MessageInfo SendSingle(byte[] payload)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -899,13 +899,13 @@ namespace MicroRatchet
                 step = state.Ratchets.SecondToLast;
             }
 
-            return new SendResult
+            return new MessageInfo
             {
                 Messages = new[] { ConstructMessage(state, payload, false, canIncludeEcdh, step) }
             };
         }
 
-        private SendResult SendMultipart(byte[] payload)
+        private MessageInfo SendMultipart(byte[] payload)
         {
             var state = LoadState();
 
@@ -914,13 +914,13 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The MicroRatchetClient is not initialized");
             }
 
-            return new SendResult
+            return new MessageInfo
             {
                 Messages = ConstructEncryptedMultipartMessage(payload)
             };
         }
 
-        public SendResult Send(byte[] payload, bool? allowMultipart = null)
+        public MessageInfo Send(byte[] payload, bool? allowMultipart = null)
         {
             if (payload.Length <= MaximumMessageSize)
             {
