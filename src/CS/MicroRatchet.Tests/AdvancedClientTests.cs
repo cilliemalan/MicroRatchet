@@ -253,7 +253,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestBasic(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(100, 100, 0.1, 0.1)]
@@ -265,7 +265,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(100, 100, 0.5, 0.1, true)]
@@ -274,7 +274,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(1000, 100, 0.1, 0.1)]
@@ -286,7 +286,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestMoreDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(1000, 100, 0.5, 0.1, true)]
@@ -295,7 +295,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestMoreDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(100, 10, 0.0, 0.0, false, 32, 192)]
@@ -304,7 +304,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestLargeMessages(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(100, 10, 0.0, 0.0, true, 32, 192)]
@@ -313,7 +313,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestLargeMessagesReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
         
         [InlineData(100, 100, 0.0, 0.1, false, 32, 192)]
@@ -326,7 +326,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestLargeMessagesDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
         [InlineData(100, 100, 0.0, 0.1, true, 32, 192)]
@@ -337,10 +337,10 @@ namespace MicroRatchet.Tests
         [Theory]
         public void LargeVolumeTestLargeMessagesDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
-        private static Random AdvancedTestInternal(int clientMessagesCount, int serverMessagesCount, double clientDropChance, double serverDropChance, bool outOfOrder, int minsize, int maxsize)
+        private static void AdvancedTestInternal(int clientMessagesCount, int serverMessagesCount, double clientDropChance, double serverDropChance, bool outOfOrder, int minsize, int maxsize)
         {
             var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
             var cservices = client.Services;
@@ -443,7 +443,7 @@ namespace MicroRatchet.Tests
 
                         if (dropped == false)
                         {
-                            serverExpects.Add(payload);
+                            clientExpects.Add(payload);
                         }
                     }
                     else n = 2;
@@ -481,7 +481,8 @@ namespace MicroRatchet.Tests
             Assert.All(clientExpects, message => messagesReceivedByClient.Contains(message));
             Assert.All(messagesReceivedByServer, message => serverExpects.Contains(message));
             Assert.All(messagesReceivedByClient, message => clientExpects.Contains(message));
-            return r;
+            Assert.Equal(serverExpects.Count, messagesReceivedByServer.Count);
+            Assert.Equal(clientExpects.Count, messagesReceivedByClient.Count);
         }
 
         private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false)
