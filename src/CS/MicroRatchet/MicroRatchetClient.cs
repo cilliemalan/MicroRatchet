@@ -45,7 +45,7 @@ namespace MicroRatchet
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
             KeyDerivation = new KeyDerivation(Services.Digest);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
-                config.MaximumBufferedPartialMessageSize, 
+                config.MaximumBufferedPartialMessageSize,
                 config.PartialMessageTimeout);
         }
 
@@ -871,7 +871,7 @@ namespace MicroRatchet
             throw new NotSupportedException("Unexpected message type received");
         }
 
-        public SendResult Send(byte[] payload)
+        private SendResult SendSingle(byte[] payload)
         {
             //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -898,7 +898,7 @@ namespace MicroRatchet
             };
         }
 
-        public SendResult SendMultipart(byte[] payload)
+        private SendResult SendMultipart(byte[] payload)
         {
             var state = LoadState();
 
@@ -911,6 +911,23 @@ namespace MicroRatchet
             {
                 Messages = ConstructEncryptedMultipartMessage(payload)
             };
+        }
+
+        public SendResult Send(byte[] payload, bool? allowMultipart = null)
+        {
+            if (payload.Length <= MaximumMessageSize)
+            {
+                return SendSingle(payload);
+            }
+            else
+            {
+                bool canSendMultipart = allowMultipart ?? Configuration.AllowImplicitMultipartMessages;
+                if (!canSendMultipart)
+                {
+                    throw new InvalidOperationException("Cannot send multipart message as it has not been explicitly allowed.");
+                }
+                return SendMultipart(payload);
+            }
         }
 
         private State LoadState()
