@@ -14,6 +14,7 @@ namespace MicroRatchet
         public const int EcdhSize = 32;
         public const int MinimumOverhead = NonceSize + MacSize;
         public const int OverheadWithEcdh = MinimumOverhead + EcdhSize;
+        public const int EncryptedMultipartHeaderOverhead = 6;
 
         IDigest Digest => Services.Digest;
         ISignature Signature => Services.Signature;
@@ -25,6 +26,8 @@ namespace MicroRatchet
         IMac Mac => Services.Mac;
         IStorageProvider Storage => Services.Storage;
 
+        private MultipartMessageReconstructor _multipart;
+
         private State _state;
 
         public IServices Services { get; }
@@ -32,11 +35,16 @@ namespace MicroRatchet
         public MicroRatchetConfiguration Configuration { get; }
         public bool IsInitialized => LoadState().IsInitialized;
 
+        public int MaximumMessageSize => Configuration.Mtu - MinimumOverhead;
+        public int MaximumMessageSizeWithEcdh => Configuration.Mtu - OverheadWithEcdh;
+        public int MultipartMessageSize => Configuration.Mtu - MinimumOverhead - EncryptedMultipartHeaderOverhead;
+
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
             KeyDerivation = new KeyDerivation(Services.Digest);
+            _multipart = new MultipartMessageReconstructor(MultipartMessageSize);
         }
 
         public MicroRatchetClient(IServices services, bool isClient, int? Mtu = null)
@@ -46,6 +54,7 @@ namespace MicroRatchet
             Configuration.IsClient = isClient;
             if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
             KeyDerivation = new KeyDerivation(Services.Digest);
+            _multipart = new MultipartMessageReconstructor(MultipartMessageSize);
         }
 
         private byte[] SendInitializationRequest(State _state)
@@ -391,7 +400,6 @@ namespace MicroRatchet
             int mtu = Configuration.Mtu;
             int keySize = Configuration.UseAes256 ? 32 : 16;
 
-
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
@@ -619,70 +627,73 @@ namespace MicroRatchet
         {
             // encrypted multipart message is a normal message without ECDH,
             // with a different type, and with a header inside the payload.
-            // the header is: num(2 bytes), total (2 bytes)
+            // the header is: seq (2 bytes), num(2 bytes), total (2 bytes)
             var state = LoadState();
             var ratchet = state.Ratchets.SecondToLast;
+            ushort seq = unchecked((ushort)ratchet.SendingChain.Generation);
 
-            var chunkSize = Configuration.Mtu - 16 - 4;
+            var chunkSize = MultipartMessageSize;
             var numChunks = allData.Length / chunkSize;
-            if (allData.Length % Configuration.Mtu != 0) numChunks++;
+            if (allData.Length % chunkSize != 0) numChunks++;
 
             if (numChunks > 65536) throw new InvalidOperationException("Cannot create an encrypted multipart message with more than 65536 parts");
 
             byte[] numChunksBytes = BigEndianBitConverter.GetBytes((ushort)(numChunks - 1));
+            byte[] seqBytes = BigEndianBitConverter.GetBytes(seq);
             int amt = 0;
             byte[][] chunks = new byte[numChunks][];
-            byte[] payload = new byte[chunkSize + 4];
+            byte[] payload = new byte[chunkSize + 6];
             for (int i = 0; i < numChunks; i++)
             {
                 var left = allData.Length - amt;
                 int thisChunkSize = left > chunkSize ? chunkSize : left;
-                if ((thisChunkSize + 4) != payload.Length) payload = new byte[thisChunkSize + 4];
-                Array.Copy(allData, amt, payload, 4, thisChunkSize);
+                if ((thisChunkSize + 6) != payload.Length) payload = new byte[thisChunkSize + 6];
+                Array.Copy(allData, amt, payload, 6, thisChunkSize);
                 amt += thisChunkSize;
 
                 // num and total
-                payload[0] = (byte)((((ushort)i) >> 8) & 0xFF);
-                payload[1] = (byte)(((ushort)i) & 0xFF);
-                payload[2] = numChunksBytes[0];
-                payload[3] = numChunksBytes[1];
+                payload[0] = seqBytes[0];
+                payload[1] = seqBytes[1];
+                payload[2] = (byte)((((ushort)i) >> 8) & 0xFF);
+                payload[3] = (byte)(((ushort)i) & 0xFF);
+                payload[4] = numChunksBytes[0];
+                payload[5] = numChunksBytes[1];
                 chunks[i] = ConstructMessage(state, payload, false, false, ratchet, MessageType.MultiPartMessageEncrypted);
             }
 
             return chunks;
         }
 
-        private (byte[] payload, int num, int total) DeconstructEncryptedMultipartMessagePart(byte[] data)
+        private (byte[] payload, int seq, int num, int total) DeconstructEncryptedMultipartMessagePart(byte[] data)
         {
             var state = LoadState();
             var outerPayload = DeconstructMessage(state, data, MessageType.MultiPartMessageEncrypted, false);
-            byte[] innerPayload = new byte[outerPayload.Length - 4];
-            Array.Copy(outerPayload, 4, innerPayload, 0, innerPayload.Length);
-            int num = (int)BigEndianBitConverter.ToUInt16(innerPayload, 0);
-            int tot = (int)(BigEndianBitConverter.ToUInt16(innerPayload, 2) + 1);
-            return (innerPayload, num, tot);
+            byte[] innerPayload = new byte[outerPayload.Length - 6];
+            Array.Copy(outerPayload, 6, innerPayload, 0, innerPayload.Length);
+            int seq = (int)BigEndianBitConverter.ToUInt16(outerPayload, 0);
+            int num = (int)BigEndianBitConverter.ToUInt16(outerPayload, 2);
+            int tot = (int)(BigEndianBitConverter.ToUInt16(outerPayload, 4) + 1);
+            return (innerPayload, seq, num, tot);
         }
 
         private byte[] ConstructRetransmissionRequest(byte[] nonceToRetransmit)
         {
-            // a retransmission request is a normal mesage, with or without ECDH parameters,
+            // a retransmission request is a normal mesage, without ECDH parameters,
             // with a different type, that contains the nonce of the message to retransmit
             // as payload. Only encrypted messages may be retransmitted. If an incomplete unencrypted
             // message times out, it is considered dropped.
             var state = LoadState();
+            var step = state.Ratchets.SecondToLast;
 
-            bool canIncludeEcdh = nonceToRetransmit.Length <= Configuration.Mtu - 48;
-            EcdhRatchetStep step;
-            if (canIncludeEcdh)
-            {
-                step = state.Ratchets.Last;
-            }
-            else
-            {
-                step = state.Ratchets.SecondToLast;
-            }
+            return ConstructMessage(state, nonceToRetransmit, false, false, step, MessageType.MultiPartRetransmissionRequest);
+        }
 
-            return ConstructMessage(state, nonceToRetransmit, false, canIncludeEcdh, step, MessageType.MultiPartRetransmissionRequest);
+        private byte[] DeconstructRetransmissionRequest(byte[] data)
+        {
+            var state = LoadState();
+
+            var nonceToRetransmit = DeconstructMessage(state, data, MessageType.MultiPartRetransmissionRequest, false);
+            return nonceToRetransmit;
         }
 
         private byte[] ProcessInitialization(byte[] dataReceived = null)
@@ -812,10 +823,44 @@ namespace MicroRatchet
                     ReceivedDataType = ReceivedDataType.Normal
                 };
             }
-            else
+            else if (IsMultipartMessage(messageType))
             {
-                throw new NotImplementedException();
+                if (messageType == MessageType.MultiPartMessageUnencrypted)
+                {
+                    throw new NotImplementedException();
+                }
+                else if (messageType == MessageType.MultiPartMessageEncrypted)
+                {
+                    var (payload, seq, num, total) = DeconstructEncryptedMultipartMessagePart(data);
+                    var entireMessage = _multipart.Ingest(payload, seq, num, total);
+                    if (entireMessage != null)
+                    {
+                        return new ReceiveResult
+                        {
+                            MultipartSequence = seq,
+                            MessageNumber = num,
+                            TotalMessages = total,
+                            Payload = entireMessage,
+                            ReceivedDataType = ReceivedDataType.Normal,
+                            ToSendBack = null
+                        };
+                    }
+                    else
+                    {
+                        return new ReceiveResult
+                        {
+                            MultipartSequence = seq,
+                            MessageNumber = num,
+                            TotalMessages = total,
+                            Payload = payload,
+                            ReceivedDataType = ReceivedDataType.Partial,
+                            ToSendBack = null
+                        };
+                    }
+                }
             }
+
+            throw new NotSupportedException("Unexpected message type received");
         }
 
         public SendResult Send(byte[] payload)
@@ -842,6 +887,21 @@ namespace MicroRatchet
             return new SendResult
             {
                 Messages = new[] { ConstructMessage(state, payload, false, canIncludeEcdh, step) }
+            };
+        }
+
+        public SendResult SendMultipart(byte[] payload)
+        {
+            var state = LoadState();
+
+            if (!state.IsInitialized)
+            {
+                throw new InvalidOperationException("The MicroRatchetClient is not initialized");
+            }
+
+            return new SendResult
+            {
+                Messages = ConstructEncryptedMultipartMessage(payload)
             };
         }
 
