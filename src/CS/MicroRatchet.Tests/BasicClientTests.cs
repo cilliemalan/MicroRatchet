@@ -22,7 +22,7 @@ namespace MicroRatchet.Tests
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
             
-            Assert.Equal(32, clientState.InitializationNonce.Length);
+            Assert.Equal(4, clientState.InitializationNonce.Length);
         }
 
         [Fact]
