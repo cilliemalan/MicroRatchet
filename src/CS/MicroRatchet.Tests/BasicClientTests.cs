@@ -191,7 +191,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesFromClientTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);
@@ -214,7 +214,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesFromClientOutOfOrderTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);
@@ -245,7 +245,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesFromClientOutOfOrderWithDropsTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);
@@ -276,7 +276,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesBothDirectionsTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] cmessage1 = rng.Generate(64);
@@ -315,7 +315,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesBothDirectionsWithDropsTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] cmessage1 = rng.Generate(64);
@@ -354,7 +354,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesBothDirectionsOutOfOrderTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] cmessage1 = rng.Generate(64);
@@ -404,7 +404,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendSomeMessagesBothDirectionsWithEcdhTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = Common.CreateAndInitialize();
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] cmessage1 = rng.Generate(32);
@@ -444,27 +444,6 @@ namespace MicroRatchet.Tests
             var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
-        }
-
-        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
-
-            var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
-            var firstPacket = client.Receive(responsePacket).ToSendBack;
-            var firstResponse = server.Receive(firstPacket).ToSendBack;
-            var lastResult = client.Receive(firstResponse).ToSendBack;
-
-            Assert.Null(lastResult);
-
-            client.SaveState();
-            server.SaveState();
-            return (new MicroRatchetClient(clientServices, true, 80), new MicroRatchetClient(serverServices, false, 80));
         }
     }
 }
