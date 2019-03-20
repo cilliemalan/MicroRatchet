@@ -12,6 +12,7 @@ namespace MicroRatchet
         public const int NonceSize = 4;
         public const int MacSize = 12;
         public const int EcdhSize = 32;
+        public const int SignatureSize = 32;
         public const int MinimumOverhead = NonceSize + MacSize;
         public const int OverheadWithEcdh = MinimumOverhead + EcdhSize;
         public const int EncryptedMultipartHeaderOverhead = 6;
@@ -38,15 +39,22 @@ namespace MicroRatchet
         public int MaximumMessageSize => Configuration.Mtu - MinimumOverhead;
         public int MaximumMessageSizeWithEcdh => Configuration.Mtu - OverheadWithEcdh;
         public int MultipartMessageSize => Configuration.Mtu - MinimumOverhead - EncryptedMultipartHeaderOverhead;
+        public int MaxMultipartMessageTotalSize => MultipartMessageSize * 65536;
+
+        public int InitRequestMessageSize => NonceSize + EcdhSize + EcdhSize + SignatureSize;
+        public int InitResponseMessageSize => NonceSize * 2 + EcdhSize * 4 + SignatureSize + MacSize;
 
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
+
             KeyDerivation = new KeyDerivation(Services.Digest);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 config.MaximumBufferedPartialMessageSize,
                 config.PartialMessageTimeout);
+
+            CheckMtu();
         }
 
         public MicroRatchetClient(IServices services, bool isClient, int? Mtu = null)
@@ -59,6 +67,24 @@ namespace MicroRatchet
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 Configuration.MaximumBufferedPartialMessageSize,
                 Configuration.PartialMessageTimeout);
+
+            CheckMtu();
+        }
+
+        private void CheckMtu()
+        {
+            int mtu = Configuration.Mtu;
+            if (LoadState()?.IsInitialized ?? false)
+            {
+                // minimum mtu is 48 bytes
+                if (mtu < OverheadWithEcdh) throw new InvalidOperationException("The MTU is not big enough to facilitate key exchange");
+            }
+            else
+            {
+                // minimum mtu is 52 bytes
+                int maxInitMessageSize = (mtu - 1) * 4;
+                if (InitResponseMessageSize > maxInitMessageSize) throw new InvalidOperationException("The MTU is not big enough to initialize the client");
+            }
         }
 
         private byte[] SendInitializationRequest(State _state)
@@ -700,7 +726,7 @@ namespace MicroRatchet
             return nonceToRetransmit;
         }
 
-        private MessageInfo ProcessInitialization(byte[] dataReceived = null)
+        private byte[] ProcessInitializationInternal(byte[] dataReceived)
         {
             _state = LoadState();
             if (_state == null)
@@ -776,9 +802,23 @@ namespace MicroRatchet
                 }
             }
 
+            return sendback;
+        }
+
+        private MessageInfo ProcessInitialization(byte[] dataReceived = null)
+        {
+            byte[] sendback = ProcessInitializationInternal(dataReceived);
+
             if (sendback != null)
             {
-                return new MessageInfo { Messages = new[] { sendback } };
+                if (sendback.Length > Configuration.Mtu)
+                {
+                    return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
+                }
+                else
+                {
+                    return new MessageInfo { Messages = new[] { sendback } };
+                }
             }
             else
             {
