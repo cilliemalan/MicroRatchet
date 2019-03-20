@@ -44,7 +44,9 @@ namespace MicroRatchet
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
             KeyDerivation = new KeyDerivation(Services.Digest);
-            _multipart = new MultipartMessageReconstructor(MultipartMessageSize);
+            _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
+                config.MaximumBufferedPartialMessageSize, 
+                config.PartialMessageTimeout);
         }
 
         public MicroRatchetClient(IServices services, bool isClient, int? Mtu = null)
@@ -54,7 +56,9 @@ namespace MicroRatchet
             Configuration.IsClient = isClient;
             if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
             KeyDerivation = new KeyDerivation(Services.Digest);
-            _multipart = new MultipartMessageReconstructor(MultipartMessageSize);
+            _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
+                Configuration.MaximumBufferedPartialMessageSize,
+                Configuration.PartialMessageTimeout);
         }
 
         private byte[] SendInitializationRequest(State _state)
@@ -814,48 +818,52 @@ namespace MicroRatchet
                     ToSendBack = toSendBack
                 };
             }
-            else if (IsNormalMessage(messageType))
+            else
             {
-                return new ReceiveResult
+                _multipart.Tick();
+                if (IsNormalMessage(messageType))
                 {
-                    Payload = DeconstructMessage(state, data),
-                    ToSendBack = null,
-                    ReceivedDataType = ReceivedDataType.Normal
-                };
-            }
-            else if (IsMultipartMessage(messageType))
-            {
-                if (messageType == MessageType.MultiPartMessageUnencrypted)
-                {
-                    throw new NotImplementedException();
+                    return new ReceiveResult
+                    {
+                        Payload = DeconstructMessage(state, data),
+                        ToSendBack = null,
+                        ReceivedDataType = ReceivedDataType.Normal
+                    };
                 }
-                else if (messageType == MessageType.MultiPartMessageEncrypted)
+                else if (IsMultipartMessage(messageType))
                 {
-                    var (payload, seq, num, total) = DeconstructEncryptedMultipartMessagePart(data);
-                    var entireMessage = _multipart.Ingest(payload, seq, num, total);
-                    if (entireMessage != null)
+                    if (messageType == MessageType.MultiPartMessageUnencrypted)
                     {
-                        return new ReceiveResult
-                        {
-                            MultipartSequence = seq,
-                            MessageNumber = num,
-                            TotalMessages = total,
-                            Payload = entireMessage,
-                            ReceivedDataType = ReceivedDataType.Normal,
-                            ToSendBack = null
-                        };
+                        throw new NotImplementedException();
                     }
-                    else
+                    else if (messageType == MessageType.MultiPartMessageEncrypted)
                     {
-                        return new ReceiveResult
+                        var (payload, seq, num, total) = DeconstructEncryptedMultipartMessagePart(data);
+                        var entireMessage = _multipart.Ingest(payload, seq, num, total);
+                        if (entireMessage != null)
                         {
-                            MultipartSequence = seq,
-                            MessageNumber = num,
-                            TotalMessages = total,
-                            Payload = payload,
-                            ReceivedDataType = ReceivedDataType.Partial,
-                            ToSendBack = null
-                        };
+                            return new ReceiveResult
+                            {
+                                MultipartSequence = seq,
+                                MessageNumber = num,
+                                TotalMessages = total,
+                                Payload = entireMessage,
+                                ReceivedDataType = ReceivedDataType.Normal,
+                                ToSendBack = null
+                            };
+                        }
+                        else
+                        {
+                            return new ReceiveResult
+                            {
+                                MultipartSequence = seq,
+                                MessageNumber = num,
+                                TotalMessages = total,
+                                Payload = payload,
+                                ReceivedDataType = ReceivedDataType.Partial,
+                                ToSendBack = null
+                            };
+                        }
                     }
                 }
             }

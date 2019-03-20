@@ -12,5 +12,7 @@ namespace MicroRatchet
         public bool UseAes256 { get; set; } = false;
         public int NumberOfRatchetsToKeep { get; set; } = 7;
         public int MaxLostKeys { get; set; } = 100;
+        public int MaximumBufferedPartialMessageSize { get; set; } = 50 * 1024;
+        public int PartialMessageTimeout { get; set; } = 20;
     }
 }
