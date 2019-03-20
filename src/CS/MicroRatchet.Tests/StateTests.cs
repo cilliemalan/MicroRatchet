@@ -52,7 +52,7 @@ namespace MicroRatchet.Tests
             }
 
             var server = new MicroRatchetClient(serverServices, false);
-            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -62,7 +62,7 @@ namespace MicroRatchet.Tests
 
 
             client = new MicroRatchetClient(clientServices, true);
-            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();
@@ -71,7 +71,7 @@ namespace MicroRatchet.Tests
             }
 
             server = new MicroRatchetClient(serverServices, false);
-            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
             server.SaveState();
             {
                 var oldState = sstorage.cold.Clone();
@@ -80,7 +80,7 @@ namespace MicroRatchet.Tests
             }
 
             client = new MicroRatchetClient(clientServices, true);
-            var lastResult = client.Receive(firstResponse).ToSendBack;
+            var lastResult = client.Receive(firstResponse.Message).ToSendBack;
             client.SaveState();
             {
                 var oldState = cstorage.cold.Clone();

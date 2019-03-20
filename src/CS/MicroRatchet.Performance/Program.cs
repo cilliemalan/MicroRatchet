@@ -252,13 +252,28 @@ namespace MicroRatchet.Performance
 
             while (!client.IsInitialized || !server.IsInitialized)
             {
-                packet = server.Receive(packet).ToSendBack;
-                if (packet != null) packet = client.Receive(packet).ToSendBack;
+                foreach (var m in packet.Messages)
+                {
+                    var newPacket = server.Receive(m).ToSendBack;
+                    if (newPacket != null)
+                    {
+                        packet = newPacket;
+                    }
+                }
+
+                if (packet != null)
+                {
+                    foreach (var m in packet.Messages)
+                    {
+                        var newPacket = client.Receive(m).ToSendBack;
+                        if (newPacket != null)
+                        {
+                            packet = newPacket;
+                        }
+                    }
+                }
             }
-            //var responsePacket = server.ProcessInitialization(clientInitPacket);
-            //var firstPacket = client.ProcessInitialization(responsePacket);
-            //var firstResponse = server.ProcessInitialization(firstPacket);
-            //var lastResult = client.ProcessInitialization(firstResponse);
+
             client.SaveState();
             server.SaveState();
 

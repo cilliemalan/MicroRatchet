@@ -700,7 +700,7 @@ namespace MicroRatchet
             return nonceToRetransmit;
         }
 
-        private byte[] ProcessInitialization(byte[] dataReceived = null)
+        private SendResult ProcessInitialization(byte[] dataReceived = null)
         {
             _state = LoadState();
             if (_state == null)
@@ -776,10 +776,17 @@ namespace MicroRatchet
                 }
             }
 
-            return sendback;
+            if (sendback != null)
+            {
+                return new SendResult { Messages = new[] { sendback } };
+            }
+            else
+            {
+                return null;
+            }
         }
 
-        public byte[] InitiateInitialization()
+        public SendResult InitiateInitialization()
         {
             var state = LoadState();
 
