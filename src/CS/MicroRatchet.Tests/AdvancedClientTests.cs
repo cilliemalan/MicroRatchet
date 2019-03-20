@@ -258,7 +258,7 @@ namespace MicroRatchet.Tests
         [InlineData(1000, 100, 0.5, 0.0, true)]
         [InlineData(1000, 100, 0.0, 0.5, true)]
         [Theory]
-        public void LargeVolumeTest(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false)
+        public void LargeVolumeTest(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
             var (client, server) = CreateAndInitialize();
             var cservices = client.Services;
@@ -266,8 +266,8 @@ namespace MicroRatchet.Tests
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             Random r = new Random();
-            var clientMessages = new HashSet<byte[]>(Enumerable.Range(0, clientMessagesCount).Select(_ => rng.Generate(32)));
-            var serverMessages = new HashSet<byte[]>(Enumerable.Range(0, serverMessagesCount).Select(_ => rng.Generate(32)));
+            var clientMessages = new HashSet<byte[]>(Enumerable.Range(0, clientMessagesCount).Select(_ => rng.Generate(r.Next(minsize, maxsize))));
+            var serverMessages = new HashSet<byte[]>(Enumerable.Range(0, serverMessagesCount).Select(_ => rng.Generate(r.Next(minsize, maxsize))));
             Queue<byte[]> clientMessagesToSend = new Queue<byte[]>(clientMessages);
             Queue<byte[]> serverMessagesToSend = new Queue<byte[]>(serverMessages);
             var messagesSentFromClient = new List<byte[]>();
@@ -313,10 +313,10 @@ namespace MicroRatchet.Tests
                     if (payload != null)
                     {
                         payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                        var message = client.Send(payload).Message;
+                        var message = client.Send(payload);
                         if (r.NextDouble() > clientDropChance)
                         {
-                            messagesSentFromClient.Add(message);
+                            messagesSentFromClient.AddRange(message.Messages);
                         }
                     }
                     else n = 1;
@@ -327,10 +327,10 @@ namespace MicroRatchet.Tests
                     if (payload != null)
                     {
                         payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                        var message = server.Send(payload).Message;
+                        var message = server.Send(payload);
                         if (r.NextDouble() > serverDropChance)
                         {
-                            messagesSentFromServer.Add(message);
+                            messagesSentFromServer.AddRange(message.Messages);
                         }
                     }
                     else n = 2;
@@ -340,8 +340,11 @@ namespace MicroRatchet.Tests
                     var message = Dequeue(messagesSentFromServer);
                     if (message != null)
                     {
-                        var payload = client.Receive(message).Payload;
-                        messagesReceivedByClient.Add(payload);
+                        var received = client.Receive(message);
+                        if (received.ReceivedDataType == ReceivedDataType.Normal)
+                        {
+                            messagesReceivedByClient.Add(received.Payload);
+                        }
                     }
                     else n = 3;
                 }
@@ -350,8 +353,11 @@ namespace MicroRatchet.Tests
                     var message = Dequeue(messagesSentFromClient);
                     if (message != null)
                     {
-                        var payload = server.Receive(message).Payload;
-                        messagesReceivedByServer.Add(payload);
+                        var received = server.Receive(message);
+                        if (received.ReceivedDataType == ReceivedDataType.Normal)
+                        {
+                            messagesReceivedByServer.Add(received.Payload);
+                        }
                     }
                 }
             }
