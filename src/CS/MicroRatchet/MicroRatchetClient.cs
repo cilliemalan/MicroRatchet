@@ -280,6 +280,7 @@ namespace MicroRatchet
         {
             if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
+            int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (messageType != MessageType.InitializationWithEcdh)
             {
@@ -309,7 +310,7 @@ namespace MicroRatchet
             Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
 
             // derive the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, keySize);
             Cipher.Initialize(headerEncryptionKey, null);
             var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
@@ -388,6 +389,7 @@ namespace MicroRatchet
 
             var state = _state;
             int mtu = Configuration.Mtu;
+            int keySize = Configuration.UseAes256 ? 32 : 16;
 
 
             // get the payload key and nonce
@@ -432,7 +434,7 @@ namespace MicroRatchet
             }
 
             // encrypt the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, 32);
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, keySize);
             Cipher.Initialize(headerEncryptionKey, null);
             var encryptedHeader = Cipher.Encrypt(header);
 
@@ -470,6 +472,7 @@ namespace MicroRatchet
         {
             var state = _state;
 
+            int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (expectedMessageType.HasValue)
             {
@@ -533,7 +536,7 @@ namespace MicroRatchet
             Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
 
             // decrypt the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, keySize);
             Cipher.Initialize(headerEncryptionKey, null);
             var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
