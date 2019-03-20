@@ -80,12 +80,12 @@ namespace MicroRatchet.Tests
         [Fact]
         public void SendLargeMessageTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message = rng.Generate(client.MultipartMessageSize * 7);
 
-            var toSend = client.SendMultipart(message);
+            var toSend = client.Send(message);
             Assert.True(toSend.IsMultipartMessage);
             Assert.Equal(7, toSend.Messages.Length);
         }
@@ -93,12 +93,12 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ReceiveLargeMessageTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message = rng.Generate(client.MultipartMessageSize * 7);
 
-            var toSend = client.SendMultipart(message);
+            var toSend = client.Send(message);
             Assert.True(toSend.IsMultipartMessage);
             Assert.Equal(7, toSend.Messages.Length);
 
@@ -122,12 +122,12 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ReceiveLargeMessageWithABitLeftOverTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message = rng.Generate(client.MultipartMessageSize * 7 + 10);
 
-            var toSend = client.SendMultipart(message);
+            var toSend = client.Send(message);
             Assert.True(toSend.IsMultipartMessage);
             Assert.Equal(8, toSend.Messages.Length);
 
@@ -151,14 +151,14 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ReceiveLargeMessageOverlappingTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(client.MultipartMessageSize * 2);
             byte[] message2 = rng.Generate(client.MultipartMessageSize * 2);
 
-            var toSend1 = client.SendMultipart(message1);
-            var toSend2 = client.SendMultipart(message2);
+            var toSend1 = client.Send(message1);
+            var toSend2 = client.Send(message2);
             Assert.True(toSend1.IsMultipartMessage);
             Assert.Equal(2, toSend1.Messages.Length);
             Assert.True(toSend2.IsMultipartMessage);
@@ -195,14 +195,14 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ReceiveLargeMessageOutOfOrderTest()
         {
-            var (client, server) = CreateAndInitialize();
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(client.MultipartMessageSize * 2);
             byte[] message2 = rng.Generate(client.MultipartMessageSize * 2);
 
-            var toSend1 = client.SendMultipart(message1);
-            var toSend2 = client.SendMultipart(message2);
+            var toSend1 = client.Send(message1);
+            var toSend2 = client.Send(message2);
             Assert.True(toSend1.IsMultipartMessage);
             Assert.Equal(2, toSend1.Messages.Length);
             Assert.True(toSend2.IsMultipartMessage);
@@ -236,31 +236,113 @@ namespace MicroRatchet.Tests
             Assert.Equal(message2, lr2.Payload);
         }
 
+        [Fact]
+        public void CantSendMultipartAccidentally()
+        {
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: false);
+
+            Assert.Throws<InvalidOperationException>(() => client.Send(new byte[client.MaximumMessageSize + 1]));
+        }
+
         [InlineData(100, 10)]
         [InlineData(10, 100)]
         [InlineData(100, 100)]
+        [InlineData(100, 1000)]
+        [InlineData(1000, 100)]
+        [InlineData(1000, 1000)]
+        [Theory]
+        public void LargeVolumeTestBasic(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
         [InlineData(100, 100, 0.1, 0.1)]
         [InlineData(100, 100, 0.5, 0.5)]
         [InlineData(100, 100, 0.1, 0.5)]
         [InlineData(100, 100, 0.5, 0.1)]
         [InlineData(100, 100, 0.5, 0.0)]
         [InlineData(100, 100, 0.0, 0.5)]
+        [Theory]
+        public void LargeVolumeTestDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
         [InlineData(100, 100, 0.5, 0.1, true)]
         [InlineData(100, 100, 0.5, 0.0, true)]
         [InlineData(100, 100, 0.0, 0.5, true)]
+        [Theory]
+        public void LargeVolumeTestDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
         [InlineData(1000, 100, 0.1, 0.1)]
         [InlineData(1000, 100, 0.5, 0.5)]
         [InlineData(1000, 100, 0.1, 0.5)]
         [InlineData(1000, 100, 0.5, 0.1)]
         [InlineData(1000, 100, 0.5, 0.0)]
         [InlineData(1000, 100, 0.0, 0.5)]
+        [Theory]
+        public void LargeVolumeTestMoreDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
         [InlineData(1000, 100, 0.5, 0.1, true)]
         [InlineData(1000, 100, 0.5, 0.0, true)]
         [InlineData(1000, 100, 0.0, 0.5, true)]
         [Theory]
-        public void LargeVolumeTest(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        public void LargeVolumeTestMoreDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
-            var (client, server) = CreateAndInitialize();
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
+        [InlineData(100, 10, 0.0, 0.0, false, 32, 192)]
+        [InlineData(100, 100, 0.0, 0.0, false, 32, 192)]
+        [InlineData(1000, 1000, 0.0, 0.0, false, 32, 192)]
+        [Theory]
+        public void LargeVolumeTestLargeMessages(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
+        [InlineData(100, 10, 0.0, 0.0, true, 32, 192)]
+        [InlineData(100, 100, 0.0, 0.0, true, 32, 192)]
+        [InlineData(1000, 1000, 0.0, 0.0, true, 32, 192)]
+        [Theory]
+        public void LargeVolumeTestLargeMessagesReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+        
+        [InlineData(100, 100, 0.0, 0.1, false, 32, 192)]
+        [InlineData(100, 100, 0.1, 0.0, false, 32, 192)]
+        [InlineData(100, 100, 0.5, 0.5, false, 32, 192)]
+        [InlineData(100, 100, 0.1, 0.5, false, 32, 192)]
+        [InlineData(100, 100, 0.5, 0.1, false, 32, 192)]
+        [InlineData(100, 100, 0.5, 0.0, false, 32, 192)]
+        [InlineData(100, 100, 0.0, 0.5, false, 32, 192)]
+        [Theory]
+        public void LargeVolumeTestLargeMessagesDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
+        [InlineData(100, 100, 0.0, 0.1, true, 32, 192)]
+        [InlineData(100, 100, 0.1, 0.0, true, 32, 192)]
+        [InlineData(100, 100, 0.5, 0.1, true, 32, 192)]
+        [InlineData(100, 100, 0.5, 0.0, true, 32, 192)]
+        [InlineData(100, 100, 0.0, 0.5, true, 32, 192)]
+        [Theory]
+        public void LargeVolumeTestLargeMessagesDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
+        {
+            Random r = AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
+        private static Random AdvancedTestInternal(int clientMessagesCount, int serverMessagesCount, double clientDropChance, double serverDropChance, bool outOfOrder, int minsize, int maxsize)
+        {
+            var (client, server) = CreateAndInitialize(allowImplicitMultipart: true);
             var cservices = client.Services;
             var sservices = server.Services;
 
@@ -274,6 +356,9 @@ namespace MicroRatchet.Tests
             var messagesSentFromServer = new List<byte[]>();
             HashSet<byte[]> messagesReceivedByClient = new HashSet<byte[]>();
             HashSet<byte[]> messagesReceivedByServer = new HashSet<byte[]>();
+
+            var serverExpects = new HashSet<byte[]>();
+            var clientExpects = new HashSet<byte[]>();
 
             byte[] DoubleInSize(byte[] payload) => payload.Concat(payload).ToArray();
 
@@ -314,9 +399,23 @@ namespace MicroRatchet.Tests
                     {
                         payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
                         var message = client.Send(payload);
-                        if (r.NextDouble() > clientDropChance)
+
+                        bool dropped = false;
+                        foreach (var p in message.Messages)
                         {
-                            messagesSentFromClient.AddRange(message.Messages);
+                            if (r.NextDouble() > clientDropChance)
+                            {
+                                messagesSentFromClient.Add(p);
+                            }
+                            else
+                            {
+                                dropped = true;
+                            }
+                        }
+
+                        if (dropped == false)
+                        {
+                            serverExpects.Add(payload);
                         }
                     }
                     else n = 1;
@@ -328,9 +427,23 @@ namespace MicroRatchet.Tests
                     {
                         payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
                         var message = server.Send(payload);
-                        if (r.NextDouble() > serverDropChance)
+
+                        bool dropped = false;
+                        foreach (var p in message.Messages)
                         {
-                            messagesSentFromServer.AddRange(message.Messages);
+                            if (r.NextDouble() > serverDropChance)
+                            {
+                                messagesSentFromServer.Add(p);
+                            }
+                            else
+                            {
+                                dropped = true;
+                            }
+                        }
+
+                        if (dropped == false)
+                        {
+                            serverExpects.Add(payload);
                         }
                     }
                     else n = 2;
@@ -364,9 +477,14 @@ namespace MicroRatchet.Tests
 
             Assert.All(messagesReceivedByClient, message => serverMessages.Contains(message));
             Assert.All(messagesReceivedByServer, message => clientMessages.Contains(message));
+            Assert.All(serverExpects, message => messagesReceivedByServer.Contains(message));
+            Assert.All(clientExpects, message => messagesReceivedByClient.Contains(message));
+            Assert.All(messagesReceivedByServer, message => serverExpects.Contains(message));
+            Assert.All(messagesReceivedByClient, message => clientExpects.Contains(message));
+            return r;
         }
 
-        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize()
+        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false)
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
@@ -384,7 +502,10 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            return (new MicroRatchetClient(clientServices, true, 80), new MicroRatchetClient(serverServices, false, 80));
+
+            var clientConfig = new MicroRatchetConfiguration { IsClient = true, AllowImplicitMultipartMessages = allowImplicitMultipart, Mtu = mtu };
+            var serverConfig = new MicroRatchetConfiguration { IsClient = false, AllowImplicitMultipartMessages = allowImplicitMultipart, Mtu = mtu };
+            return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
         }
     }
 }
