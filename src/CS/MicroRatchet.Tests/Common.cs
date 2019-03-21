@@ -1,11 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Xunit;
 
 namespace MicroRatchet.Tests
 {
-    internal class Common
+    internal static class Common
     {
+        public static ReceiveResult ReceiveMultiple(this MicroRatchetClient c, MessageInfo messages)
+        {
+            Assert.True(messages.IsMultipartMessage);
+            for (int i = 0; i < messages.Messages.Length - 1; i++)
+            {
+                var m = messages.Messages[i];
+                var ir = c.Receive(m);
+                Assert.Equal(ReceivedDataType.Partial, ir.ReceivedDataType);
+            }
+
+            var lm = messages.Messages.Last();
+            var lr = c.Receive(lm);
+            Assert.True(lr.ReceivedDataType != ReceivedDataType.Partial);
+            return lr;
+        }
+
         public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false)
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
