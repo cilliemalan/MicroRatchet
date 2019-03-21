@@ -7,7 +7,6 @@ namespace MicroRatchet
     public enum ReceivedDataType
     {
         Normal,
-        Invalid,
         InitializationWithResponse,
         Partial
     }
