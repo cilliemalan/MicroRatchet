@@ -116,8 +116,7 @@ namespace MicroRatchet
                     ms.TryGetBuffer(out var msbuffer);
                     byte[] digest = Digest.ComputeDigest(msbuffer);
                     bw.Write(Signature.Sign(digest));
-
-                    if (ms.Length > Configuration.Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
+                    
                     return ms.ToArray();
                 }
             }
@@ -224,7 +223,6 @@ namespace MicroRatchet
                     // write mac
                     messageWriter.Write(mac);
 
-                    if (messageStream.Length > Configuration.Mtu) throw new InvalidOperationException("The MTU was too small to create the message");
                     return messageStream.ToArray();
                 }
             }
@@ -502,7 +500,6 @@ namespace MicroRatchet
             Array.Copy(encryptedHeader, 0, result, 0, encryptedHeader.Length);
             Array.Copy(encryptedPayload, 0, result, encryptedHeader.Length, encryptedPayload.Length);
             Array.Copy(mac, 0, result, encryptedHeader.Length + encryptedPayload.Length, mac.Length);
-            if (result.Length > mtu) throw new InvalidOperationException("Could not create message within MTU");
             return result;
         }
 
@@ -626,12 +623,13 @@ namespace MicroRatchet
             byte[][] chunks = new byte[numChunks][];
             for (int i = 0; i < numChunks; i++)
             {
-                byte firstByte = (byte)(((int)MessageType.MultiPartMessageUnencrypted << 4) |
+                byte firstByte = (byte)(((int)MessageType.MultiPartMessageUnencrypted << 5) |
                     i << 2 | (numChunks - 1));
 
                 var left = allData.Length - amt;
                 int thisChunkSize = left > chunkSize ? chunkSize : left;
                 chunks[i] = new byte[thisChunkSize + 1];
+                chunks[i][0] = firstByte;
                 Array.Copy(allData, amt, chunks[i], 1, thisChunkSize);
                 amt += thisChunkSize;
             }
@@ -647,9 +645,10 @@ namespace MicroRatchet
                 throw new InvalidOperationException("Cannot deconstrct non-multipart message");
             }
 
-            int num = data[0] & 0b0000_1100 >> 2;
+            int num = (data[0] & 0b0000_1100) >> 2;
             int tot = (data[0] & 0b0000_0011) + 1;
             byte[] payload = new byte[data.Length - 1];
+            Array.Copy(data, 1, payload, 0, payload.Length);
             return (payload, num, tot);
         }
 
@@ -700,7 +699,7 @@ namespace MicroRatchet
             var outerPayload = DeconstructMessage(state, data, MessageType.MultiPartMessageEncrypted, false);
             byte[] innerPayload = new byte[outerPayload.Length - 6];
             Array.Copy(outerPayload, 6, innerPayload, 0, innerPayload.Length);
-            int seq = (int)BigEndianBitConverter.ToUInt16(outerPayload, 0);
+            int seq = (int)BigEndianBitConverter.ToUInt16(outerPayload, 0) + 1; // seq 0 is special
             int num = (int)BigEndianBitConverter.ToUInt16(outerPayload, 2);
             int tot = (int)(BigEndianBitConverter.ToUInt16(outerPayload, 4) + 1);
             return (innerPayload, seq, num, tot);
@@ -813,7 +812,14 @@ namespace MicroRatchet
             {
                 if (sendback.Length > Configuration.Mtu)
                 {
-                    return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
+                    if (Configuration.AllowImplicitMultipartMessages)
+                    {
+                        return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Cannot send multipart message as it has not been explicitly allowed.");
+                    }
                 }
                 else
                 {
@@ -834,6 +840,7 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("The client is already initialized");
             }
+
             if (!Configuration.IsClient)
             {
                 throw new InvalidOperationException("only a client can initiate initialization");
@@ -851,7 +858,7 @@ namespace MicroRatchet
 
             if (IsInitializationMessge(messageType))
             {
-                if (state.IsInitialized)
+                if (Configuration.IsClient && state.IsInitialized)
                 {
                     throw new InvalidOperationException("Received initialization message after initialization has been completed");
                 }
@@ -864,6 +871,46 @@ namespace MicroRatchet
                     ReceivedDataType = ReceivedDataType.InitializationWithResponse,
                     ToSendBack = toSendBack
                 };
+            }
+            else if (messageType == MessageType.MultiPartMessageUnencrypted)
+            {
+                if (Configuration.IsClient && state.IsInitialized)
+                {
+                    throw new InvalidOperationException("Received initialization message after initialization has been completed");
+                }
+
+                var (payload, num, total) = DeconstructUnencryptedMultipartMessagePart(data);
+                var output = _multipart.Ingest(payload, 0, num, total); //seq = 0 is for initialization
+                if (output != null)
+                {
+                    var innerMessageType = GetMessageType(output[0]);
+                    if (!IsInitializationMessge(innerMessageType))
+                    {
+                        throw new InvalidOperationException("Only initialization can be used for unencrypted multipart messages");
+                    }
+                    var r2 = Receive(output);
+                    return new ReceiveResult
+                    {
+                        MessageNumber = num,
+                        MultipartSequence = 0,
+                        TotalMessages = total,
+                        Payload = r2.Payload,
+                        ReceivedDataType = r2.ReceivedDataType,
+                        ToSendBack = r2.ToSendBack
+                    };
+                }
+                else
+                {
+                    return new ReceiveResult
+                    {
+                        MultipartSequence = 0,
+                        MessageNumber = num,
+                        TotalMessages = total,
+                        Payload = payload,
+                        ReceivedDataType = ReceivedDataType.Partial,
+                        ToSendBack = null
+                    };
+                }
             }
             else
             {
