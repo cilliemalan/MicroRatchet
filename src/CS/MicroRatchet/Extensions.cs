@@ -33,18 +33,6 @@ namespace MicroRatchet
         public static byte[] Encrypt(this ICipher cipher, byte[] data, int offset, int count) =>
             cipher.Encrypt(new ArraySegment<byte>(data, offset, count));
 
-        public static byte[] Decrypt(this IAeadCipher cipher, byte[] nonce, byte[] data, byte[] ad = null) =>
-            cipher.Decrypt(nonce, new ArraySegment<byte>(data), ad);
-
-        public static byte[] Decrypt(this IAeadCipher cipher, byte[] nonce, byte[] data, int offset, int count, byte[] ad = null) =>
-            cipher.Decrypt(nonce, new ArraySegment<byte>(data, offset, count), ad);
-
-        public static byte[] Encrypt(this IAeadCipher cipher, byte[] nonce, byte[] data, byte[] ad = null) =>
-            cipher.Encrypt(nonce, new ArraySegment<byte>(data), ad);
-
-        public static byte[] Encrypt(this IAeadCipher cipher, byte[] nonce, byte[] data, int offset, int count, byte[] ad = null) =>
-            cipher.Encrypt(nonce, new ArraySegment<byte>(data, offset, count), ad);
-
         public static bool Matches(this byte[] bytes, byte[] other)
         {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
