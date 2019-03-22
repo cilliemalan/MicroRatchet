@@ -45,6 +45,8 @@ namespace MicroRatchet
             }
         }
 
+        public void Clear() => _steps.Clear();
+
         public IEnumerable<EcdhRatchetStep> Enumerate() =>
             _steps.Where(x => x.ReceivingChain.HeaderKey != null)
             .Reverse();
