@@ -10,12 +10,12 @@ namespace MicroRatchet
     {
         protected override int Version => 1;
 
-        // used only once
         public byte[] RootKey;
         public byte[] FirstSendHeaderKey;
         public byte[] FirstReceiveHeaderKey;
         public IKeyAgreement LocalEcdhRatchetStep0;
         public IKeyAgreement LocalEcdhRatchetStep1;
+        public byte[] ClientPublicKey;
 
         internal ServerState(int keySize)
             : base(keySize)
@@ -35,10 +35,12 @@ namespace MicroRatchet
                 bool hasInit = NextInitializationNonce != null;
                 bool hasRatchet = Ratchets != null && Ratchets.Count != 0;
                 bool hasEcdh = LocalEcdhRatchetStep0 != null && LocalEcdhRatchetStep1 != null;
+                bool hasClientPublicKey = ClientPublicKey != null;
 
                 if (hasInit) versionByte |= 0b0001_0000;
                 if (hasRatchet) versionByte |= 0b0010_0000;
                 if (hasEcdh) versionByte |= 0b0100_0000;
+                if (hasClientPublicKey) versionByte |= 0b1000_0000;
                 memory.WriteByte(versionByte);
 
                 if (hasInit)
@@ -58,7 +60,11 @@ namespace MicroRatchet
                     LocalEcdhRatchetStep0.Serialize(memory);
                     LocalEcdhRatchetStep1.Serialize(memory);
                 }
-
+                if (hasClientPublicKey)
+                {
+                    if (ClientPublicKey.Length != 32) throw new InvalidOperationException("Client public key must be 32 bytes");
+                    memory.Write(ClientPublicKey, 0, 32);
+                }
                 if (hasRatchet)
                 {
                     WriteRatchet(memory, numberOfRatchetsToStore, numLostKeysToStore);
@@ -78,6 +84,7 @@ namespace MicroRatchet
                 bool hasInit = (versionByte & 0b0001_0000) != 0;
                 bool hasRatchet = (versionByte & 0b0010_0000) != 0;
                 bool hasEcdh = (versionByte & 0b0100_0000) != 0;
+                bool hasClientPublicKey = (versionByte & 0b1000_0000) != 0;
 
                 if (hasInit)
                 {
@@ -98,10 +105,17 @@ namespace MicroRatchet
                     LocalEcdhRatchetStep1 = KeyAgreement.Deserialize(memory);
                 }
 
+                if (hasClientPublicKey)
+                {
+                    if (ClientPublicKey == null || ClientPublicKey.Length != KeySizeInBytes) ClientPublicKey = new byte[32];
+                    memory.Read(ClientPublicKey, 0, 32);
+                }
+
                 if (hasRatchet)
                 {
                     ReadRatchet(memory, kexFac);
                 }
+
                 Debug.WriteLine($"Read {memory.Position} bytes of server state");
             }
         }
