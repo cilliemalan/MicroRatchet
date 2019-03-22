@@ -87,44 +87,44 @@ namespace MicroRatchet
             }
         }
 
-        private byte[] SendInitializationRequest(State _state)
+        private byte[] SendInitializationRequest(State state)
         {
             // message format:
             // nonce(4), pubkey(32), ecdh(32), signature(64) = 132 bytes
 
-            if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can send init request.");
+            if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send init request.");
 
             // 4 bytes nonce
-            state.InitializationNonce = RandomNumberGenerator.Generate(NonceSize);
-            state.InitializationNonce[0] = SetMessageType(state.InitializationNonce[0], MessageType.InitializationRequest);
+            clientState.InitializationNonce = RandomNumberGenerator.Generate(NonceSize);
+            clientState.InitializationNonce[0] = SetMessageType(clientState.InitializationNonce[0], MessageType.InitializationRequest);
 
             // get the public key
             var pubkey = Signature.PublicKey;
 
             // generate new ECDH keypair for init message and root key
             var clientEcdh = KeyAgreementFactory.GenerateNew();
-            state.LocalEcdhForInit = clientEcdh;
+            clientState.LocalEcdhForInit = clientEcdh;
 
             // nonce(4), pubkey(32), ecdh(32), signature(64)
             using (MemoryStream ms = new MemoryStream())
             {
                 using (BinaryWriter bw = new BinaryWriter(ms))
                 {
-                    bw.Write(state.InitializationNonce);
+                    bw.Write(clientState.InitializationNonce);
                     bw.Write(pubkey);
                     bw.Write(clientEcdh.GetPublicKey());
                     ms.TryGetBuffer(out var msbuffer);
                     byte[] digest = Digest.ComputeDigest(msbuffer);
                     bw.Write(Signature.Sign(digest));
-                    
+
                     return ms.ToArray();
                 }
             }
         }
 
-        private (byte[] initializationNonce, byte[] remoteEcdhForInit, byte[] remotePublicKey) ReceiveInitializationRequest(State _state, byte[] data)
+        private (byte[] initializationNonce, byte[] remoteEcdhForInit, byte[] remotePublicKey) ReceiveInitializationRequest(State state, byte[] data)
         {
-            if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive an init request.");
+            if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive an init request.");
 
             // nonce(4), pubkey(32), ecdh(32), signature(64)
             using (var ms = new MemoryStream(data))
@@ -147,20 +147,20 @@ namespace MicroRatchet
             }
         }
 
-        private byte[] SendInitializationResponse(State _state, byte[] initializationNonce, byte[] remoteEcdhForInit)
+        private byte[] SendInitializationResponse(State state, byte[] initializationNonce, byte[] remoteEcdhForInit)
         {
             // message format:
             // new nonce(4), ecdh pubkey(32),
             // <nonce from init request(4), server pubkey(32), 
             // new ecdh pubkey(32) x2, signature(64)>, mac(12) = 212 bytes
 
-            if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send init response.");
+            if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can send init response.");
             var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(NonceSize);
             serverNonce[0] = SetMessageType(serverNonce[0], MessageType.InitializationResponse);
-            state.NextInitializationNonce = serverNonce;
+            serverState.NextInitializationNonce = serverNonce;
             var rootPreEcdh = KeyAgreementFactory.GenerateNew();
             var rootPreEcdhPubkey = rootPreEcdh.GetPublicKey();
             var sharedSecret = rootPreEcdh.DeriveKey(remoteEcdhForInit);
@@ -168,17 +168,17 @@ namespace MicroRatchet
             // generate server ECDH for root key and root key
             var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
-            state.RootKey = genKeys[0];
-            state.FirstSendHeaderKey = genKeys[1];
-            state.FirstReceiveHeaderKey = genKeys[2];
+            serverState.RootKey = genKeys[0];
+            serverState.FirstSendHeaderKey = genKeys[1];
+            serverState.FirstReceiveHeaderKey = genKeys[2];
 
             // generate two server ECDH. One for ratchet 0 sending key and one for the next
             // this is enough for the server to generate a receiving chain key and sending
             // chain key as soon as the client sends a sending chain key
             var serverEcdhRatchet0 = KeyAgreementFactory.GenerateNew();
-            state.LocalEcdhRatchetStep0 = serverEcdhRatchet0;
+            serverState.LocalEcdhRatchetStep0 = serverEcdhRatchet0;
             var serverEcdhRatchet1 = KeyAgreementFactory.GenerateNew();
-            state.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
+            serverState.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
 
             using (MemoryStream messageStream = new MemoryStream())
             {
@@ -228,9 +228,9 @@ namespace MicroRatchet
             }
         }
 
-        private void ReceiveInitializationResponse(State _state, byte[] data)
+        private void ReceiveInitializationResponse(State state, byte[] data)
         {
-            if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive an init response.");
+            if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive an init response.");
             var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // new nonce(4), ecdh pubkey(32), <nonce(4), server pubkey(32), 
@@ -242,7 +242,7 @@ namespace MicroRatchet
                     // decrypt
                     var nonce = br.ReadBytes(NonceSize);
                     var rootEcdhKey = br.ReadBytes(EcdhSize);
-                    IKeyAgreement rootEcdh = state.LocalEcdhForInit;
+                    IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
                     var rootPreKey = rootEcdh.DeriveKey(rootEcdhKey);
                     Cipher.Initialize(rootPreKey, nonce);
                     var payload = Cipher.Decrypt(data, EcdhSize + NonceSize, data.Length - EcdhSize - NonceSize - MacSize);
@@ -269,7 +269,7 @@ namespace MicroRatchet
                             var remoteRatchetEcdh1 = brp.ReadBytes(EcdhSize);
                             var signature = brp.ReadBytes(64);
 
-                            if (!oldNonce.Matches(state.InitializationNonce))
+                            if (!oldNonce.Matches(clientState.InitializationNonce))
                             {
                                 throw new InvalidOperationException("Nonce did not match");
                             }
@@ -281,7 +281,7 @@ namespace MicroRatchet
                             }
 
                             // store the new nonce we got from the server
-                            state.InitializationNonce = nonce;
+                            clientState.InitializationNonce = nonce;
                             //Debug.WriteLine($"storing iniitlizaionta nonce: {Convert.ToBase64String(state.InitializationNonce)}");
 
                             // we now have enough information to construct our double ratchet
@@ -294,28 +294,28 @@ namespace MicroRatchet
                             var receiveHeaderKey = genKeys[1];
                             var sendHeaderKey = genKeys[2];
 
-                            state.Ratchets.Add(EcdhRatchetStep.InitializeClient(KeyDerivation, rootKey,
+                            clientState.Ratchets.Add(EcdhRatchetStep.InitializeClient(KeyDerivation, rootKey,
                                 remoteRatchetEcdh0, remoteRatchetEcdh1, localStep0EcdhRatchet,
                                 receiveHeaderKey, sendHeaderKey,
                                 localStep1EcdhRatchet));
 
-                            state.LocalEcdhForInit = null;
+                            clientState.LocalEcdhForInit = null;
                         }
                     }
                 }
             }
         }
 
-        private byte[] SendFirstClientMessage(State _state)
+        private byte[] SendFirstClientMessage(State state)
         {
-            if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can send the first client message.");
+            if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send the first client message.");
 
-            return ConstructMessage(state, state.InitializationNonce, true, true, state.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
+            return ConstructMessage(clientState, clientState.InitializationNonce, true, true, clientState.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
         }
 
-        private void ReceiveFirstMessage(State _state, byte[] payload)
+        private void ReceiveFirstMessage(State state, byte[] payload)
         {
-            if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can receive the first client message.");
+            if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
             int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
@@ -329,7 +329,7 @@ namespace MicroRatchet
             Array.Copy(payload, nonce, NonceSize);
 
             // use the header key we already agreed on
-            byte[] headerKey = state.FirstReceiveHeaderKey;
+            byte[] headerKey = serverState.FirstReceiveHeaderKey;
 
             // double check the mac
             Mac.Init(headerKey, nonce, MacSize * 8);
@@ -358,12 +358,12 @@ namespace MicroRatchet
 
             // initialize the ecdh ratchet
             var ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
-                state.LocalEcdhRatchetStep0,
-                state.RootKey, clientEcdhPublic,
-                state.LocalEcdhRatchetStep1,
-                state.FirstReceiveHeaderKey,
-                state.FirstSendHeaderKey);
-            state.Ratchets.Add(ratchetUsed);
+                serverState.LocalEcdhRatchetStep0,
+                serverState.RootKey, clientEcdhPublic,
+                serverState.LocalEcdhRatchetStep1,
+                serverState.FirstReceiveHeaderKey,
+                serverState.FirstSendHeaderKey);
+            serverState.Ratchets.Add(ratchetUsed);
 
             // get the inner payload key from the server receive chain
             var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, 1);
@@ -377,32 +377,32 @@ namespace MicroRatchet
             // check the inner payload
             var innerNonce = new byte[NonceSize];
             Array.Copy(decryptedInnerPayload, innerNonce, NonceSize);
-            if (!innerNonce.Matches(state.NextInitializationNonce))
+            if (!innerNonce.Matches(serverState.NextInitializationNonce))
             {
                 throw new InvalidOperationException("The inner encrypted nonce did not match the initialization nonce.");
             }
 
-            state.FirstSendHeaderKey = null;
-            state.FirstReceiveHeaderKey = null;
-            state.LocalEcdhRatchetStep0 = null;
-            state.LocalEcdhRatchetStep1 = null;
-            state.RootKey = null;
+            serverState.FirstSendHeaderKey = null;
+            serverState.FirstReceiveHeaderKey = null;
+            serverState.LocalEcdhRatchetStep0 = null;
+            serverState.LocalEcdhRatchetStep1 = null;
+            serverState.RootKey = null;
         }
 
-        private byte[] SendFirstResponse(State _state)
+        private byte[] SendFirstResponse(State state)
         {
-            if (!(_state is ServerState state)) throw new InvalidOperationException("Only the server can send the first response.");
+            if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can send the first response.");
 
-            var payload = state.NextInitializationNonce;
-            state.NextInitializationNonce = null;
-            return ConstructMessage(state, payload, true, false, state.Ratchets.Last, MessageType.InitializationWithoutEcdh);
+            var payload = serverState.NextInitializationNonce;
+            serverState.NextInitializationNonce = null;
+            return ConstructMessage(serverState, payload, true, false, serverState.Ratchets.Last, MessageType.InitializationWithoutEcdh);
         }
 
-        private void ReceiveFirstResponse(State _state, byte[] data)
+        private void ReceiveFirstResponse(State state, byte[] data)
         {
-            if (!(_state is ClientState state)) throw new InvalidOperationException("Only the client can receive the first response.");
+            if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive the first response.");
 
-            var contents = DeconstructMessage(state, data, MessageType.InitializationWithoutEcdh, false);
+            var contents = DeconstructMessage(clientState, data, MessageType.InitializationWithoutEcdh, false);
             if (contents == null || contents.Length < 32)
             {
                 throw new InvalidOperationException("The first response from the server was not valid");
@@ -410,21 +410,20 @@ namespace MicroRatchet
 
             var nonce = new byte[NonceSize];
             Array.Copy(contents, nonce, NonceSize);
-            if (!nonce.Matches(state.InitializationNonce))
+            if (!nonce.Matches(clientState.InitializationNonce))
             {
                 throw new InvalidOperationException("The first response from the server did not contain the correct nonce");
             }
 
-            state.InitializationNonce = null;
+            clientState.InitializationNonce = null;
         }
 
-        private byte[] ConstructMessage(State _state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
+        private byte[] ConstructMessage(State state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
         {
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
             // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
-
-            var state = _state;
+            
             int mtu = Configuration.Mtu;
             int keySize = Configuration.UseAes256 ? 32 : 16;
 
@@ -503,10 +502,8 @@ namespace MicroRatchet
             return result;
         }
 
-        private byte[] DeconstructMessage(State _state, byte[] payload, MessageType? expectedMessageType = null, bool? overrideHasEcdh = null)
+        private byte[] DeconstructMessage(State state, byte[] payload, MessageType? expectedMessageType = null, bool? overrideHasEcdh = null)
         {
-            var state = _state;
-
             int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (expectedMessageType.HasValue)
@@ -725,15 +722,8 @@ namespace MicroRatchet
             return nonceToRetransmit;
         }
 
-        private byte[] ProcessInitializationInternal(byte[] dataReceived)
+        private byte[] ProcessInitializationInternal(State state, byte[] dataReceived)
         {
-            _state = LoadState();
-            if (_state == null)
-            {
-                int keySize = Configuration.UseAes256 ? 32 : 16;
-                _state = State.Initialize(Configuration.IsClient, keySize);
-            }
-
             byte[] sendback;
             if (Configuration.IsClient)
             {
@@ -741,20 +731,20 @@ namespace MicroRatchet
                 if (dataReceived == null)
                 {
                     // step 1: send first init request from client
-                    sendback = SendInitializationRequest(_state);
+                    sendback = SendInitializationRequest(state);
                 }
                 else
                 {
-                    var state = (ClientState)_state;
+                    var clientState = (ClientState)state;
                     var type = GetMessageType(dataReceived[0]);
 
-                    if (state.Ratchets.Count == 0)
+                    if (clientState.Ratchets.Count == 0)
                     {
                         if (type == MessageType.InitializationResponse)
                         {
                             // step 2: init response from server
-                            ReceiveInitializationResponse(_state, dataReceived);
-                            sendback = SendFirstClientMessage(_state);
+                            ReceiveInitializationResponse(clientState, dataReceived);
+                            sendback = SendFirstClientMessage(clientState);
                         }
                         else
                         {
@@ -764,7 +754,7 @@ namespace MicroRatchet
                     else if (type == MessageType.InitializationWithoutEcdh)
                     {
                         // step 3: receive first message from server
-                        ReceiveFirstResponse(_state, dataReceived);
+                        ReceiveFirstResponse(clientState, dataReceived);
                         // initialization completed successfully.
                         sendback = null;
                     }
@@ -777,7 +767,7 @@ namespace MicroRatchet
             else
             {
                 //Debug.WriteLine("\n\n###SERVER");
-                var state = (ServerState)_state;
+                var serverState = (ServerState)state;
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
 
@@ -786,14 +776,14 @@ namespace MicroRatchet
                 if (type == MessageType.InitializationRequest)
                 {
                     // step 1: client init request
-                    var (initializationNonce, remoteEcdhForInit, remotePublicKey) = ReceiveInitializationRequest(_state, dataReceived);
-                    sendback = SendInitializationResponse(_state, initializationNonce, remoteEcdhForInit);
+                    var (initializationNonce, remoteEcdhForInit, remotePublicKey) = ReceiveInitializationRequest(serverState, dataReceived);
+                    sendback = SendInitializationResponse(serverState, initializationNonce, remoteEcdhForInit);
                 }
                 else if (type == MessageType.InitializationWithEcdh)
                 {
                     // step 2: first message from client
-                    ReceiveFirstMessage(_state, dataReceived);
-                    sendback = SendFirstResponse(_state);
+                    ReceiveFirstMessage(serverState, dataReceived);
+                    sendback = SendFirstResponse(serverState);
                 }
                 else
                 {
@@ -804,9 +794,9 @@ namespace MicroRatchet
             return sendback;
         }
 
-        private MessageInfo ProcessInitialization(byte[] dataReceived = null)
+        private MessageInfo ProcessInitialization(State state, byte[] dataReceived)
         {
-            byte[] sendback = ProcessInitializationInternal(dataReceived);
+            byte[] sendback = ProcessInitializationInternal(state, dataReceived);
 
             if (sendback != null)
             {
@@ -832,11 +822,11 @@ namespace MicroRatchet
             }
         }
 
-        public MessageInfo InitiateInitialization()
+        public MessageInfo InitiateInitialization(bool forceReinitialization = false)
         {
             var state = LoadState();
 
-            if (state.IsInitialized)
+            if (state != null && state.IsInitialized && !forceReinitialization)
             {
                 throw new InvalidOperationException("The client is already initialized");
             }
@@ -846,12 +836,13 @@ namespace MicroRatchet
                 throw new InvalidOperationException("only a client can initiate initialization");
             }
 
-            return ProcessInitialization();
+            state = InitializeState();
+
+            return ProcessInitialization(state, null);
         }
 
         public ReceiveResult Receive(byte[] data)
         {
-            //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             var state = LoadState();
 
             var messageType = GetMessageType(data[0]);
@@ -863,7 +854,8 @@ namespace MicroRatchet
                     throw new InvalidOperationException("Received initialization message after initialization has been completed");
                 }
 
-                var toSendBack = ProcessInitialization(data);
+                if (state == null) state = InitializeState();
+                var toSendBack = ProcessInitialization(state, data);
 
                 return new ReceiveResult
                 {
@@ -965,16 +957,8 @@ namespace MicroRatchet
             throw new NotSupportedException("Unexpected message type received");
         }
 
-        private MessageInfo SendSingle(byte[] payload)
+        private MessageInfo SendSingle(State state, byte[] payload)
         {
-            //Debug.WriteLine($"\n\n###{(IsClient ? "CLIENT" : "SERVER")} SEND");
-            var state = LoadState();
-
-            if (!state.IsInitialized)
-            {
-                throw new InvalidOperationException("The MicroRatchetClient is not initialized");
-            }
-
             bool canIncludeEcdh = payload.Length <= Configuration.Mtu - 48;
             EcdhRatchetStep step;
             if (canIncludeEcdh)
@@ -992,15 +976,8 @@ namespace MicroRatchet
             };
         }
 
-        private MessageInfo SendMultipart(byte[] payload)
+        private MessageInfo SendMultipart(State state, byte[] payload)
         {
-            var state = LoadState();
-
-            if (!state.IsInitialized)
-            {
-                throw new InvalidOperationException("The MicroRatchetClient is not initialized");
-            }
-
             return new MessageInfo
             {
                 Messages = ConstructEncryptedMultipartMessage(payload)
@@ -1009,9 +986,15 @@ namespace MicroRatchet
 
         public MessageInfo Send(byte[] payload, bool? allowMultipart = null)
         {
+            var state = LoadState();
+            if (!state.IsInitialized)
+            {
+                throw new InvalidOperationException("The client has not been initialized.");
+            }
+
             if (payload.Length <= MaximumMessageSize)
             {
-                return SendSingle(payload);
+                return SendSingle(state, payload);
             }
             else
             {
@@ -1020,7 +1003,7 @@ namespace MicroRatchet
                 {
                     throw new InvalidOperationException("Cannot send multipart message as it has not been explicitly allowed.");
                 }
-                return SendMultipart(payload);
+                return SendMultipart(state, payload);
             }
         }
 
@@ -1034,6 +1017,13 @@ namespace MicroRatchet
                     : ServerState.Load(Storage, KeyAgreementFactory, keySize);
             }
 
+            return _state;
+        }
+
+        private State InitializeState()
+        {
+            int keySize = Configuration.UseAes256 ? 32 : 16;
+            _state = State.Initialize(Configuration.IsClient, keySize);
             return _state;
         }
 
