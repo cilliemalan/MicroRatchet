@@ -24,7 +24,7 @@ namespace MicroRatchet.Tests
             return lr;
         }
 
-        public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false)
+        public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false, int maximumBufferedPartialMessageSize = 50 * 1024)
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
@@ -61,8 +61,22 @@ namespace MicroRatchet.Tests
             client.SaveState();
             server.SaveState();
 
-            var clientConfig = new MicroRatchetConfiguration { IsClient = true, AllowImplicitMultipartMessages = allowImplicitMultipart, Mtu = mtu };
-            var serverConfig = new MicroRatchetConfiguration { IsClient = false, AllowImplicitMultipartMessages = allowImplicitMultipart, Mtu = mtu };
+            var clientConfig = new MicroRatchetConfiguration
+            {
+                IsClient = true,
+                AllowImplicitMultipartMessages = allowImplicitMultipart,
+                Mtu = mtu,
+                MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
+                PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu
+            };
+            var serverConfig = new MicroRatchetConfiguration
+            {
+                IsClient = false,
+                AllowImplicitMultipartMessages = allowImplicitMultipart,
+                Mtu = mtu,
+                MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
+                PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu
+            };
             return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
         }
     }

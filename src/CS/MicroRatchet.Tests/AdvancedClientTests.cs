@@ -79,7 +79,7 @@ namespace MicroRatchet.Tests
         {
             AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
-        
+
         [InlineData(100, 100, 0.0, 0.1, false, 32, 192)]
         [InlineData(100, 100, 0.1, 0.0, false, 32, 192)]
         [InlineData(100, 100, 0.5, 0.5, false, 32, 192)]
@@ -104,9 +104,29 @@ namespace MicroRatchet.Tests
             AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
+        [InlineData(1, 0)]
+        [InlineData(5, 0)]
+        [InlineData(5, 1)]
+        [InlineData(5, 5)]
+        [Theory]
+        public void VeryLargeVolumeTestBasic(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 1024, int maxsize = 8192)
+        {
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
+        [InlineData(1, 0)]
+        [InlineData(5, 0)]
+        [InlineData(5, 1)]
+        [InlineData(5, 5)]
+        [Theory]
+        public void VeryVeryLargeVolumeTestBasic(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 8 * 1024, int maxsize = 128 * 1024)
+        {
+            AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
+        }
+
         private static void AdvancedTestInternal(int clientMessagesCount, int serverMessagesCount, double clientDropChance, double serverDropChance, bool outOfOrder, int minsize, int maxsize)
         {
-            var (client, server) = Common.CreateAndInitialize(allowImplicitMultipart: true);
+            var (client, server) = Common.CreateAndInitialize(allowImplicitMultipart: true, maximumBufferedPartialMessageSize: maxsize * 10);
             var cservices = client.Services;
             var sservices = server.Services;
 
@@ -123,8 +143,6 @@ namespace MicroRatchet.Tests
 
             var serverExpects = new HashSet<byte[]>();
             var clientExpects = new HashSet<byte[]>();
-
-            byte[] DoubleInSize(byte[] payload) => payload.Concat(payload).ToArray();
 
             byte[] Dequeue(List<byte[]> l)
             {
@@ -161,7 +179,6 @@ namespace MicroRatchet.Tests
                     clientMessagesToSend.TryDequeue(out var payload);
                     if (payload != null)
                     {
-                        payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
                         var message = client.Send(payload);
 
                         bool dropped = false;
@@ -189,7 +206,6 @@ namespace MicroRatchet.Tests
                     serverMessagesToSend.TryDequeue(out var payload);
                     if (payload != null)
                     {
-                        payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
                         var message = server.Send(payload);
 
                         bool dropped = false;
