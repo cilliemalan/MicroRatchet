@@ -270,7 +270,6 @@ namespace MicroRatchet.Tests
             // now we're hot
             client = new MicroRatchetClient(clientServices, true, 80);
             server = new MicroRatchetClient(serverServices, false, 80);
-
             {
                 RandomNumberGenerator rng = new RandomNumberGenerator();
                 byte[] message1 = rng.Generate(32);
@@ -288,6 +287,9 @@ namespace MicroRatchet.Tests
                 Assert.Equal(message1, r1);
                 Assert.Equal(message2, r2);
                 Assert.Equal(message3, r3);
+
+                client.SaveState();
+                server.SaveState();
             }
 
             // oh noes! Client fail! reinitialize
@@ -302,6 +304,31 @@ namespace MicroRatchet.Tests
                 var firstPacket = client.ReceiveMultiple(responsePacket).ToSendBack;
                 var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
                 var lastResult = client.Receive(firstResponse.Message).ToSendBack;
+                client.SaveState();
+                server.SaveState();
+            }
+
+            // now we're hot AGAIN
+            client = new MicroRatchetClient(clientServices, true, 80);
+            server = new MicroRatchetClient(serverServices, false, 80);
+            {
+                RandomNumberGenerator rng = new RandomNumberGenerator();
+                byte[] message1 = rng.Generate(32);
+                byte[] message2 = rng.Generate(32);
+                byte[] message3 = rng.Generate(32);
+
+                var pl1 = client.Send(message1).Message;
+                var pl2 = client.Send(message2).Message;
+                var pl3 = client.Send(message3).Message;
+
+                var r1 = server.Receive(pl1).Payload;
+                var r2 = server.Receive(pl2).Payload;
+                var r3 = server.Receive(pl3).Payload;
+
+                Assert.Equal(message1, r1);
+                Assert.Equal(message2, r2);
+                Assert.Equal(message3, r3);
+
                 client.SaveState();
                 server.SaveState();
             }
