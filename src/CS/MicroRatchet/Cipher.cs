@@ -72,8 +72,7 @@ namespace MicroRatchet
             }
             var output = new byte[data.Count];
             Array.Copy(outputBuffer, output, data.Count);
-
-            //Debug.WriteLine($"--crypting--");
+            
             //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
             //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output)}");
             //Debug.WriteLine($"--crypting--");

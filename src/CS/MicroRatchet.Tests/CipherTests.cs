@@ -138,12 +138,6 @@ namespace MicroRatchet.Tests
             c.Initialize(key, iv);
             var encrypted = c.Encrypt(input);
 
-            var _key = string.Join(", ", key.Select(b => $"0x{b:x2}"));
-            var _iv = string.Join(", ", iv.Select(b => $"0x{b:x2}"));
-            var _input = string.Join(", ", input.Select(b => $"0x{b:x2}"));
-            var _output = string.Join(", ", encrypted.Select(b => $"0x{b:x2}"));
-            Debug.WriteLine($"[InlineData(new byte[] {{{_key}}}, new byte[] {{{_iv}}}, new byte[] {{{_input}}}, new byte[] {{{_output}}})]");
-
             Assert.Equal(output, encrypted);
         }
     }
