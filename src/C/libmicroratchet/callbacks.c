@@ -33,6 +33,24 @@ void mr_aes_process_cb(int status, mr_aes_ctx ctx, mr_ctx mr_ctx)
 	_ctx->next(status, ctx, mr_ctx);
 }
 
+void mr_poly_init_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, ctx, mr_ctx);
+}
+
+void mr_poly_process_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, ctx, mr_ctx);
+}
+
+void mr_poly_compute_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx)
+{
+	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);
+	_ctx->next(status, ctx, mr_ctx);
+}
+
 void mr_gmac_init_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx)
 {
 	_mr_ctx* _ctx = (_mr_ctx*)(mr_ctx);

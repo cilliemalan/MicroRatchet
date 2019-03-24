@@ -9,6 +9,7 @@ extern "C" {
 	typedef void* mr_sha_ctx;
 	typedef void* mr_aes_ctx;
 	typedef void* mr_gmac_ctx;
+	typedef void* mr_poly_ctx;
 	typedef void* mr_ecdh_ctx;
 	typedef void* mr_ecdsa_ctx;
 	typedef void* mr_rng_ctx;
@@ -40,7 +41,7 @@ extern "C" {
 	void mr_sha_destroy(mr_sha_ctx ctx);
 
 
-	///// AES 128/256 in CTR mode /w sha256 hashed iv (sha256 the iv, whatever it is, and use the first 16 bytes of the sha256 hash)
+	///// AES 128/256 in CTR mode
 	
 	mr_aes_ctx mr_aes_create(mr_ctx mr_ctx);
 	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
@@ -49,9 +50,8 @@ extern "C" {
 	void mr_aes_process_cb(int status, mr_aes_ctx ctx, mr_ctx mr_ctx);
 	void mr_aes_destroy(mr_aes_ctx ctx);
 
-
 	///// GMAC
-	
+
 	mr_gmac_ctx mr_gmac_create(mr_ctx mr_ctx);
 	int mr_gmac_init(mr_gmac_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
 	void mr_gmac_init_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
@@ -60,6 +60,17 @@ extern "C" {
 	int mr_gmac_compute(mr_gmac_ctx ctx, unsigned char* output, unsigned int spaceavail);
 	void mr_gmac_compute_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
 	void mr_gmac_destroy(mr_gmac_ctx ctx);
+
+	///// Poly1305 (without AES)
+	
+	mr_poly_ctx mr_poly_create(mr_ctx mr_ctx);
+	int mr_poly_init(mr_poly_ctx ctx, const unsigned char* key, unsigned int keysize);
+	void mr_poly_init_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
+	int mr_poly_process(mr_poly_ctx ctx, const unsigned char* data, unsigned int amount);
+	void mr_poly_process_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
+	int mr_poly_compute(mr_poly_ctx ctx, unsigned char* output, unsigned int spaceavail);
+	void mr_poly_compute_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
+	void mr_poly_destroy(mr_poly_ctx ctx);
 
 
 	///// ECDH

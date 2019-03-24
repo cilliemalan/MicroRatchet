@@ -55,6 +55,7 @@
     <ClCompile Include="ecdsa.cpp" />
     <ClCompile Include="gmac.cpp" />
     <ClCompile Include="hmac.cpp" />
+    <ClCompile Include="poly.cpp" />
     <ClCompile Include="rng.cpp" />
     <ClCompile Include="sha.cpp" />
     <ClCompile Include="support.cpp" />

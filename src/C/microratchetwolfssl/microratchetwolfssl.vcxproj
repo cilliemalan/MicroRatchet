@@ -145,7 +145,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl;../libmicroratchet%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -163,7 +163,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl;../libmicroratchet%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -211,7 +211,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl;../libmicroratchet%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -229,7 +229,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl;../libmicroratchet%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -308,6 +308,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="poly.c" />
     <ClCompile Include="rng.c" />
     <ClCompile Include="sha.c" />
     <ClCompile Include="gmac.c" />

@@ -47,5 +47,8 @@
     <ClCompile Include="ecdsa.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="poly.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
