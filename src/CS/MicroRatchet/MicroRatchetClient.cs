@@ -229,7 +229,7 @@ namespace MicroRatchet
                     var encryptedPayload = Cipher.Encrypt(payload);
 
                     // calculate mac
-                    Mac.Init(sharedSecret, serverNonce, MacSize * 8);
+                    Mac.Init(sharedSecret, null, MacSize * 8);
                     messageStream.TryGetBuffer(out var messageStreamBuffer);
                     Mac.Process(messageStreamBuffer);
                     Mac.Process(new ArraySegment<byte>(encryptedPayload));
@@ -268,7 +268,7 @@ namespace MicroRatchet
                     // check mac
                     br.BaseStream.Seek(data.Length - MacSize, SeekOrigin.Begin);
                     var mac = br.ReadBytes(MacSize);
-                    Mac.Init(rootPreKey, nonce, MacSize * 8);
+                    Mac.Init(rootPreKey, null, MacSize * 8);
                     Mac.Process(new ArraySegment<byte>(data, 0, data.Length - MacSize));
                     var checkMac = Mac.Compute();
 
@@ -334,7 +334,7 @@ namespace MicroRatchet
         private void ReceiveFirstMessage(State state, byte[] payload)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
-            
+
             int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (messageType != MessageType.InitializationWithEcdh)
@@ -367,7 +367,7 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("The first received message authentication code did not match");
             }
-            
+
             // decrypt the header
             var headerEncryptionKey = new byte[keySize];
             Array.Copy(headerDerivedKey, 0, headerEncryptionKey, 0, keySize);
@@ -375,7 +375,7 @@ namespace MicroRatchet
             var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
-            
+
             // the message contains ecdh parameters
             var clientEcdhPublic = new byte[EcdhSize];
             Array.Copy(decryptedHeader, NonceSize, clientEcdhPublic, 0, EcdhSize);
@@ -397,7 +397,7 @@ namespace MicroRatchet
             Array.Copy(decryptedHeader, nonceBytes, NonceSize);
             Cipher.Initialize(key, nonceBytes);
             var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
-            
+
             // check the inner payload
             var innerNonce = new byte[NonceSize];
             Array.Copy(decryptedInnerPayload, innerNonce, NonceSize);
@@ -577,7 +577,7 @@ namespace MicroRatchet
                     Mac.Init(headerDerivedKey, null, MacSize * 8);
                     Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
                     compareMac = Mac.Compute();
-                    if (mac.Matches(new ArraySegment<byte>(payload, payload.Length - mac.Length, mac.Length)))
+                    if (mac.Matches(compareMac))
                     {
                         usedNextHeaderKey = true;
                         ratchetUsed = ratchet;
@@ -746,7 +746,6 @@ namespace MicroRatchet
             byte[] sendback;
             if (Configuration.IsClient)
             {
-                //Debug.WriteLine("\n\n###CLIENT");
                 if (dataReceived == null)
                 {
                     // step 1: send first init request from client
@@ -938,7 +937,7 @@ namespace MicroRatchet
             return ProcessInitialization(state, null);
         }
 
-        public ReceiveResult Receive(byte[] data)
+        private ReceiveResult ReceiveInternal(byte[] data)
         {
             var state = LoadState();
             var messageType = GetMessageType(data[0]);
@@ -1057,16 +1056,27 @@ namespace MicroRatchet
 
             throw new NotSupportedException("Unexpected message type received");
         }
+        
+        public ReceiveResult Receive(byte[] data)
+        {
+            //Debug.WriteLine($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+            var result = ReceiveInternal(data);
+            //Debug.WriteLine($"/###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+            return result;
+        }
 
         public MessageInfo Send(byte[] payload, bool? allowMultipart = null)
         {
+            //Debug.WriteLine($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
             if (!state.IsInitialized)
             {
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            return SendInternal(payload, allowMultipart, state);
+            var response = SendInternal(payload, allowMultipart, state);
+            //Debug.WriteLine($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
+            return response;
         }
 
         public void SaveState()
