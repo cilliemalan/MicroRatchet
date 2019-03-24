@@ -26,24 +26,25 @@ namespace MicroRatchet
             }
             else
             {
+                if (key == null) throw new ArgumentNullException(nameof(key));
+                if (iv == null) throw new ArgumentNullException(nameof(iv));
+
                 //Debug.WriteLine($"--crypting--");
                 //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
                 //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(iv ?? new byte[0])}");
                 var notUsed = true;
                 cipher = new SicBlockCipher(new AesEngine());
-                cipher.Init(notUsed, new ParametersWithIV(new KeyParameter(key), FixIv(iv) ?? new byte[cipher.GetBlockSize()]));
+                cipher.Init(notUsed, new ParametersWithIV(new KeyParameter(key), FixIv(iv)));
             }
         }
 
         private byte[] FixIv(byte[] iv)
         {
-            if (iv == null) return null;
-
-            Digest d = new Digest();
-            var digest = d.ComputeDigest(iv);
-            byte[] newiv = new byte[16];
-            for (int i = 0; i < 16; i++) newiv[i] = digest[i];
-            return newiv;
+            int l = Math.Min(Math.Max(8, iv.Length), 16);
+            int c = Math.Min(iv.Length, l);
+            var newIv = new byte[l];
+            Array.Copy(iv, 0, newIv, 0, c);
+            return newIv;
         }
 
         public byte[] Encrypt(ArraySegment<byte> data) => Process(data);
@@ -52,7 +53,7 @@ namespace MicroRatchet
         private byte[] Process(ArraySegment<byte> data)
         {
             if (cipher == null) throw new ObjectDisposedException(nameof(Cipher));
-            
+
             var blockSize = cipher.GetBlockSize();
             var outputBuffer = new byte[RoundUpToMultiple(data.Count, blockSize)];
             for (int i = 0; i < data.Count; i += blockSize)
