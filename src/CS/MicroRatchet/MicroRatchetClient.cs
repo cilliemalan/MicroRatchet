@@ -334,7 +334,7 @@ namespace MicroRatchet
         private void ReceiveFirstMessage(State state, byte[] payload)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
-
+            
             int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (messageType != MessageType.InitializationWithEcdh)
@@ -344,32 +344,38 @@ namespace MicroRatchet
 
             // extract the nonce
             byte[] nonce = new byte[NonceSize];
-            Array.Copy(payload, nonce, NonceSize);
+            Array.Copy(payload, nonce, nonce.Length);
 
-            // use the header key we already agreed on
+            // extract other parts
+            var messageSize = payload.Length;
+            var headerSize = NonceSize + EcdhSize;
+            var payloadSize = messageSize - MacSize - headerSize;
+            byte[] encryptedPayload = new byte[payloadSize];
+            byte[] encryptedHeader = new byte[headerSize];
+            byte[] mac = new byte[MacSize];
+            Array.Copy(payload, 0, encryptedHeader, 0, headerSize);
+            Array.Copy(payload, headerSize, encryptedPayload, 0, payloadSize);
+            Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
+
+            // check the mac
             byte[] headerKey = serverState.FirstReceiveHeaderKey;
-
-            // double check the mac
-            Mac.Init(headerKey, nonce, MacSize * 8);
-            Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - NonceSize - MacSize));
-            byte[] mac = Mac.Compute();
-            if (!mac.Matches(new ArraySegment<byte>(payload, payload.Length - MacSize, MacSize)))
+            byte[] headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+            Mac.Init(headerDerivedKey, null, MacSize * 8);
+            Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
+            byte[] compareMac = Mac.Compute();
+            if (!mac.Matches(compareMac))
             {
                 throw new InvalidOperationException("The first received message authentication code did not match");
             }
-
-            // get the encrypted payload
-            byte[] encryptedPayload;
-            int headerSize = EcdhSize + NonceSize;
-            encryptedPayload = new byte[payload.Length - headerSize - MacSize];
-            Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
-
-            // derive the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, keySize);
-            Cipher.Initialize(headerEncryptionKey, null);
+            
+            // decrypt the header
+            var headerEncryptionKey = new byte[keySize];
+            Array.Copy(headerDerivedKey, 0, headerEncryptionKey, 0, keySize);
+            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
             var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
-
+            int step = BigEndianBitConverter.ToInt32(decryptedHeader);
+            
             // the message contains ecdh parameters
             var clientEcdhPublic = new byte[EcdhSize];
             Array.Copy(decryptedHeader, NonceSize, clientEcdhPublic, 0, EcdhSize);
@@ -384,14 +390,14 @@ namespace MicroRatchet
             serverState.Ratchets.Add(ratchetUsed);
 
             // get the inner payload key from the server receive chain
-            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, 1);
+            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // decrypt the inner payload
             var nonceBytes = new byte[NonceSize];
             Array.Copy(decryptedHeader, nonceBytes, NonceSize);
             Cipher.Initialize(key, nonceBytes);
             var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
-
+            
             // check the inner payload
             var innerNonce = new byte[NonceSize];
             Array.Copy(decryptedInnerPayload, innerNonce, NonceSize);
@@ -486,29 +492,21 @@ namespace MicroRatchet
                 Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
             }
 
-            // encrypt the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, keySize);
-            Cipher.Initialize(headerEncryptionKey, null);
+            // encrypt the header. Generate 32 kdf bytes. The first (keysize) is the header encryption key and the whole
+            // 32 bytes is the MAC key.
+            var headerEncryptionDerivedKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, 32);
+            var headerEncryptionKey = new byte[keySize];
+            Array.Copy(headerEncryptionDerivedKey, headerEncryptionKey, headerEncryptionKey.Length);
+            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
             var encryptedHeader = Cipher.Encrypt(header);
 
-            // set the message type (we can do this because we're using a CTR stream cipher)
+            // set the message type (we can do this because we're using a stream cipher)
             encryptedHeader[0] = SetMessageType(encryptedHeader[0], messageType);
 
             // mac the message: <header>, <payload>, mac(12)
-            // the mac uses the first 4 encrypted bytes as iv and the rest (incl ecdh if there) as ad.
-            byte[] iv;
-            if (includeEcdh)
-            {
-                iv = new byte[NonceSize];
-                Array.Copy(encryptedHeader, iv, NonceSize);
-                Mac.Init(step.SendingChain.HeaderKey, iv, MacSize * 8);
-                Mac.Process(new ArraySegment<byte>(encryptedHeader, NonceSize, encryptedHeader.Length - NonceSize));
-            }
-            else
-            {
-                iv = encryptedHeader;
-                Mac.Init(step.SendingChain.HeaderKey, iv, MacSize * 8);
-            }
+            // the mac uses the header encryption derived key (all 32 bytes)
+            Mac.Init(headerEncryptionDerivedKey, null, MacSize * 8);
+            Mac.Process(new ArraySegment<byte>(encryptedHeader));
             Mac.Process(new ArraySegment<byte>(encryptedPayload));
             var mac = Mac.Compute();
 
@@ -542,8 +540,20 @@ namespace MicroRatchet
             byte[] nonce = new byte[NonceSize];
             Array.Copy(payload, nonce, nonce.Length);
 
+            // extract other parts
+            var messageSize = payload.Length;
+            var headerSize = hasEcdh ? NonceSize + EcdhSize : NonceSize;
+            var payloadSize = messageSize - MacSize - headerSize;
+            byte[] encryptedPayload = new byte[payloadSize];
+            byte[] encryptedHeader = new byte[headerSize];
+            byte[] mac = new byte[MacSize];
+            Array.Copy(payload, 0, encryptedHeader, 0, headerSize);
+            Array.Copy(payload, headerSize, encryptedPayload, 0, payloadSize);
+            Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
+
             // find the header key by checking the mac
             byte[] headerKey = null;
+            byte[] headerDerivedKey = null;
             EcdhRatchetStep ratchetUsed = null;
             bool usedNextHeaderKey = false;
             int cnt = 0;
@@ -551,10 +561,11 @@ namespace MicroRatchet
             {
                 cnt++;
                 headerKey = ratchet.ReceivingChain.HeaderKey;
-                Mac.Init(headerKey, nonce, MacSize * 8);
-                Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - nonce.Length - MacSize));
-                byte[] mac = Mac.Compute();
-                if (mac.Matches(new ArraySegment<byte>(payload, payload.Length - mac.Length, mac.Length)))
+                headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+                Mac.Init(headerDerivedKey, null, MacSize * 8);
+                Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
+                byte[] compareMac = Mac.Compute();
+                if (mac.Matches(compareMac))
                 {
                     ratchetUsed = ratchet;
                     break;
@@ -562,9 +573,10 @@ namespace MicroRatchet
                 else if (ratchet.ReceivingChain.NextHeaderKey != null)
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
-                    Mac.Init(headerKey, nonce, MacSize * 8);
-                    Mac.Process(new ArraySegment<byte>(payload, nonce.Length, payload.Length - nonce.Length - MacSize));
-                    mac = Mac.Compute();
+                    headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
+                    Mac.Init(headerDerivedKey, null, MacSize * 8);
+                    Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
+                    compareMac = Mac.Compute();
                     if (mac.Matches(new ArraySegment<byte>(payload, payload.Length - mac.Length, mac.Length)))
                     {
                         usedNextHeaderKey = true;
@@ -579,15 +591,10 @@ namespace MicroRatchet
                 throw new InvalidOperationException("Could not decrypt the incoming message");
             }
 
-            // get the encrypted payload
-            byte[] encryptedPayload;
-            int headerSize = hasEcdh ? (EcdhSize + NonceSize) : NonceSize;
-            encryptedPayload = new byte[payload.Length - headerSize - MacSize];
-            Array.Copy(payload, headerSize, encryptedPayload, 0, encryptedPayload.Length);
-
             // decrypt the header
-            var headerEncryptionKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, keySize);
-            Cipher.Initialize(headerEncryptionKey, null);
+            var headerEncryptionKey = new byte[keySize];
+            Array.Copy(headerDerivedKey, 0, headerEncryptionKey, 0, keySize);
+            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
             var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
