@@ -29,7 +29,7 @@ namespace MicroRatchet
 
         public void Init(byte[] key, byte[] iv, int macSize)
         {
-            _macSize = macSize;
+            _macSize = macSize / 8;
             _poly = new Org.BouncyCastle.Crypto.Macs.Poly1305();
             _poly.Init(new KeyParameter(key));
         }
