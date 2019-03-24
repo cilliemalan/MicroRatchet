@@ -25,19 +25,21 @@ int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize,
 	if (keysize != 16 && keysize != 32) return E_INVALIDSIZE;
 	if (!key || !iv || !_ctx) return E_INVALIDARGUMENT;
 
-	// IV must always be hashed
-	unsigned char hashediv[32];
+	// trim IV to correct length
+	if (ivsize < 16)
 	{
-		Sha256 sha;
-		memset(&sha, 0, sizeof(sha));
-		wc_InitSha256(&sha);
-		wc_Sha256Update(&sha, iv, ivsize);
-		wc_Sha256Final(&sha, hashediv);
-		wc_Sha256Free(&sha);
+		unsigned char niv[16];
+		memset(niv, 0, 16);
+		memcpy(niv + ivsize, 0, 16 - ivsize);
+		int r = wc_AesSetKey(&ctx->wc_aes, key, keysize, niv, AES_ENCRYPTION);
+		if (r != 0) return E_INVALIDOP;
+	}
+	else
+	{
+		int r = wc_AesSetKey(&ctx->wc_aes, key, keysize, iv, AES_ENCRYPTION);
+		if (r != 0) return E_INVALIDOP;
 	}
 
-	int r = wc_AesSetKey(&ctx->wc_aes, key, keysize, hashediv, AES_ENCRYPTION);
-	if (r != 0) return E_INVALIDOP;
 	mr_aes_init_cb(E_SUCCESS, _ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }	
