@@ -38,7 +38,6 @@ int mr_gmac_init(mr_gmac_ctx _ctx, const unsigned char* key, unsigned int keysiz
 	ctx->iv = iv;
 	ctx->ivsize = ivsize;
 	memset(ctx->authtag, 0, sizeof(ctx->authtag));
-	mr_gmac_init_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -52,7 +51,6 @@ int mr_gmac_process(mr_gmac_ctx _ctx, const unsigned char* data, unsigned int am
 		ctx->authtag, sizeof(ctx->authtag),
 		data, amount);
 	if (r != 0) return E_INVALIDOP;
-	mr_gmac_process_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -64,7 +62,6 @@ int mr_gmac_compute(mr_gmac_ctx _ctx, unsigned char* output, unsigned int spacea
 
 	memcpy(output, ctx->authtag, spaceavail);
 	memset(ctx->authtag, 0, sizeof(ctx->authtag));
-	mr_gmac_compute_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 

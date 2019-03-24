@@ -28,7 +28,6 @@ int mr_ecdh_generate(mr_ecdh_ctx _ctx, unsigned char* publickey, unsigned int pu
 
 	int result = ecc_generate(&ctx->key, publickey, publickeyspaceavail, publickeysize);
 	if (result != 0) return result;
-	mr_ecdh_generate_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -38,7 +37,6 @@ int mr_ecdh_load(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail)
 	ecc_key* key = &ctx->key;
 	int result = ecc_load(key, data, spaceavail);
 	if (result != 0) return result;
-	mr_ecdh_load_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -55,8 +53,6 @@ int mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const unsigned char* otherpublickey, uns
 
 	result = wc_ecc_shared_secret_ex(&ctx->key, &pub, derivedkey, derivedkeysize);
 	if (result != 0) return E_INVALIDOP;
-
-	mr_ecdh_derivekey_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -72,7 +68,6 @@ int mr_ecdh_store(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail
 	int len = ecc_store_size_needed(&ctx->key.k);
 	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
 	int result = ecc_store(&ctx->key, data, spaceavail, amountstored);
-	mr_ecdh_store_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 

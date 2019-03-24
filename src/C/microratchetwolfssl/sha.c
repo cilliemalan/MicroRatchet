@@ -24,8 +24,7 @@ int mr_sha_init(mr_sha_ctx ctx)
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_InitSha256(&_ctx->wc_sha);
-	if (r != 0) mr_sha_init_cb(E_INVALIDOP, ctx, _ctx->mr_ctx);
-	else mr_sha_init_cb(E_SUCCESS, ctx, _ctx->mr_ctx);
+	if (r != 0) return E_INVALIDOP;
 	return E_SUCCESS;
 }
 
@@ -36,8 +35,7 @@ int mr_sha_process(mr_sha_ctx ctx, const unsigned char* data, unsigned int howmu
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_Sha256Update(&_ctx->wc_sha, data, howmuch);
-	if (r != 0) mr_sha_process_cb(E_INVALIDOP, ctx, _ctx->mr_ctx);
-	else mr_sha_process_cb(E_SUCCESS, ctx, _ctx->mr_ctx);
+	if (r != 0) return E_INVALIDOP;
 	return E_SUCCESS;
 }
 
@@ -48,8 +46,7 @@ int mr_sha_compute(mr_sha_ctx ctx, unsigned char* output, unsigned int spaceavai
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_Sha256Final(&_ctx->wc_sha, output);
-	if (r != 0) mr_sha_compute_cb(E_INVALIDOP, ctx, _ctx->mr_ctx);
-	else mr_sha_compute_cb(E_SUCCESS, ctx, _ctx->mr_ctx);
+	if (r != 0) return E_INVALIDOP;
 	return E_SUCCESS;
 }
 

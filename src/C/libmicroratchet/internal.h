@@ -11,9 +11,7 @@ extern "C" {
 
 	typedef struct {
 		mr_config* config;
-		void* user;
 		mr_sha_ctx sha_ctx;
-		void(*next)(int status, void* ctx, mr_ctx mr_ctx);
 	} _mr_ctx;
 
 
@@ -23,18 +21,14 @@ extern "C" {
 		unsigned char output[32];
 		unsigned char* data;
 		unsigned int datalen;
-		void(*next)(int status, void* ctx, mr_ctx mr_ctx);
 	} _hmac_ctx;
 
 
 
 
 	int hmac_init(_hmac_ctx *hmac, mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen);
-	void hmac_init_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx);
 	int hmac_process(_hmac_ctx *hmac, mr_ctx mr_ctx, const unsigned char* data, unsigned int datalen);
-	void hmac_process_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx);
 	int hmac_compute(_hmac_ctx *hmac, mr_ctx mr_ctx, unsigned char* output, unsigned int spaceavail);
-	void hmac_compute_cb(int status, _hmac_ctx* ctx, mr_ctx mr_ctx);
 
 
 #ifdef __cplusplus

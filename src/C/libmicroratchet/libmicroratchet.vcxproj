@@ -279,7 +279,6 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="callbacks.c" />
     <ClCompile Include="client.c" />
     <ClCompile Include="kdf.c" />
     <ClCompile Include="pch.c">

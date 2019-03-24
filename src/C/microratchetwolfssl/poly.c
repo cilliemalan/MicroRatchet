@@ -29,7 +29,6 @@ int mr_poly_init(mr_poly_ctx _ctx, const unsigned char* key, unsigned int keysiz
 
 	int r = wc_Poly1305SetKey(&ctx->wc_poly, key, keysize);
 	if (r != 0) return E_INVALIDOP;
-	mr_poly_init_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -41,7 +40,6 @@ int mr_poly_process(mr_poly_ctx _ctx, const unsigned char* data, unsigned int am
 
 	int r =  wc_Poly1305Update(&ctx->wc_poly, data, amount);
 	if (r != 0) return E_INVALIDOP;
-	mr_poly_process_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -69,7 +67,6 @@ int mr_poly_compute(mr_poly_ctx _ctx, unsigned char* output, unsigned int spacea
 		if (r != 0) return E_INVALIDOP;
 		memset(output + 16, 0, spaceavail - 16);
 	}
-	mr_poly_compute_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 

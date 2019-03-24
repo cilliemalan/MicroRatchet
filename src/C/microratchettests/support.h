@@ -1,21 +1,9 @@
 #pragma once
 
-
-void init_wait(mr_ctx mr_ctx);
-int wait_getvalue(mr_ctx mr_ctx);
-void wait_abandon(mr_ctx ctx);
-
 template<class... Args>
 static int call_and_wait(int(*call)(Args...), mr_ctx ctx, Args... args)
 {
-	init_wait(ctx);
-	int r = call(args...);
-	if (r != E_SUCCESS)
-	{
-		wait_abandon(ctx);
-		return r;
-	}
-	return wait_getvalue(ctx);
+	return call(args...);
 }
 
 inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* outputbuffer)

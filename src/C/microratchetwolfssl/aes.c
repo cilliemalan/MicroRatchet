@@ -40,7 +40,6 @@ int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize,
 		if (r != 0) return E_INVALIDOP;
 	}
 
-	mr_aes_init_cb(E_SUCCESS, _ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }	
 
@@ -52,7 +51,6 @@ int mr_aes_process(mr_aes_ctx _ctx, const unsigned char* data, unsigned int amou
 
 	int r = wc_AesCtrEncrypt(&ctx->wc_aes, output, data, amount);
 	if (r != 0) return E_INVALIDOP;
-	mr_aes_process_cb(E_SUCCESS, _ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 

@@ -33,11 +33,8 @@ extern "C" {
 	
 	mr_sha_ctx mr_sha_create(mr_ctx mr_ctx);
 	int mr_sha_init(mr_sha_ctx ctx);
-	void mr_sha_init_cb(int status, mr_sha_ctx ctx, mr_ctx mr_ctx);
 	int mr_sha_process(mr_sha_ctx ctx, const unsigned char* data, unsigned int howmuch);
-	void mr_sha_process_cb(int status, mr_sha_ctx ctx, mr_ctx mr_ctx);
 	int mr_sha_compute(mr_sha_ctx ctx, unsigned char* output, unsigned int spaceavail);
-	void mr_sha_compute_cb(int status, mr_sha_ctx ctx, mr_ctx mr_ctx);
 	void mr_sha_destroy(mr_sha_ctx ctx);
 
 
@@ -45,9 +42,7 @@ extern "C" {
 	
 	mr_aes_ctx mr_aes_create(mr_ctx mr_ctx);
 	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
-	void mr_aes_init_cb(int status, mr_aes_ctx ctx, mr_ctx mr_ctx);
 	int mr_aes_process(mr_aes_ctx ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
-	void mr_aes_process_cb(int status, mr_aes_ctx ctx, mr_ctx mr_ctx);
 	void mr_aes_destroy(mr_aes_ctx ctx);
 
 	///// GMAC
@@ -65,11 +60,8 @@ extern "C" {
 	
 	mr_poly_ctx mr_poly_create(mr_ctx mr_ctx);
 	int mr_poly_init(mr_poly_ctx ctx, const unsigned char* key, unsigned int keysize);
-	void mr_poly_init_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
 	int mr_poly_process(mr_poly_ctx ctx, const unsigned char* data, unsigned int amount);
-	void mr_poly_process_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
 	int mr_poly_compute(mr_poly_ctx ctx, unsigned char* output, unsigned int spaceavail);
-	void mr_poly_compute_cb(int status, mr_poly_ctx ctx, mr_ctx mr_ctx);
 	void mr_poly_destroy(mr_poly_ctx ctx);
 
 
@@ -77,14 +69,10 @@ extern "C" {
 	
 	mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx);
 	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
-	void mr_ecdh_generate_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail);
-	void mr_ecdh_load_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail, unsigned int* derivedkeysize);
-	void mr_ecdh_derivekey_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
 	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
-	void mr_ecdh_store_cb(int status, mr_ecdh_ctx ctx, mr_ctx mr_ctx);
 	void mr_ecdh_destroy(mr_ecdh_ctx ctx);
 
 
@@ -92,26 +80,19 @@ extern "C" {
 	
 	mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx);
 	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
-	void mr_ecdsa_generate_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
-	void mr_ecdsa_load_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize);
-	void mr_ecdsa_sign_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned int* result);
-	void mr_ecdsa_verify_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	int mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
 	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
-	void mr_ecdsa_store_cb(int status, mr_ecdsa_ctx ctx, mr_ctx mr_ctx);
 	void mr_ecdsa_destroy(mr_ecdsa_ctx ctx);
 	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, const unsigned char* publickey, unsigned int publickeysize, unsigned int* result, void* user);
-	void mr_ecdsa_verify_other_cb(int status, void* user);
 
 
 	///// RNG
 	
 	mr_rng_ctx mr_rng_create(mr_ctx mr_ctx);
 	int mr_rng_generate(mr_rng_ctx ctx, unsigned char* output, unsigned int outputsize);
-	void mr_rng_generate_cb(int status, mr_rng_ctx ctx, mr_ctx mr_ctx);
 	void mr_rng_destroy(mr_rng_ctx ctx);
 
 
@@ -129,32 +110,16 @@ extern "C" {
 	// called when the client wants to persist hot storage.
 	int mr_persist_hot(void** where, int howmuch);
 
-	// CALLBACK: call this when the mr_persist_hot operation completes.
-	void mr_persist_hot_cb(int status, mr_ctx ctx);
-
 	// get a pointer to cold storage. This storage will be larger and written infrequently.
 	int mr_get_cold_storage(mr_ctx ctx, int amountrequested, void** pointer, int* blocksize);
 
 	// called when the client wants to persist cold storage.
 	int mr_persist_cold(mr_ctx ctx, void** where, int howmuch);
 
-	// CALLBACK: call this when the mr_persist_cold operation completes.
-	void mr_persist_cold_cb(int status, mr_ctx ctx);
-
 
 	///// communcation
 	
 	int mr_transmit(mr_ctx ctx, void* user, const unsigned char* data, int howmuch);
-
-
-	///// mr client callback functions
-	
-	void mrclient_data_cb(int status, void* user);
-	void mrclient_initialization_cb(int status, void* user);
-	void mrclient_send_data_cb(int status, void* user);
-
-
-
 
 
 
@@ -185,11 +150,9 @@ extern "C" {
 	int mrclient_process_initialization(mr_ctx ctx, const unsigned char* bytes, int numbytes);
 
 	// process incoming data. Call this function when data is received on the wire after the client has been initialized.
-	// this function will call mrclient_data_cb with decrypted data. This function must be called with a complete message.
 	int mrclient_receive_data(mr_ctx ctx, const unsigned char* bytes, int numbytes, unsigned char** output, int spaceavail, int* outputspace);
 
 	// transmit data. Call this function to send data after the client has been initialized.
-	// After the data has been sent this function will call mrclient_send_data_cb.
 	int mrclient_send_data(mr_ctx ctx, const unsigned char* data, int numbytes);
 
 	// destroy a client

@@ -32,8 +32,6 @@ int mr_rng_generate(mr_rng_ctx _ctx, unsigned char* output, unsigned int outputs
 
 	int r = wc_RNG_GenerateBlock(&ctx->rng, output, outputsize);
 	if (r != 0) return E_INVALIDOP;
-
-	mr_rng_generate_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 

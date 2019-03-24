@@ -28,7 +28,6 @@ int mr_ecdsa_generate(mr_ecdsa_ctx _ctx, unsigned char* publickey, unsigned int 
 
 	int result = ecc_generate(&ctx->key, publickey, publickeyspaceavail, publickeysize);
 	if (result != 0) return result;
-	mr_ecdh_generate_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -38,7 +37,6 @@ int mr_ecdsa_load(mr_ecdsa_ctx _ctx, unsigned char* data, unsigned int spaceavai
 	ecc_key* key = &ctx->key;
 	int result = ecc_load(key, data, spaceavail);
 	if (result != 0) return result;
-	mr_ecdh_load_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -50,7 +48,6 @@ int mr_ecdsa_sign(mr_ecdsa_ctx _ctx, const unsigned char* digest, unsigned int d
 
 	int result = ecc_sign(&ctx->key, digest, digestsize, signature, signaturespaceavail, signaturesize);
 	if (result != E_SUCCESS) return result;
-	mr_ecdsa_sign_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -62,7 +59,6 @@ int mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const unsigned char* signature, unsigned 
 
 	int res = ecc_verify(&ctx->key, signature, signaturesize, digest, digestsize, result);
 	if (res != E_SUCCESS) return res;
-	mr_ecdsa_verify_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -79,7 +75,6 @@ int mr_ecdsa_store(mr_ecdsa_ctx _ctx, unsigned char* data, unsigned int spaceava
 	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
 	int result = ecc_store(&ctx->key, data, spaceavail, amountstored);
 	if (result != E_SUCCESS) return result;
-	mr_ecdh_store_cb(E_SUCCESS, ctx, ctx->mr_ctx);
 	return E_SUCCESS;
 }
 
@@ -106,6 +101,5 @@ int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signature
 	res = ecc_verify(&key, signature, signaturesize, digest, digestsize, result);
 	if (res != E_SUCCESS) return res;
 
-	mr_ecdsa_verify_other_cb(E_SUCCESS, user);
 	return E_SUCCESS;
 }
