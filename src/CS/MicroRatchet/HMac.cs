@@ -21,7 +21,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The digest had the incorrect size");
             }
             inputBuf = new byte[blockBytes];
-            outputBuf = new byte[blockBytes + digestBytes];
+            outputBuf = new byte[blockBytes];
         }
 
         public void Init(byte[] key)
@@ -59,14 +59,10 @@ namespace MicroRatchet
         public byte[] Compute()
         {
             var _output = _digest.Compute();
-            Array.Copy(_output, 0, outputBuf, blockBytes, _output.Length);
-
-            _digest.Process(new ArraySegment<byte>(outputBuf, 0, outputBuf.Length));
+            _digest.Process(new ArraySegment<byte>(outputBuf));
+            _digest.Process(new ArraySegment<byte>(_output));
 
             _output = _digest.Compute();
-
-            Array.Clear(outputBuf, blockBytes, digestBytes);
-
             _digest.Process(new ArraySegment<byte>(inputBuf, 0, inputBuf.Length));
 
             return _output;

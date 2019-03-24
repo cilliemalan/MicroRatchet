@@ -18,9 +18,6 @@ extern "C" {
 	typedef struct {
 		unsigned char ipad[64];
 		unsigned char opad[64];
-		unsigned char output[32];
-		unsigned char* data;
-		unsigned int datalen;
 	} _hmac_ctx;
 
 
