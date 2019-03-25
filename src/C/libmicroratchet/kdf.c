@@ -2,12 +2,6 @@
 #include "microratchet.h"
 #include "internal.h"
 
-static int hmac_after_process_digest(_hmac_ctx* ctx, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
-static int hmac_after_compute_first_compute(_hmac_ctx* ctx, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
-static int hmac_after_compute_first_process(_hmac_ctx* ctx, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
-static int hmac_after_compute_second_compute(_hmac_ctx* ctx, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
-static int hmac_after_compute_second_process(_hmac_ctx* ctx, mr_sha_ctx sha_ctx, _mr_ctx *mr_ctx);
-
 // init
 int hmac_init(_hmac_ctx *ctx, mr_ctx mr_ctx_, const unsigned char* key, unsigned int keylen)
 {
