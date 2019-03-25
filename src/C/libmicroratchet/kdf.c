@@ -57,3 +57,28 @@ int hmac_compute(_hmac_ctx *ctx, mr_ctx mr_ctx_, unsigned char* output, unsigned
 	_C(mr_sha_process(mr_ctx->sha_ctx, ctx->ipad, 64));
 	return E_SUCCESS;
 }
+
+
+int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int outputlen)
+{
+	_hmac_ctx hmac;
+	hmac_init(&hmac, mr_ctx, key, keylen);
+
+	unsigned int offset = 0;
+	unsigned char bytes[32];
+	unsigned char ctr = 1;
+
+	while (offset < outputlen)
+	{
+		if (ctr > 1) _C(hmac_process(&hmac, mr_ctx, bytes, sizeof(bytes)));
+		if (info && infolen) _C(hmac_process(&hmac, mr_ctx, info, infolen));
+		_C(hmac_process(&hmac, mr_ctx, &ctr, 1));
+		hmac_compute(&hmac, mr_ctx, bytes, sizeof(bytes));
+
+		int left = outputlen - offset;
+		if (left > 32) left = 32;
+		memcpy(output + offset, bytes, left);
+		offset += left;
+		ctr++;
+	}
+}
