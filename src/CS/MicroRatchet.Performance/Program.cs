@@ -21,9 +21,9 @@ namespace MicroRatchet.Performance
             Stopwatch sw = new Stopwatch();
 
             Console.WriteLine("Generating data...");
-            byte[] keys = new byte[16 * 10000000];
-            byte[] blocks = new byte[16 * 10000000];
-            byte[] output = new byte[32 * 10000000];
+            byte[] keys = new byte[16 * 1000000];
+            byte[] blocks = new byte[16 * 1000000];
+            byte[] output = new byte[32 * 1000000];
             rng.Generate(keys);
             rng.Generate(blocks);
 
