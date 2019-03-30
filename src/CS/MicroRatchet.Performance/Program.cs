@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Org.BouncyCastle.Crypto.Parameters;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace MicroRatchet.Performance
     {
         static void Main(string[] args)
         {
-            int messageCount = 100000;
+            int messageCount = 1000000;
             double clientDropChance = 0.0;
             double serverDropChance = 0.0;
 
@@ -19,38 +20,127 @@ namespace MicroRatchet.Performance
             KeyDerivation kdf = new KeyDerivation(new Digest());
             Stopwatch sw = new Stopwatch();
 
+            Console.WriteLine("Generating data...");
+            byte[] keys = new byte[16 * 10000000];
+            byte[] blocks = new byte[16 * 10000000];
+            byte[] output = new byte[32 * 10000000];
+            rng.Generate(keys);
+            rng.Generate(blocks);
 
+            Thread.Sleep(1000);
             {
-                Console.WriteLine("Testing 128 bit ratchet speed...");
-                SymmetricRacthet sr = new SymmetricRacthet();
-                sr.ChainKey = rng.Generate(32);
-                sr.KeySize = 16;
-                var d = sr.RatchetForSending(kdf);
-                d = sr.RatchetForSending(kdf);
-                d = sr.RatchetForSending(kdf);
-                Console.WriteLine("Doing 1000000 sending ratchets");
+                var sha = System.Security.Cryptography.SHA256.Create();
+                sha.ComputeHash(blocks, 10000, 16);
+                Console.WriteLine("Doing SHA256 hashes (dotnet)");
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < 1000000; i++) _ = sr.RatchetForSending(kdf);
+                for (int i = 0; i < blocks.Length; i += 16)
+                {
+                    sha.ComputeHash(blocks, i, 16);
+                }
+
                 sw.Stop();
-                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({1000000 / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                var sha = new Org.BouncyCastle.Crypto.Digests.Sha256Digest();
+                sha.BlockUpdate(blocks, 10000, 16);
+                sha.DoFinal(output, 10000);
+                Console.WriteLine("Doing SHA256 hashes (bc)");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < blocks.Length; i += 16)
+                {
+                    sha.BlockUpdate(blocks, i, 16);
+                    sha.DoFinal(output, i * 2);
+                }
+
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
             }
 
             Thread.Sleep(1000);
             {
-                Console.WriteLine("Testing 256 bit ratchet speed...");
-                SymmetricRacthet sr = new SymmetricRacthet();
-                sr.ChainKey = rng.Generate(32);
-                sr.KeySize = 32;
-                var d = sr.RatchetForSending(kdf);
-                d = sr.RatchetForSending(kdf);
-                d = sr.RatchetForSending(kdf);
-                Console.WriteLine("Doing 1000000 sending ratchets");
+                var aes = System.Security.Cryptography.Aes.Create();
+                aes.Mode = System.Security.Cryptography.CipherMode.ECB;
+                var key = new byte[16];
+                Array.Copy(keys, 10000, key, 0, 16);
+                aes.CreateEncryptor(key, null);
+                Console.WriteLine("Calculating AES keys (dotnet)");
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < 1000000; i++) _ = sr.RatchetForSending(kdf);
+                for (int i = 0; i < keys.Length; i += 16)
+                {
+                    Array.Copy(keys, i, key, 0, 16);
+                    aes.CreateEncryptor(key, null);
+                }
+
                 sw.Stop();
-                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({1000000 / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                var aes = System.Security.Cryptography.Aes.Create();
+                aes.Mode = System.Security.Cryptography.CipherMode.ECB;
+                var key = new byte[16];
+                Array.Copy(keys, key, 16);
+                var enc = aes.CreateEncryptor(key, null);
+                enc.TransformBlock(blocks, 10000, 16, output, 10000);
+                Console.WriteLine("Processing AES blocks (dotnet");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < blocks.Length; i += 16) enc.TransformBlock(blocks, i, 16, output, i);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                Org.BouncyCastle.Crypto.Engines.AesEngine aes = new Org.BouncyCastle.Crypto.Engines.AesEngine();
+                aes.Init(true, new KeyParameter(keys, 10000, 16));
+                aes.Init(true, new KeyParameter(keys, 20000, 16));
+                Console.WriteLine("Calculating AES keys (bc)");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < keys.Length; i += 16) aes.Init(true, new KeyParameter(keys, i, 16));
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                Org.BouncyCastle.Crypto.Engines.AesEngine aes = new Org.BouncyCastle.Crypto.Engines.AesEngine();
+                aes.Init(true, new KeyParameter(keys, 12300, 16));
+                aes.ProcessBlock(blocks, 10000, output, 10000);
+                Console.WriteLine("Processing AES blocks (bc)");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < blocks.Length; i += 16) aes.ProcessBlock(blocks, i, output, i);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                var aes = new Org.BouncyCastle.Crypto.Engines.AesLightEngine();
+                aes.Init(true, new KeyParameter(keys, 10000, 16));
+                aes.Init(true, new KeyParameter(keys, 20000, 16));
+                Console.WriteLine("Calculating AES keys (bc light)");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < keys.Length; i += 16) aes.Init(true, new KeyParameter(keys, i, 16));
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
+            Thread.Sleep(1000);
+            {
+                var aes = new Org.BouncyCastle.Crypto.Engines.AesLightEngine();
+                aes.Init(true, new KeyParameter(keys, 12340, 16));
+                aes.ProcessBlock(blocks, 10000, output, 10000);
+                Console.WriteLine("Processing AES blocks (bc light)");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < blocks.Length; i += 16) aes.ProcessBlock(blocks, i, output, i);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 16) / sw.Elapsed.TotalSeconds:F0}/s)");
             }
 
             Thread.Sleep(1000);
@@ -84,12 +174,12 @@ namespace MicroRatchet.Performance
             {
                 Console.WriteLine("Testing ratchet speed...");
                 var (client, server) = CreateAndInitialize(false);
-                var messagesToSend = Enumerable.Range(0, messageCount / 200).Select(_ => rng.Generate(32)).ToArray();
+                var messagesToSend = Enumerable.Range(0, messageCount / 4000).Select(_ => rng.Generate(32)).ToArray();
                 server.Receive(client.Send(new byte[32]).Message);
                 client.Receive(server.Send(new byte[32]).Message);
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < messageCount / 200; i++)
+                for (int i = 0; i < messageCount / 4000; i++)
                 {
                     var m1 = client.Send(messagesToSend[i]).Message;
                     server.Receive(m1);
@@ -97,7 +187,7 @@ namespace MicroRatchet.Performance
                     client.Receive(m2);
                 }
                 sw.Stop();
-                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(messageCount / 100) / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(messageCount / 2000) / sw.Elapsed.TotalSeconds:F0}/s)");
             }
 
             Thread.Sleep(1000);
