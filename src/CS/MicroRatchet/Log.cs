@@ -43,9 +43,16 @@ namespace MicroRatchet
 
         public static string ShowBytes(byte[] data, int offset, int cnt)
         {
-            if (data == null) return "<null>";
-            else if (data.Length == 0) return "<empty>";
-            else return Helpers.ByteArrayToHexViaLookup32(data, offset, cnt);
+            if (IsDebuggerAttached)
+            {
+                if (data == null) return "<null>";
+                else if (data.Length == 0) return "<empty>";
+                else return Helpers.ByteArrayToHexViaLookup32(data, offset, cnt);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         // by CodesInChaos https://stackoverflow.com/a/24343727
