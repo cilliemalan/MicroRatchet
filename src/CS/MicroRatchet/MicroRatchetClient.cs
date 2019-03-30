@@ -229,7 +229,7 @@ namespace MicroRatchet
                     var encryptedPayload = Cipher.Encrypt(payload);
 
                     // calculate mac
-                    Mac.Init(sharedSecret, null, MacSize * 8);
+                    Mac.Init(sharedSecret, serverNonce, MacSize * 8);
                     messageStream.TryGetBuffer(out var messageStreamBuffer);
                     Mac.Process(messageStreamBuffer);
                     Mac.Process(new ArraySegment<byte>(encryptedPayload));
@@ -268,7 +268,7 @@ namespace MicroRatchet
                     // check mac
                     br.BaseStream.Seek(data.Length - MacSize, SeekOrigin.Begin);
                     var mac = br.ReadBytes(MacSize);
-                    Mac.Init(rootPreKey, null, MacSize * 8);
+                    Mac.Init(rootPreKey, nonce, MacSize * 8);
                     Mac.Process(new ArraySegment<byte>(data, 0, data.Length - MacSize));
                     var checkMac = Mac.Compute();
 
@@ -300,7 +300,7 @@ namespace MicroRatchet
 
                             // store the new nonce we got from the server
                             clientState.InitializationNonce = nonce;
-                            Log.Verbose($"storing iniitlizaionta nonce: {Convert.ToBase64String(nonce)}");
+                            Log.Verbose($"storing iniitlizaionta nonce: {Log.ShowBytes(nonce)}");
 
                             // we now have enough information to construct our double ratchet
                             var localStep0EcdhRatchet = KeyAgreementFactory.GenerateNew();
@@ -360,7 +360,7 @@ namespace MicroRatchet
             // check the mac
             byte[] headerKey = serverState.FirstReceiveHeaderKey;
             byte[] headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
-            Mac.Init(headerDerivedKey, null, MacSize * 8);
+            Mac.Init(headerDerivedKey, nonce, MacSize * 8);
             Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
             byte[] compareMac = Mac.Compute();
             if (!mac.Matches(compareMac))
@@ -505,7 +505,9 @@ namespace MicroRatchet
 
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
-            Mac.Init(headerEncryptionDerivedKey, null, MacSize * 8);
+            var encryptedNonce = new byte[4];
+            Array.Copy(encryptedHeader, encryptedNonce, 4);
+            Mac.Init(headerEncryptionDerivedKey, encryptedNonce, MacSize * 8);
             Mac.Process(new ArraySegment<byte>(encryptedHeader));
             Mac.Process(new ArraySegment<byte>(encryptedPayload));
             var mac = Mac.Compute();
@@ -562,7 +564,7 @@ namespace MicroRatchet
                 cnt++;
                 headerKey = ratchet.ReceivingChain.HeaderKey;
                 headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
-                Mac.Init(headerDerivedKey, null, MacSize * 8);
+                Mac.Init(headerDerivedKey, nonce, MacSize * 8);
                 Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
                 byte[] compareMac = Mac.Compute();
                 if (mac.Matches(compareMac))
@@ -574,7 +576,7 @@ namespace MicroRatchet
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
                     headerDerivedKey = KeyDerivation.GenerateBytes(headerKey, encryptedPayload, 32);
-                    Mac.Init(headerDerivedKey, null, MacSize * 8);
+                    Mac.Init(headerDerivedKey, nonce, MacSize * 8);
                     Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
                     compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))

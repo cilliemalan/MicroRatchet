@@ -23,9 +23,9 @@ namespace MicroRatchet
                 (chainKey != null && chainKey.Length != keySize) ||
                 (nextHeaderKey != null && nextHeaderKey.Length != keySize)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
 
-            Log.Verbose($"  C Key HK:       {Convert.ToBase64String(headerKey)}");
-            Log.Verbose($"  C Key Chain:    {Convert.ToBase64String(chainKey)}");
-            Log.Verbose($"  C Key NHK:      {Convert.ToBase64String(nextHeaderKey)}");
+            Log.Verbose($"  C Key HK:       {Log.ShowBytes(headerKey)}");
+            Log.Verbose($"  C Key Chain:    {Log.ShowBytes(chainKey)}");
+            Log.Verbose($"  C Key NHK:      {Log.ShowBytes(nextHeaderKey)}");
 
             KeySize = keySize;
             HeaderKey = headerKey;
@@ -52,9 +52,9 @@ namespace MicroRatchet
             SetSingleGeneration(nextGen, nextKeys[0]);
 
             Log.Verbose($"      RTC  #:      {nextGen}");
-            Log.Verbose($"      RTC IN:      {Convert.ToBase64String(chain)}");
-            Log.Verbose($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-            Log.Verbose($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+            Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
+            Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
+            Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
 
             return (nextKeys[1], nextGen);
         }
@@ -82,7 +82,7 @@ namespace MicroRatchet
             while (gen < toGeneration)
             {
                 Log.Verbose($"      RTC  #:      {gen + 1}");
-                Log.Verbose($"      RTC IN:      {Convert.ToBase64String(chain)}");
+                Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
 
                 var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
                 gen++;
@@ -94,8 +94,8 @@ namespace MicroRatchet
                     LostKeys[gen] = key;
                 }
 
-                Log.Verbose($"      RTC CK:      {Convert.ToBase64String(nextKeys[0])}");
-                Log.Verbose($"      RTC OK:      {Convert.ToBase64String(nextKeys[1])}");
+                Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
+                Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
             }
 
             SetSingleGeneration(gen, chain);
