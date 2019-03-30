@@ -11,26 +11,9 @@ namespace MicroRatchet
     {
         AesEngine aes = new AesEngine();
         byte[] _iv;
-        private int _oldKeysToRetain;
-        private LinkedList<(int kg, byte[] k)> oldkeys;
-        private int _modulationInterval;
-        private int _currentKeyGeneration;
-
-        public ModulatingCipher()
-            : this(1, 16)
-        {
-        }
-
-        public ModulatingCipher(int modulationInterval = 16, int oldKeysToRetain = 1)
-        {
-            _oldKeysToRetain = oldKeysToRetain;
-            _modulationInterval = modulationInterval;
-            if (oldKeysToRetain > 0) oldkeys = new LinkedList<(int, byte[])>();
-        }
-
+        
         public void Initialize(byte[] key, byte[] iv = null)
         {
-            var generation = 0;
             if (key == null) throw new ArgumentNullException(nameof(iv));
             if (key.Length != 16 && key.Length != 32) throw new ArgumentException("The key must be 16 or 32 bytes", nameof(key));
 
@@ -41,55 +24,17 @@ namespace MicroRatchet
                 Array.Copy(iv, 0, _iv, 0, Math.Min(16, iv.Length));
             }
             
-
             Log.Verbose($"--creating modulating cipher--");
             Log.Verbose($"   KEY:     {Log.ShowBytes(key)}");
-            Log.Verbose($"   GEN:     {generation}");
+            Log.Verbose($"   IV:      {Log.ShowBytes(iv)}");
             aes.Init(true, new KeyParameter(key));
-            _currentKeyGeneration = generation / _modulationInterval;
-
-            if(oldkeys != null)
-            {
-                oldkeys.Clear();
-                oldkeys.AddFirst((_currentKeyGeneration, key));
-            }
-        }
-
-        private void ModulateTo(uint generation)
-        {
-            var kg = generation / _modulationInterval;
-            var ourkg = _currentKeyGeneration;
-            byte[] newkey = null;
-            if (kg != ourkg)
-            {
-                if (kg > ourkg)
-                {
-                    while (kg > ourkg)
-                    {
-                        ourkg++;
-                        newkey = new byte[16];
-                        aes.ProcessBlock(_iv, 0, newkey, 0);
-                        if (oldkeys != null)
-                        {
-                            oldkeys.AddFirst((ourkg, newkey));
-                        }
-                    }
-                }
-                
-                if (oldkeys != null)
-                {
-                    while (oldkeys.Count > _oldKeysToRetain) oldkeys.RemoveLast();
-                }
-            }
         }
 
         public void Process(uint generation, ArraySegment<byte> data, ArraySegment<byte> output)
         {
             Log.Verbose($"   IV:     {Log.ShowBytes(_iv)}");
             Log.Verbose($"   DATA:   {Log.ShowBytes(data.Array, data.Offset, data.Count)}");
-
-            ModulateTo(generation);
-
+            
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (output == null) throw new ArgumentNullException(nameof(output));
             if (data.Count == 0) return;
