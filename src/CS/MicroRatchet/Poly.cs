@@ -4,6 +4,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace MicroRatchet
@@ -41,9 +42,14 @@ namespace MicroRatchet
             if (iv == null) throw new ArgumentNullException(nameof(iv));
             if (macSize < 96 || macSize > 128) throw new InvalidOperationException("The Poly1305 MAC must be between 96 and 128 bits");
 
+            if (key.Length == 16)
+            {
+                key = key.Concat(key).ToArray();
+            }
+            
             _macSize = macSize / 8;
             _poly = new Poly1305(new AesEngine());
-            if(iv.Length != 16)
+            if (iv.Length != 16)
             {
                 byte[] newIv = new byte[16];
                 Array.Copy(iv, 0, newIv, 0, Math.Min(iv.Length, 16));
