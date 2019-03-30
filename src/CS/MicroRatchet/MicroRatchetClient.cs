@@ -199,7 +199,7 @@ namespace MicroRatchet
 
             // generate server ECDH for root key and root key
             var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
-            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
+            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, keySize);
             serverState.RootKey = genKeys[0];
             serverState.FirstSendHeaderKey = genKeys[1];
             serverState.FirstReceiveHeaderKey = genKeys[2];
@@ -324,7 +324,7 @@ namespace MicroRatchet
                             var localStep1EcdhRatchet = KeyAgreementFactory.GenerateNew();
 
                             // initialize client root key and ecdh ratchet
-                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, null, 3, keySize);
+                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, nonce, 3, keySize);
                             var rootKey = genKeys[0];
                             var receiveHeaderKey = genKeys[1];
                             var sendHeaderKey = genKeys[2];
