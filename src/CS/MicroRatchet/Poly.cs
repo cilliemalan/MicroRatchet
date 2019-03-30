@@ -1,4 +1,6 @@
-﻿using Org.BouncyCastle.Crypto.Parameters;
+﻿using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Macs;
+using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -35,10 +37,19 @@ namespace MicroRatchet
 
         public void Init(byte[] key, byte[] iv, int macSize)
         {
-            if (iv != null) throw new InvalidOperationException("IV not supported.");
+            if (key == null) throw new ArgumentNullException(nameof(key));
+            if (iv == null) throw new ArgumentNullException(nameof(iv));
+            if (macSize < 96 || macSize > 128) throw new InvalidOperationException("The Poly1305 MAC must be between 96 and 128 bits");
+
             _macSize = macSize / 8;
-            _poly = new Org.BouncyCastle.Crypto.Macs.Poly1305();
-            _poly.Init(new KeyParameter(key));
+            _poly = new Poly1305(new AesEngine());
+            if(iv.Length != 16)
+            {
+                byte[] newIv = new byte[16];
+                Array.Copy(iv, 0, newIv, 0, Math.Min(iv.Length, 16));
+                iv = newIv;
+            }
+            _poly.Init(new ParametersWithIV(new KeyParameter(key), iv));
 
             //Debug.WriteLine($"--maccing--");
             //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
