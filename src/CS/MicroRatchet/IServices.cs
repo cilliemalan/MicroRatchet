@@ -7,6 +7,7 @@ namespace MicroRatchet
     public interface IServices
     {
         IDigest Digest { get; }
+        IAesFactory AesFactory { get; }
         ISignature Signature { get; }
         IRandomNumberGenerator RandomNumberGenerator { get; }
         IStorageProvider Storage { get; }

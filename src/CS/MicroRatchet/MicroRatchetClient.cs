@@ -22,6 +22,7 @@ namespace MicroRatchet
         IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
         IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
         ICipher Cipher => Services.Cipher;
+        IAesFactory AesFactory => Services.AesFactory;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
         IMac Mac => Services.Mac;
@@ -225,8 +226,8 @@ namespace MicroRatchet
                     }
 
                     // encrypt the payload
-                    Cipher.Initialize(sharedSecret, serverNonce);
-                    var encryptedPayload = Cipher.Encrypt(payload);
+                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, sharedSecret), serverNonce);
+                    var encryptedPayload = cipher.Process(new ArraySegment<byte>(payload));
 
                     // calculate mac
                     Mac.Init(sharedSecret, serverNonce, MacSize * 8);
@@ -262,8 +263,11 @@ namespace MicroRatchet
                     var rootEcdhKey = br.ReadBytes(EcdhSize);
                     IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
                     var rootPreKey = rootEcdh.DeriveKey(rootEcdhKey);
-                    Cipher.Initialize(rootPreKey, nonce);
-                    var payload = Cipher.Decrypt(data, EcdhSize + NonceSize, data.Length - EcdhSize - NonceSize - MacSize);
+                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), nonce);
+                    var payload = cipher.Process(new ArraySegment<byte>(
+                        data,
+                        EcdhSize + NonceSize,
+                        data.Length - EcdhSize - NonceSize - MacSize));
 
                     // check mac
                     br.BaseStream.Seek(data.Length - MacSize, SeekOrigin.Begin);
@@ -371,8 +375,8 @@ namespace MicroRatchet
             // decrypt the header
             var headerEncryptionKey = new byte[keySize];
             Array.Copy(headerDerivedKey, 0, headerEncryptionKey, 0, keySize);
-            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
-            var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
+            AesCtrMode hcipher = new AesCtrMode(AesFactory.GetAes(true, headerEncryptionKey), encryptedPayload);
+            var decryptedHeader = hcipher.Process(new ArraySegment<byte>(payload, 0, headerSize));
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
@@ -395,8 +399,8 @@ namespace MicroRatchet
             // decrypt the inner payload
             var nonceBytes = new byte[NonceSize];
             Array.Copy(decryptedHeader, nonceBytes, NonceSize);
-            Cipher.Initialize(key, nonceBytes);
-            var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
+            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, key), nonceBytes);
+            var decryptedInnerPayload = icipher.Process(new ArraySegment<byte>(encryptedPayload));
 
             // check the inner payload
             var innerNonce = new byte[NonceSize];
@@ -479,8 +483,8 @@ namespace MicroRatchet
             }
 
             // encrypt the payload
-            Cipher.Initialize(payloadKey, nonce);
-            var encryptedPayload = Cipher.Encrypt(payload);
+            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, payloadKey), nonce);
+            var encryptedPayload = icipher.Process(new ArraySegment<byte>(payload));
 
             // build the header: <nonce(4), ecdh(32)?>
             byte[] header = new byte[headerSize];
@@ -497,8 +501,8 @@ namespace MicroRatchet
             var headerEncryptionDerivedKey = KeyDerivation.GenerateBytes(step.SendingChain.HeaderKey, encryptedPayload, 32);
             var headerEncryptionKey = new byte[keySize];
             Array.Copy(headerEncryptionDerivedKey, headerEncryptionKey, headerEncryptionKey.Length);
-            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
-            var encryptedHeader = Cipher.Encrypt(header);
+            AesCtrMode hcipher = new AesCtrMode(AesFactory.GetAes(true, headerEncryptionKey), encryptedPayload);
+            var encryptedHeader = hcipher.Process(new ArraySegment<byte>(header));
 
             // set the message type (we can do this because we're using a stream cipher)
             encryptedHeader[0] = SetMessageType(encryptedHeader[0], messageType);
@@ -596,8 +600,8 @@ namespace MicroRatchet
             // decrypt the header
             var headerEncryptionKey = new byte[keySize];
             Array.Copy(headerDerivedKey, 0, headerEncryptionKey, 0, keySize);
-            Cipher.Initialize(headerEncryptionKey, encryptedPayload);
-            var decryptedHeader = Cipher.Decrypt(payload, 0, headerSize);
+            AesCtrMode hcipher = new AesCtrMode(AesFactory.GetAes(true, headerEncryptionKey), encryptedPayload);
+            var decryptedHeader = hcipher.Process(new ArraySegment<byte>(payload, 0, headerSize));
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
@@ -625,8 +629,8 @@ namespace MicroRatchet
             // decrypt the inner payload
             var nonceBytes = new byte[NonceSize];
             Array.Copy(decryptedHeader, nonceBytes, NonceSize);
-            Cipher.Initialize(key, nonceBytes);
-            var decryptedInnerPayload = Cipher.Decrypt(encryptedPayload);
+            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, key), nonceBytes);
+            var decryptedInnerPayload = icipher.Process(new ArraySegment<byte>(encryptedPayload));
             return decryptedInnerPayload;
         }
 

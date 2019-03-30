@@ -13,6 +13,7 @@ namespace MicroRatchet
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;
             VerifierFactory = fac;
+            AesFactory = fac;
 
             Signature = new Signature(privateKey);
             var storage = new InMemoryStorage(hotSpace, coldSpace);
@@ -28,12 +29,14 @@ namespace MicroRatchet
         public IVerifierFactory VerifierFactory { get; set; }
         public IMac Mac { get; set; } = new Poly();
         public IModulatingCipher ModulatingCipher { get; set; } = new ModulatingCipher();
+        public IAesFactory AesFactory { get; }
 
-        private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory
+        private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory
         {
             public IVerifier Create(byte[] publicKey) => new Verifier(publicKey);
             public IKeyAgreement GenerateNew() => new KeyAgreement(KeyGeneration.GeneratePrivateKey(), null);
             public IKeyAgreement Deserialize(Stream stream) => KeyAgreement.Deserialize(stream);
+            public IAes GetAes(bool forEncryption, byte[] key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
         }
 
         private class InMemoryStorage : IStorageProvider
