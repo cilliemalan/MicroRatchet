@@ -110,11 +110,16 @@ namespace MicroRatchet
 
         public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize)
         {
-            int i = 0;
-            return kdf.GenerateBytes(key, info, keySize * numKeys)
-                .GroupBy(x => i++ / keySize)
-                .Select(x => x.ToArray())
-                .ToArray();
+            byte[] totalKeyBytes = kdf.GenerateBytes(key, info, keySize * numKeys);
+            byte[][] keys = new byte[numKeys][];
+
+            for(int i=0;i<numKeys;i++)
+            {
+                keys[i] = new byte[keySize];
+                Array.Copy(totalKeyBytes, i * keySize, keys[i], 0, keySize);
+            }
+
+            return keys;
         }
 
 
