@@ -684,74 +684,6 @@ namespace MicroRatchet
             return (payload, num, tot);
         }
 
-        private byte[][] ConstructEncryptedMultipartMessage(State state, byte[] allData)
-        {
-            // encrypted multipart message is a normal message without ECDH,
-            // with a different type, and with a header inside the payload.
-            // the header is: seq (2 bytes), num(2 bytes), total (2 bytes)
-            var ratchet = state.Ratchets.SecondToLast;
-            ushort seq = unchecked((ushort)ratchet.SendingChain.Generation);
-
-            var chunkSize = MultipartMessageSize;
-            var numChunks = allData.Length / chunkSize;
-            if (allData.Length % chunkSize != 0) numChunks++;
-
-            if (numChunks > 65536) throw new InvalidOperationException("Cannot create an encrypted multipart message with more than 65536 parts");
-
-            byte[] numChunksBytes = BigEndianBitConverter.GetBytes((ushort)(numChunks - 1));
-            byte[] seqBytes = BigEndianBitConverter.GetBytes(seq);
-            int amt = 0;
-            byte[][] chunks = new byte[numChunks][];
-            byte[] payload = new byte[chunkSize + 6];
-            for (int i = 0; i < numChunks; i++)
-            {
-                var left = allData.Length - amt;
-                int thisChunkSize = left > chunkSize ? chunkSize : left;
-                if ((thisChunkSize + 6) != payload.Length) payload = new byte[thisChunkSize + 6];
-                Array.Copy(allData, amt, payload, 6, thisChunkSize);
-                amt += thisChunkSize;
-
-                // num and total
-                payload[0] = seqBytes[0];
-                payload[1] = seqBytes[1];
-                payload[2] = (byte)((((ushort)i) >> 8) & 0xFF);
-                payload[3] = (byte)(((ushort)i) & 0xFF);
-                payload[4] = numChunksBytes[0];
-                payload[5] = numChunksBytes[1];
-                chunks[i] = ConstructMessage(state, payload, false, false, ratchet, MessageType.MultiPartMessageEncrypted);
-            }
-
-            return chunks;
-        }
-
-        private (byte[] payload, int seq, int num, int total) DeconstructEncryptedMultipartMessagePart(State state, byte[] data)
-        {
-            var outerPayload = DeconstructMessage(state, data, MessageType.MultiPartMessageEncrypted, false);
-            byte[] innerPayload = new byte[outerPayload.Length - 6];
-            Array.Copy(outerPayload, 6, innerPayload, 0, innerPayload.Length);
-            int seq = (int)BigEndianBitConverter.ToUInt16(outerPayload, 0) + 1; // seq 0 is special
-            int num = (int)BigEndianBitConverter.ToUInt16(outerPayload, 2);
-            int tot = (int)(BigEndianBitConverter.ToUInt16(outerPayload, 4) + 1);
-            return (innerPayload, seq, num, tot);
-        }
-
-        private byte[] ConstructRetransmissionRequest(State state, byte[] nonceToRetransmit)
-        {
-            // a retransmission request is a normal mesage, without ECDH parameters,
-            // with a different type, that contains the nonce of the message to retransmit
-            // as payload. Only encrypted messages may be retransmitted. If an incomplete unencrypted
-            // message times out, it is considered dropped.
-            var step = state.Ratchets.SecondToLast;
-
-            return ConstructMessage(state, nonceToRetransmit, false, false, step, MessageType.MultiPartRetransmissionRequest);
-        }
-
-        private byte[] DeconstructRetransmissionRequest(State state, byte[] data)
-        {
-            var nonceToRetransmit = DeconstructMessage(state, data, MessageType.MultiPartRetransmissionRequest, false);
-            return nonceToRetransmit;
-        }
-
         private byte[] ProcessInitializationInternal(State state, byte[] dataReceived)
         {
             byte[] sendback;
@@ -831,14 +763,7 @@ namespace MicroRatchet
             {
                 if (sendback.Length > Configuration.Mtu)
                 {
-                    if (Configuration.AllowImplicitMultipartMessages)
-                    {
-                        return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Cannot send multipart message as it has not been explicitly allowed.");
-                    }
+                    return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
                 }
                 else
                 {
@@ -870,15 +795,7 @@ namespace MicroRatchet
             };
         }
 
-        private MessageInfo SendMultipart(State state, byte[] payload)
-        {
-            return new MessageInfo
-            {
-                Messages = ConstructEncryptedMultipartMessage(state, payload)
-            };
-        }
-
-        private MessageInfo SendInternal(byte[] payload, bool? allowMultipart, State state)
+        private MessageInfo SendInternal(byte[] payload, State state)
         {
             if (payload.Length <= MaximumMessageSize)
             {
@@ -886,12 +803,7 @@ namespace MicroRatchet
             }
             else
             {
-                bool canSendMultipart = allowMultipart ?? Configuration.AllowImplicitMultipartMessages;
-                if (!canSendMultipart)
-                {
-                    throw new InvalidOperationException("Cannot send multipart message as it has not been explicitly allowed.");
-                }
-                return SendMultipart(state, payload);
+                throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
             }
         }
 
@@ -922,7 +834,7 @@ namespace MicroRatchet
         private static int ClearMessageType(int i) => i & 0b00011111_11111111_11111111_11111111;
         private static bool IsInitializationMessge(MessageType messageType) => messageType == MessageType.InitializationRequest || messageType == MessageType.InitializationResponse;
         private static bool IsNormalMessage(MessageType messageType) => messageType == MessageType.Normal || messageType == MessageType.NormalWithEcdh;
-        private static bool IsMultipartMessage(MessageType messageType) => messageType == MessageType.MultiPartMessageEncrypted || messageType == MessageType.MultiPartMessageUnencrypted;
+        private static bool IsMultipartMessage(MessageType messageType) => messageType == MessageType.MultiPartMessageUnencrypted;
 
         private int MaximumSingleMessageSize => Configuration.Mtu - MinimumOverhead;
         private int MaximumSingleMessageSizeWithEcdh => Configuration.Mtu - OverheadWithEcdh;
@@ -1033,35 +945,6 @@ namespace MicroRatchet
                     {
                         throw new NotImplementedException();
                     }
-                    else if (messageType == MessageType.MultiPartMessageEncrypted)
-                    {
-                        var (payload, seq, num, total) = DeconstructEncryptedMultipartMessagePart(state, data);
-                        var entireMessage = _multipart.Ingest(payload, seq, num, total);
-                        if (entireMessage != null)
-                        {
-                            return new ReceiveResult
-                            {
-                                MultipartSequence = seq,
-                                MessageNumber = num,
-                                TotalMessages = total,
-                                Payload = entireMessage,
-                                ReceivedDataType = ReceivedDataType.Normal,
-                                ToSendBack = null
-                            };
-                        }
-                        else
-                        {
-                            return new ReceiveResult
-                            {
-                                MultipartSequence = seq,
-                                MessageNumber = num,
-                                TotalMessages = total,
-                                Payload = payload,
-                                ReceivedDataType = ReceivedDataType.Partial,
-                                ToSendBack = null
-                            };
-                        }
-                    }
                 }
             }
 
@@ -1076,7 +959,7 @@ namespace MicroRatchet
             return result;
         }
 
-        public MessageInfo Send(byte[] payload, bool? allowMultipart = null)
+        public MessageInfo Send(byte[] payload)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -1085,7 +968,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            var response = SendInternal(payload, allowMultipart, state);
+            var response = SendInternal(payload, state);
             Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             return response;
         }

@@ -24,7 +24,7 @@ namespace MicroRatchet.Tests
             return lr;
         }
 
-        public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, bool allowImplicitMultipart = false, int maximumBufferedPartialMessageSize = 50 * 1024)
+        public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, int maximumBufferedPartialMessageSize = 50 * 1024)
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
@@ -64,7 +64,6 @@ namespace MicroRatchet.Tests
             var clientConfig = new MicroRatchetConfiguration
             {
                 IsClient = true,
-                AllowImplicitMultipartMessages = allowImplicitMultipart,
                 Mtu = mtu,
                 MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
                 PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu
@@ -72,7 +71,6 @@ namespace MicroRatchet.Tests
             var serverConfig = new MicroRatchetConfiguration
             {
                 IsClient = false,
-                AllowImplicitMultipartMessages = allowImplicitMultipart,
                 Mtu = mtu,
                 MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
                 PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu

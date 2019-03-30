@@ -140,7 +140,6 @@ namespace MicroRatchet.Tests
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
 
             var client = new MicroRatchetClient(clientServices, true, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
 
             var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
@@ -162,8 +161,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true, 80);
             var server = new MicroRatchetClient(serverServices, false, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
@@ -181,8 +178,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true, 80);
             var server = new MicroRatchetClient(serverServices, false, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
@@ -204,8 +199,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true, 80);
             var server = new MicroRatchetClient(serverServices, false, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
@@ -229,8 +222,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true, 80);
             var server = new MicroRatchetClient(serverServices, false, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
@@ -253,8 +244,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true, 1000);
             var server = new MicroRatchetClient(serverServices, false, 1000);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
 
             // initialize
             {
@@ -296,8 +285,6 @@ namespace MicroRatchet.Tests
             clientServices.Storage = new InMemoryStorage(1024, 8192);
             client = new MicroRatchetClient(clientServices, true, 80);
             server = new MicroRatchetClient(serverServices, false, 80);
-            client.Configuration.AllowImplicitMultipartMessages = true;
-            server.Configuration.AllowImplicitMultipartMessages = true;
             {
                 var clientInitPacket = client.InitiateInitialization();
                 var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
