@@ -44,7 +44,10 @@ namespace MicroRatchet
 
             if (key.Length == 16)
             {
-                key = key.Concat(key).ToArray();
+                var nk = new byte[32];
+                Array.Copy(key, 0, nk, 0, 16);
+                Array.Copy(key, 0, nk, 16, 16);
+                for (int i = 16; i < 32; i++) nk[i] ^= 0xC3;
             }
             
             _macSize = macSize / 8;
