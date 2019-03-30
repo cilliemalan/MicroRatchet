@@ -14,5 +14,6 @@ namespace MicroRatchet
         ICipher Cipher { get; }
         IVerifierFactory VerifierFactory { get; }
         IMac Mac { get; }
+        IModulatingCipher ModulatingCipher { get; }
     }
 }
