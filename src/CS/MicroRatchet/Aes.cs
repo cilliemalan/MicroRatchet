@@ -6,7 +6,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 
 namespace MicroRatchet
 {
-    public class Aes : IAes
+    internal class Aes : IAes
     {
         private AesEngine _aes;
 

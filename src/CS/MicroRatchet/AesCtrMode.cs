@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MicroRatchet
 {
-    public class AesCtrMode
+    internal class AesCtrMode
     {
         private IAes _aes;
         private byte[] _iv;

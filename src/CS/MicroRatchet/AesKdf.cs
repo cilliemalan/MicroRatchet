@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MicroRatchet
 {
-    public class AesKdf : IKeyDerivation
+    internal class AesKdf : IKeyDerivation
     {
         private IAesFactory _aesFactory;
 
