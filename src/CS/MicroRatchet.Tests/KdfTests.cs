@@ -54,13 +54,17 @@ namespace MicroRatchet.Tests
 
             Assert.Equal(bcDerived, derived);
         }
-
+        
+        [InlineData(16)]
+        [InlineData(18)]
         [InlineData(32)]
-        [InlineData(64)]
         [InlineData(55)]
+        [InlineData(64)]
+        [InlineData(77)]
         [InlineData(155)]
         [InlineData(1242)]
         [InlineData(3333)]
+        [InlineData(8160)]
         [Theory(DisplayName = "HKDF works with various output lengths")]
         public void VariableLengthOutputTest(int outputLength)
         {
@@ -79,13 +83,17 @@ namespace MicroRatchet.Tests
 
             Assert.Equal(bcDerived, derived);
         }
-
+        
+        [InlineData(16)]
+        [InlineData(18)]
         [InlineData(32)]
-        [InlineData(64)]
         [InlineData(55)]
+        [InlineData(64)]
+        [InlineData(77)]
         [InlineData(155)]
         [InlineData(1242)]
         [InlineData(3333)]
+        [InlineData(8160)]
         [Theory(DisplayName = "HKDF works with various info lengths")]
         public void VariableLengthInfoTest(int infoLength)
         {

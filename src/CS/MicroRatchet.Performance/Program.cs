@@ -17,7 +17,6 @@ namespace MicroRatchet.Performance
 
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
-            KeyDerivation kdf = new KeyDerivation(new Digest());
             Stopwatch sw = new Stopwatch();
 
             Console.WriteLine("Generating data...");

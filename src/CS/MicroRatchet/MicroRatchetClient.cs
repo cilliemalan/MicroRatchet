@@ -49,7 +49,8 @@ namespace MicroRatchet
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
 
-            KeyDerivation = new KeyDerivation(Services.Digest);
+            //KeyDerivation = new KeyDerivation(Services.Digest);
+            KeyDerivation = new AesKdf(Services.AesFactory);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 config.MaximumBufferedPartialMessageSize,
                 config.PartialMessageTimeout);
@@ -63,7 +64,8 @@ namespace MicroRatchet
             Configuration = new MicroRatchetConfiguration();
             Configuration.IsClient = isClient;
             if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
-            KeyDerivation = new KeyDerivation(Services.Digest);
+            //KeyDerivation = new KeyDerivation(Services.Digest);
+            KeyDerivation = new AesKdf(Services.AesFactory);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 Configuration.MaximumBufferedPartialMessageSize,
                 Configuration.PartialMessageTimeout);
