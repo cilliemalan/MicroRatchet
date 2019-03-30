@@ -49,13 +49,14 @@ namespace MicroRatchet
             var (gen, chain) = GetLastGeneration();
             var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
             var nextGen = gen + 1;
-            SetSingleGeneration(nextGen, nextKeys[0]);
 
             Log.Verbose($"      RTC  #:      {nextGen}");
             Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
             Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
             Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
-
+            
+            Generation = nextGen;
+            ChainKey = nextKeys[0];
             return (nextKeys[1], nextGen);
         }
 
@@ -97,15 +98,10 @@ namespace MicroRatchet
                 Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
                 Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
             }
-
-            SetSingleGeneration(gen, chain);
-            return (key, gen);
-        }
-
-        private void SetSingleGeneration(int gen, byte[] chain)
-        {
+            
             Generation = gen;
             ChainKey = chain;
+            return (key, gen);
         }
 
         private (int generation, byte[] chain) GetLastGeneration()
