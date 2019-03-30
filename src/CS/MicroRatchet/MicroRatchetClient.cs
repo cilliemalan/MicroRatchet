@@ -21,7 +21,6 @@ namespace MicroRatchet
         ISignature Signature => Services.Signature;
         IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
         IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
-        ICipher Cipher => Services.Cipher;
         IAesFactory AesFactory => Services.AesFactory;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
@@ -48,8 +47,7 @@ namespace MicroRatchet
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
-
-            //KeyDerivation = new KeyDerivation(Services.Digest);
+            
             KeyDerivation = new AesKdf(Services.AesFactory);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 config.MaximumBufferedPartialMessageSize,
@@ -64,7 +62,6 @@ namespace MicroRatchet
             Configuration = new MicroRatchetConfiguration();
             Configuration.IsClient = isClient;
             if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
-            //KeyDerivation = new KeyDerivation(Services.Digest);
             KeyDerivation = new AesKdf(Services.AesFactory);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 Configuration.MaximumBufferedPartialMessageSize,

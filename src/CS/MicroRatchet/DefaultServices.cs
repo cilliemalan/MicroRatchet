@@ -25,10 +25,8 @@ namespace MicroRatchet
         public IRandomNumberGenerator RandomNumberGenerator { get; set; } = new RandomNumberGenerator();
         public IStorageProvider Storage { get; set; }
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
-        public ICipher Cipher { get; set; } = new Cipher();
         public IVerifierFactory VerifierFactory { get; set; }
         public IMac Mac { get; set; } = new Poly();
-        public IModulatingCipher ModulatingCipher { get; set; } = new ModulatingCipher();
         public IAesFactory AesFactory { get; }
 
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory
