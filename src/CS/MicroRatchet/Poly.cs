@@ -18,20 +18,20 @@ namespace MicroRatchet
         {
             var mac = new byte[_poly.GetMacSize()];
             _poly.DoFinal(mac, 0);
-            
+
 
             if (_macSize == mac.Length)
             {
-                //Debug.WriteLine($"   MAC:     {Convert.ToBase64String(mac)}");
-                //Debug.WriteLine($"--maccing--");
+                Log.Verbose($"   MAC:     {Log.ShowBytes(mac)}");
+                Log.Verbose($"--maccing--");
                 return mac;
             }
             else
             {
                 var output = new byte[_macSize];
                 Array.Copy(mac, output, output.Length);
-                //Debug.WriteLine($"   MAC:     {Convert.ToBase64String(output)}");
-                //Debug.WriteLine($"--maccing--");
+                Log.Verbose($"   MAC:     {Log.ShowBytes(output)}");
+                Log.Verbose($"--maccing--");
                 return output;
             }
         }
@@ -57,13 +57,14 @@ namespace MicroRatchet
             }
             _poly.Init(new ParametersWithIV(new KeyParameter(key), iv));
 
-            //Debug.WriteLine($"--maccing--");
-            //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
+            Log.Verbose($"--maccing--");
+            Log.Verbose($"   IV:      {Log.ShowBytes(iv)}");
+            Log.Verbose($"   KEY:     {Log.ShowBytes(key)}");
         }
 
         public void Process(ArraySegment<byte> data)
         {
-            //Debug.WriteLine($"   MAC INPUT:     {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
+            Log.Verbose($"   MAC INPUT:     {Log.ShowBytes(data.Array, data.Offset, data.Count)}");
             _poly.BlockUpdate(data.Array, data.Offset, data.Count);
         }
     }

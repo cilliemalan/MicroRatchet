@@ -17,8 +17,8 @@ namespace MicroRatchet
         {
             byte[] output = new byte[_gmac.GetMacSize()];
             _gmac.DoFinal(output, 0);
-            //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output ?? new byte[0])}");
-            //Debug.WriteLine($"--GMAC--");
+            Log.Verbose($"   OUTPUT:  {Log.ShowBytes(output ?? new byte[0])}");
+            Log.Verbose($"--GMAC--");
             return output;
         }
 
@@ -26,16 +26,16 @@ namespace MicroRatchet
         {
             _gmac = new Org.BouncyCastle.Crypto.Macs.GMac(new GcmBlockCipher(new AesEngine()), macSize);
             _gmac.Init(new ParametersWithIV(new KeyParameter(key), iv));
-            //Debug.WriteLine($"--GMAC--");
-            //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
-            //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(iv ?? new byte[0])}");
-            //Debug.WriteLine($"   SIZE:    {macSize}");
+            Log.Verbose($"--GMAC--");
+            Log.Verbose($"   KEY:     {Log.ShowBytes(key)}");
+            Log.Verbose($"   NONCE:   {Log.ShowBytes(iv ?? new byte[0])}");
+            Log.Verbose($"   SIZE:    {macSize}");
         }
 
         public void Process(ArraySegment<byte> data)
         {
             _gmac.BlockUpdate(data.Array, data.Offset, data.Count);
-            //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
+            Log.Verbose($"   PAYLOAD: {Log.ShowBytes(data.Array, data.Offset, data.Count)}");
         }
     }
 }

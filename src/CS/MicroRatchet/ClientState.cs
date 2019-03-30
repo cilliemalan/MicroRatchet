@@ -56,7 +56,7 @@ namespace MicroRatchet
                     WriteRatchet(memory, numberOfRatchetsToStore, numLostKeysToStore);
                 }
 
-                Debug.WriteLine($"Wrote {memory.Position} bytes of client state");
+                Log.Verbose($"Wrote {memory.Position} bytes of client state");
                 return memory.Position;
             }
         }
@@ -95,7 +95,7 @@ namespace MicroRatchet
                     ReadRatchet(memory, kexFac);
                 }
 
-                Debug.WriteLine($"Read {memory.Position} bytes of client state");
+                Log.Verbose($"Read {memory.Position} bytes of client state");
                 return memory.Position;
             }
         }

@@ -126,7 +126,7 @@ namespace MicroRatchet.Tests
             var _iv = string.Join(", ", iv.Select(b => $"0x{b:x2}"));
             var _data = string.Join(", ", data.Select(b => $"0x{b:x2}"));
             var _expected = string.Join(", ", bcmac.Select(b => $"0x{b:x2}"));
-            Debug.WriteLine($"[InlineData(new byte[] {{{_key}}}, new byte[] {{{_iv}}}, new byte[] {{{_data}}}, new byte[] {{{_expected}}})]");
+            Log.Verbose($"[InlineData(new byte[] {{{_key}}}, new byte[] {{{_iv}}}, new byte[] {{{_data}}}, new byte[] {{{_expected}}})]");
             
             Assert.Equal(expected, mac);
             Assert.Equal(expected, bcmac);

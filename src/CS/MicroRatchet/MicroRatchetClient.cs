@@ -300,7 +300,7 @@ namespace MicroRatchet
 
                             // store the new nonce we got from the server
                             clientState.InitializationNonce = nonce;
-                            //Debug.WriteLine($"storing iniitlizaionta nonce: {Convert.ToBase64String(state.InitializationNonce)}");
+                            Log.Verbose($"storing iniitlizaionta nonce: {Convert.ToBase64String(nonce)}");
 
                             // we now have enough information to construct our double ratchet
                             var localStep0EcdhRatchet = KeyAgreementFactory.GenerateNew();
@@ -784,7 +784,7 @@ namespace MicroRatchet
             }
             else
             {
-                //Debug.WriteLine("\n\n###SERVER");
+                Log.Verbose("\n\n###SERVER");
                 var serverState = (ServerState)state;
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
@@ -1059,15 +1059,15 @@ namespace MicroRatchet
         
         public ReceiveResult Receive(byte[] data)
         {
-            //Debug.WriteLine($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+            Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             var result = ReceiveInternal(data);
-            //Debug.WriteLine($"/###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+            Log.Verbose($"/###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             return result;
         }
 
         public MessageInfo Send(byte[] payload, bool? allowMultipart = null)
         {
-            //Debug.WriteLine($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
+            Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
             if (!state.IsInitialized)
             {
@@ -1075,7 +1075,7 @@ namespace MicroRatchet
             }
 
             var response = SendInternal(payload, allowMultipart, state);
-            //Debug.WriteLine($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
+            Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             return response;
         }
 

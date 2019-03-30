@@ -23,11 +23,11 @@ namespace MicroRatchet
             int keySize = rootKey.Length;
             if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
             if(receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
-            //Debug.WriteLine($"--Initialize ECDH Ratchet");
-            //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
-            //Debug.WriteLine($"ECDH Public:        {Convert.ToBase64String(remotePublicKey ?? new byte[0])}");
-            //Debug.WriteLine($"Curr ECDH Private: ({Convert.ToBase64String(keyPair.GetPublicKey())})");
+            Log.Verbose($"--Initialize ECDH Ratchet");
+            Log.Verbose($"Root Key:           {Convert.ToBase64String(rootKey)}");
+            Log.Verbose($"Prev ECDH Private: ({Convert.ToBase64String(previousKeyPair.GetPublicKey())})");
+            Log.Verbose($"ECDH Public:        {Convert.ToBase64String(remotePublicKey ?? new byte[0])}");
+            Log.Verbose($"Curr ECDH Private: ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e = new EcdhRatchetStep
             {
@@ -35,32 +35,32 @@ namespace MicroRatchet
             };
 
             // receive chain
-            //Debug.WriteLine("  --Receiving Chain");
+            Log.Verbose("  --Receiving Chain");
             var rcinfo = previousKeyPair.DeriveKey(remotePublicKey);
-            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
+            Log.Verbose($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            Log.Verbose($"  C Key Info:     {Convert.ToBase64String(rcinfo)}");
             var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3, keySize);
-            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(rckeys[0])}");
-            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(rckeys[1])}");
-            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(rckeys[2])}");
+            Log.Verbose($"  C Key Out 0:    {Convert.ToBase64String(rckeys[0])}");
+            Log.Verbose($"  C Key Out 1:    {Convert.ToBase64String(rckeys[1])}");
+            Log.Verbose($"  C Key Out 2:    {Convert.ToBase64String(rckeys[2])}");
             rootKey = rckeys[0];
             e.ReceivingChain.Initialize(keySize, receiveHeaderKey, rckeys[1], rckeys[2]);
 
             // send chain
-            //Debug.WriteLine("  --Sending Chain");
+            Log.Verbose("  --Sending Chain");
             var scinfo = keyPair.DeriveKey(remotePublicKey);
-            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
+            Log.Verbose($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            Log.Verbose($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
-            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
-            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
-            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
+            Log.Verbose($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
+            Log.Verbose($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
+            Log.Verbose($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
 
             // next root key
 
-            //Debug.WriteLine($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
+            Log.Verbose($"Next Root Key:     ({Convert.ToBase64String(rootKey)})");
             e.NextRootKey = rootKey;
             return e;
         }
@@ -75,11 +75,11 @@ namespace MicroRatchet
             int keySize = rootKey.Length;
             if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
             if (receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
-            //Debug.WriteLine($"--Initialize ECDH Ratchet CLIENT");
-            //Debug.WriteLine($"Root Key:           {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"ECDH Public 0:      {Convert.ToBase64String(remotePublicKey0)}");
-            //Debug.WriteLine($"ECDH Public 1:      {Convert.ToBase64String(remotePublicKey1)}");
-            //Debug.WriteLine($"ECDH Private:      ({Convert.ToBase64String(keyPair.GetPublicKey())})");
+            Log.Verbose($"--Initialize ECDH Ratchet CLIENT");
+            Log.Verbose($"Root Key:           {Convert.ToBase64String(rootKey)}");
+            Log.Verbose($"ECDH Public 0:      {Convert.ToBase64String(remotePublicKey0)}");
+            Log.Verbose($"ECDH Public 1:      {Convert.ToBase64String(remotePublicKey1)}");
+            Log.Verbose($"ECDH Private:      ({Convert.ToBase64String(keyPair.GetPublicKey())})");
 
             var e0 = new EcdhRatchetStep
             {
@@ -89,17 +89,17 @@ namespace MicroRatchet
             e0.SendingChain.KeySize = keySize;
 
             // receive chain doesn't exist
-            //Debug.WriteLine("  --Receiving Chain");
+            Log.Verbose("  --Receiving Chain");
 
             // send chain
-            //Debug.WriteLine("  --Sending Chain");
+            Log.Verbose("  --Sending Chain");
             var scinfo = keyPair.DeriveKey(remotePublicKey0);
-            //Debug.WriteLine($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
-            //Debug.WriteLine($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
+            Log.Verbose($"  C Input Key:    {Convert.ToBase64String(rootKey)}");
+            Log.Verbose($"  C Key Info:     {Convert.ToBase64String(scinfo)}");
             var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
-            //Debug.WriteLine($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
-            //Debug.WriteLine($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
-            //Debug.WriteLine($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
+            Log.Verbose($"  C Key Out 0:    {Convert.ToBase64String(sckeys[0])}");
+            Log.Verbose($"  C Key Out 1:    {Convert.ToBase64String(sckeys[1])}");
+            Log.Verbose($"  C Key Out 2:    {Convert.ToBase64String(sckeys[2])}");
             rootKey = sckeys[0];
             e0.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
 

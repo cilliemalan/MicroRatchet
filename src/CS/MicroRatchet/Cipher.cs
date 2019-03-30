@@ -29,9 +29,9 @@ namespace MicroRatchet
                 if (key == null) throw new ArgumentNullException(nameof(key));
                 if (iv == null) throw new ArgumentNullException(nameof(iv));
 
-                //Debug.WriteLine($"--crypting--");
-                //Debug.WriteLine($"   KEY:     {Convert.ToBase64String(key)}");
-                //Debug.WriteLine($"   NONCE:   {Convert.ToBase64String(iv ?? new byte[0])}");
+                Log.Verbose($"--crypting--");
+                Log.Verbose($"   KEY:     {Log.ShowBytes(key)}");
+                Log.Verbose($"   NONCE:   {Log.ShowBytes(iv ?? new byte[0])}");
                 var notUsed = true;
                 cipher = new SicBlockCipher(new AesEngine());
                 cipher.Init(notUsed, new ParametersWithIV(new KeyParameter(key), FixIv(iv)));
@@ -52,6 +52,7 @@ namespace MicroRatchet
 
         private byte[] Process(ArraySegment<byte> data)
         {
+            Log.Verbose("Cipher Process");
             if (cipher == null) throw new ObjectDisposedException(nameof(Cipher));
 
             var blockSize = cipher.GetBlockSize();
@@ -72,10 +73,10 @@ namespace MicroRatchet
             }
             var output = new byte[data.Count];
             Array.Copy(outputBuffer, output, data.Count);
-            
-            //Debug.WriteLine($"   PAYLOAD: {Convert.ToBase64String(data.Array, data.Offset, data.Count)}");
-            //Debug.WriteLine($"   OUTPUT:  {Convert.ToBase64String(output)}");
-            //Debug.WriteLine($"--crypting--");
+
+            Log.Verbose($"   PAYLOAD: {Log.ShowBytes(data.Array, data.Offset, data.Count)}");
+            Log.Verbose($"   OUTPUT:  {Log.ShowBytes(output)}");
+            Log.Verbose($"--crypting--");
 
             return output;
         }
