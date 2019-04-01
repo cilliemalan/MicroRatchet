@@ -26,7 +26,7 @@ namespace MicroRatchet
             _aesFactory = aesFactory;
         }
 
-        public void Init(byte[] key, byte[] iv, int macSize)
+        public void Init(ArraySegment<byte> key, ArraySegment<byte> iv, int macSize)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (iv == null) throw new ArgumentNullException(nameof(iv));
@@ -36,11 +36,11 @@ namespace MicroRatchet
             }
 
             _macSize = macSize / 8;
-            if (iv.Length != 16)
+            if (iv.Count != 16)
             {
                 byte[] newIv = new byte[16];
-                Array.Copy(iv, 0, newIv, 0, Math.Min(iv.Length, 16));
-                iv = newIv;
+                Array.Copy(iv.Array, iv.Offset, newIv, 0, Math.Min(iv.Count, 16));
+                iv = new ArraySegment<byte>(newIv);
             }
             InitInternal(key, iv);
 
@@ -49,13 +49,15 @@ namespace MicroRatchet
             Log.Verbose($"   KEY:     {Log.ShowBytes(key)}");
         }
 
-        private void InitInternal(byte[] key, byte[] nonce)
+        private void InitInternal(ArraySegment<byte> key, ArraySegment<byte> nonce)
         {
             // Extract r portion of key (and "clamp" the values)
-            var a0 = key[0] | (uint)key[1] << 8 | (uint)key[2] << 16 | (uint)key[3] << 24;
-            var a1 = key[4] | (uint)key[5] << 8 | (uint)key[6] << 16 | (uint)key[7] << 24;
-            var a2 = key[8] | (uint)key[9] << 8 | (uint)key[10] << 16 | (uint)key[11] << 24;
-            var a3 = key[12] | (uint)key[13] << 8 | (uint)key[14] << 16 | (uint)key[15] << 24;
+            var ka = key.Array;
+            var ko = key.Offset;
+            var a0 = ka[ko+0] | (uint)ka[ko+1] << 8 | (uint)ka[ko+2] << 16 | (uint)ka[ko+3] << 24;
+            var a1 = ka[ko+4] | (uint)ka[ko+5] << 8 | (uint)ka[ko+6] << 16 | (uint)ka[ko+7] << 24;
+            var a2 = ka[ko+8] | (uint)ka[ko+9] << 8 | (uint)ka[ko+10] << 16 | (uint)ka[ko+11] << 24;
+            var a3 = ka[ko+12] | (uint)ka[ko+13] << 8 | (uint)ka[ko+14] << 16 | (uint)ka[ko+15] << 24;
             r0 = a0;
             r1 = (a0 >> 26) | (a1 << 6);
             r2 = (a1 >> 20) | (a2 << 12);
@@ -72,9 +74,9 @@ namespace MicroRatchet
             s4 = r4 * 5;
 
             byte[] k = new byte[16];
-            Array.Copy(key, 16, k, 0, 16);
-            var aes = _aesFactory.GetAes(true, k);
-            aes.Process(new ArraySegment<byte>(nonce), new ArraySegment<byte>(k));
+            Array.Copy(key.Array, key.Offset + 16, k, 0, 16);
+            var aes = _aesFactory.GetAes(true, new ArraySegment<byte>(k));
+            aes.Process(nonce, new ArraySegment<byte>(k));
 
             k0 = k[0] | (uint)k[1] << 8 | (uint)k[2] << 16 | (uint)k[3] << 24;
             k1 = k[4] | (uint)k[5] << 8 | (uint)k[6] << 16 | (uint)k[7] << 24;

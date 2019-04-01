@@ -79,10 +79,10 @@ namespace MicroRatchet.Tests
             byte[] data2 = rng.Generate(dataBytes);
 
             var pmac = new Poly(_aesFactory);
-            pmac.Init(key, iv, 96);
+            pmac.Init(key, iv, macSize);
             pmac.Process(new ArraySegment<byte>(data1));
             byte[] mac1 = pmac.Compute();
-            pmac.Init(key, iv, 96);
+            pmac.Init(key, iv, macSize);
             pmac.Process(new ArraySegment<byte>(data2));
             byte[] mac2 = pmac.Compute();
 
@@ -91,14 +91,14 @@ namespace MicroRatchet.Tests
             bcpoly1.BlockUpdate(data1, 0, data1.Length);
             byte[] bcmac1 = new byte[bcpoly1.GetMacSize()];
             bcpoly1.DoFinal(bcmac1, 0);
-            bcmac1 = bcmac1.Take(96 / 8).ToArray();
+            bcmac1 = bcmac1.Take(macSize / 8).ToArray();
 
             var bcpoly2 = new Poly1305(new AesEngine());
             bcpoly2.Init(new ParametersWithIV(new KeyParameter(key), iv));
             bcpoly2.BlockUpdate(data2, 0, data2.Length);
             byte[] bcmac2 = new byte[bcpoly2.GetMacSize()];
             bcpoly2.DoFinal(bcmac2, 0);
-            bcmac2 = bcmac2.Take(96 / 8).ToArray();
+            bcmac2 = bcmac2.Take(macSize / 8).ToArray();
 
             Assert.Equal(bcmac1, mac1);
             Assert.Equal(bcmac2, mac2);
@@ -165,7 +165,7 @@ namespace MicroRatchet.Tests
 
         private class AesFactory : IAesFactory
         {
-            public IAes GetAes(bool forEncryption, byte[] key)
+            public IAes GetAes(bool forEncryption, ArraySegment<byte> key)
             {
                 var aes = new Aes();
                 aes.Initialize(forEncryption, key);

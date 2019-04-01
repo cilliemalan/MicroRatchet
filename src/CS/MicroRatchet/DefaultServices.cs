@@ -15,7 +15,7 @@ namespace MicroRatchet
             VerifierFactory = fac;
             AesFactory = fac;
 
-            Signature = new Signature(privateKey);
+            Signature = new Signature(new ArraySegment<byte>(privateKey));
             var storage = new InMemoryStorage(hotSpace, coldSpace);
             Storage = storage;
         }
@@ -30,10 +30,10 @@ namespace MicroRatchet
 
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory
         {
-            public IVerifier Create(byte[] publicKey) => new Verifier(publicKey);
-            public IKeyAgreement GenerateNew() => new KeyAgreement(KeyGeneration.GeneratePrivateKey(), null);
+            public IVerifier Create(ArraySegment<byte> publicKey) => new Verifier(publicKey);
+            public IKeyAgreement GenerateNew() => new KeyAgreement(new ArraySegment<byte>(KeyGeneration.GeneratePrivateKey()),default);
             public IKeyAgreement Deserialize(Stream stream) => KeyAgreement.Deserialize(stream);
-            public IAes GetAes(bool forEncryption, byte[] key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
+            public IAes GetAes(bool forEncryption, ArraySegment<byte> key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
         }
 
         private class InMemoryStorage : IStorageProvider

@@ -38,21 +38,22 @@ namespace MicroRatchet
             _decompress = (i, b) => (ECPoint)m.Invoke(domainParms.Curve, new object[] { i, b });
         }
 
-        public KeyAgreement(byte[] privateKey, byte[] publicKey = null)
+        public KeyAgreement(ArraySegment<byte> privateKey, ArraySegment<byte> publicKey = default)
         {
             if (privateKey == null) throw new ArgumentNullException(nameof(privateKey));
-            if (privateKey.Length != 32) throw new ArgumentException("private key is strictly 32 bytes long");
-            _privateKey = privateKey;
-            _pk = new ECPrivateKeyParameters(new BigInteger(privateKey), domainParms);
-            _publicKey = publicKey;
+            if (privateKey.Count != 32) throw new ArgumentException("private key is strictly 32 bytes long");
+            _privateKey = privateKey.ToArray();
+            var pkn = new BigInteger(privateKey.Array, privateKey.Offset, privateKey.Count);
+            _pk = new ECPrivateKeyParameters(pkn, domainParms);
+            _publicKey = publicKey.Array != null ? publicKey.ToArray() : null;
         }
 
-        public byte[] DeriveKey(byte[] otherPublicKey)
+        public byte[] DeriveKey(ArraySegment<byte> otherPublicKey)
         {
             if (_pk == null) throw new ObjectDisposedException(nameof(KeyAgreement));
 
             if (otherPublicKey == null) throw new ArgumentNullException(nameof(otherPublicKey));
-            if (otherPublicKey.Length != 32) throw new ArgumentException("The other public key needs to be compressed with the first byte omitted. Only even public keys are accepted");
+            if (otherPublicKey.Count != 32) throw new ArgumentException("The other public key needs to be compressed with the first byte omitted. Only even public keys are accepted");
 
             var pubk = DecodePublicKey(otherPublicKey);
 
@@ -66,10 +67,10 @@ namespace MicroRatchet
             return output;
         }
 
-        private static ECPublicKeyParameters DecodePublicKey(byte[] pub)
+        private static ECPublicKeyParameters DecodePublicKey(ArraySegment<byte> pub)
         {
-            if (pub.Length != 32) throw new ArgumentException("The public key needs to be compressed with the first byte omitted. The length must be 32.");
-            var X = new BigInteger(1, pub, 0, 32);
+            if (pub.Count != 32) throw new ArgumentException("The public key needs to be compressed with the first byte omitted. The length must be 32.");
+            var X = new BigInteger(1, pub.Array, pub.Offset, pub.Count);
             var p = _decompress(0, X);
             if (!p.IsValid()) throw new ArgumentException("Invalid point");
             return new ECPublicKeyParameters(p, domainParms);
@@ -130,7 +131,7 @@ namespace MicroRatchet
         {
             byte[] pri = new byte[32];
             stream.Read(pri, 0, 32);
-            return new KeyAgreement(pri, null);
+            return new KeyAgreement(new ArraySegment<byte>(pri));
         }
     }
 }

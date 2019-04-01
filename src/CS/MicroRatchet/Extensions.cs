@@ -77,28 +77,29 @@ namespace MicroRatchet
         public static byte[] Sign(this ISignature sig, byte[] data, int offset, int length) =>
             sig.Sign(new ArraySegment<byte>(data, offset, length));
 
-        public static bool Verify(this IVerifier sig, byte[] data, byte[] signature) =>
+        public static bool Verify(this IVerifier sig, byte[] data, ArraySegment<byte> signature) =>
             sig.Verify(new ArraySegment<byte>(data), signature);
 
-        public static bool Verify(this IVerifier sig, byte[] data, int offset, int count, byte[] signature) =>
+        public static bool Verify(this IVerifier sig, byte[] data, int offset, int count, ArraySegment<byte> signature) =>
             sig.Verify(new ArraySegment<byte>(data, offset, count), signature);
 
-        public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, byte[] message)
+        public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, ArraySegment<byte> message)
         {
-            if (message.Length <= sig.SignatureSize) throw new InvalidOperationException("The message size is smaller than or equal to the size of a signature");
+            if (message.Count <= sig.SignatureSize) throw new InvalidOperationException("The message size is smaller than or equal to the size of a signature");
 
-            var signature = new byte[sig.SignatureSize];
-            Array.Copy(message, message.Length - sig.SignatureSize, signature, 0, sig.SignatureSize);
-            var hash = digest.ComputeDigest(new ArraySegment<byte>(message, 0, message.Length - sig.SignatureSize));
-            return sig.Verify(hash, signature);
+            var hash = digest.ComputeDigest(
+                new ArraySegment<byte>(message.Array, message.Offset, message.Count - sig.SignatureSize));
+            return sig.Verify(
+                new ArraySegment<byte>(hash),
+                new ArraySegment<byte>(message.Array, message.Offset + message.Count - sig.SignatureSize, sig.SignatureSize));
         }
 
-        public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize)
+        public static byte[][] GenerateKeys(this IKeyDerivation kdf, ArraySegment<byte> key, ArraySegment<byte> info, int numKeys, int keySize)
         {
             byte[] totalKeyBytes = kdf.GenerateBytes(key, info, keySize * numKeys);
             byte[][] keys = new byte[numKeys][];
 
-            for(int i=0;i<numKeys;i++)
+            for (int i = 0; i < numKeys; i++)
             {
                 keys[i] = new byte[keySize];
                 Array.Copy(totalKeyBytes, i * keySize, keys[i], 0, keySize);

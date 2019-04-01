@@ -39,6 +39,9 @@ namespace MicroRatchet
             }
         }
 
+        public static string ShowBytes(ArraySegment<byte> data) =>
+            ShowBytes(data.Array, data.Offset, data.Count);
+
         public static string ShowBytes(byte[] data) => ShowBytes(data, 0, data?.Length ?? 0);
 
         public static string ShowBytes(byte[] data, int offset, int cnt)

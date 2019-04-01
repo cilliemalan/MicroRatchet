@@ -20,28 +20,24 @@ namespace MicroRatchet
             domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
         }
 
-        private byte[] _publicKey;
         private ECPoint _pubkeypoint;
 
-        public Verifier(byte[] publicKey)
+        public Verifier(ArraySegment<byte> publicKey)
         {
-            _publicKey = publicKey;
-            _pubkeypoint = KeyGeneration.DecodePublicKey(_publicKey);
+            _pubkeypoint = KeyGeneration.DecodePublicKey(publicKey);
         }
-        
+
         public int SignatureSize => 64;
 
-        public byte[] PublicKey => _publicKey;
-
-        public bool Verify(ArraySegment<byte> data, byte[] signature)
+        public bool Verify(ArraySegment<byte> data, ArraySegment<byte> signature)
         {
             try
             {
                 ECDsaSigner signer = new ECDsaSigner();
                 signer.Init(false, new ECPublicKeyParameters(_pubkeypoint, domainParms));
                 var hash = data.ToArray();
-                var r = new BigInteger(1, signature, 0, 32);
-                var s = new BigInteger(1, signature, 32, 32);
+                var r = new BigInteger(1, signature.Array, signature.Offset, 32);
+                var s = new BigInteger(1, signature.Array, signature.Offset + 32, 32);
                 return signer.VerifySignature(hash, r, s);
             }
             catch { return false; }

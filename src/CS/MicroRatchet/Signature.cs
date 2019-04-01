@@ -17,20 +17,35 @@ using System.Diagnostics;
 
 namespace MicroRatchet
 {
-    internal class Signature : Verifier, ISignature
+    internal class Signature : ISignature
     {
-        private byte[] _key;
-        
-        public Signature(byte[] key)
-            :base(KeyGeneration.GetPublicKeyFromPrivateKey(key))
+        protected static readonly ECDomainParameters domainParms;
+
+        static Signature()
         {
-            _key = key;
+            var curve = ECNamedCurveTable.GetByName("secp256r1");
+            domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
+        }
+
+
+        private BigInteger _key;
+        private IVerifier _verifier;
+
+        public byte[] PublicKey { get; }
+
+        public int SignatureSize => throw new NotImplementedException();
+
+        public Signature(ArraySegment<byte> key)
+        {
+            PublicKey = KeyGeneration.GetPublicKeyFromPrivateKey(key);
+            _verifier = new Verifier(new ArraySegment<byte>(PublicKey));
+            _key = new BigInteger(key.Array, key.Offset, key.Count);
         }
 
         public byte[] Sign(ArraySegment<byte> data)
         {
             ECDsaSigner signer = new ECDsaSigner();
-            signer.Init(true, new ECPrivateKeyParameters(new BigInteger(_key), domainParms));
+            signer.Init(true, new ECPrivateKeyParameters(_key, domainParms));
             byte[] hash = data.ToArray();
             var sig = signer.GenerateSignature(hash);
             var r = sig[0];
@@ -47,5 +62,9 @@ namespace MicroRatchet
             else throw new Exception("Unacceptable signature length");
             return signatureBytes;
         }
+
+        public bool Verify(ArraySegment<byte> data, ArraySegment<byte> signature) =>
+            _verifier.Verify(data, signature);
+
     }
 }

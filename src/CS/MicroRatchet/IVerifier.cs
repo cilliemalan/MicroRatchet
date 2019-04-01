@@ -7,7 +7,6 @@ namespace MicroRatchet
     public interface IVerifier
     {
         int SignatureSize { get; }
-        byte[] PublicKey { get; }
-        bool Verify(ArraySegment<byte> data, byte[] signature);
+        bool Verify(ArraySegment<byte> data, ArraySegment<byte> signature);
     }
 }

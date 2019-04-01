@@ -61,8 +61,8 @@ namespace MicroRatchet
             }
         }
 
-        public static byte[] GetPublicKeyFromPrivateKey(byte[] key) =>
-            GetPublicKeyFromPrivateKey(new ECPrivateKeyParameters(new BigInteger(key), domainParms));
+        public static byte[] GetPublicKeyFromPrivateKey(ArraySegment<byte> key) =>
+            GetPublicKeyFromPrivateKey(new ECPrivateKeyParameters(new BigInteger(key.Array, key.Offset, key.Count), domainParms));
 
         public static byte[] GetPublicKeyFromPrivateKey(ECPrivateKeyParameters priv)
         {
@@ -74,13 +74,13 @@ namespace MicroRatchet
             return trimmed;
         }
 
-        public static ECPoint DecodePublicKey(byte[] key)
+        public static ECPoint DecodePublicKey(ArraySegment<byte> key)
         {
-            if (key.Length != 32) throw new ArgumentException("Public key must be 32 bytes long", nameof(key));
+            if (key.Count != 32) throw new ArgumentException("Public key must be 32 bytes long", nameof(key));
 
             byte[] pnt = new byte[33];
             pnt[0] = 0x02;
-            Array.Copy(key, 0, pnt, 1, 32);
+            Array.Copy(key.Array, key.Offset, pnt, 1, 32);
             return domainParms.Curve.DecodePoint(pnt);
         }
     }

@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace MicroRatchet
 {
@@ -7,7 +8,7 @@ namespace MicroRatchet
         int Id { get; }
         int PublicKeySize { get; }
         int PrivateKeySize { get; }
-        byte[] DeriveKey(byte[] otherPublicKey);
+        byte[] DeriveKey(ArraySegment<byte> otherPublicKey);
         byte[] GetPublicKey();
         void Serialize(Stream stream);
     }

@@ -44,7 +44,7 @@ namespace MicroRatchet
         {
             // message keys are 128 bit
             var (gen, chain) = GetLastGeneration();
-            var nextKeyBytes = kdf.GenerateBytes(chain, null, 32 + 16);
+            var nextKeyBytes = kdf.GenerateBytes(new ArraySegment<byte>(chain), default, 32 + 16);
             byte[] nextChainKey = new byte[32];
             Array.Copy(nextKeyBytes, nextChainKey, 32);
             byte[] messageKey = new byte[16];
@@ -87,7 +87,7 @@ namespace MicroRatchet
                 Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
 
                 // message keys are 128 bit
-                var nextKeyBytes = kdf.GenerateBytes(chain, null, 32 + 16);
+                var nextKeyBytes = kdf.GenerateBytes(new ArraySegment<byte>(chain), default, 32 + 16);
                 byte[] nextChainKey = new byte[32];
                 Array.Copy(nextKeyBytes, nextChainKey, 32);
                 byte[] messageKey = new byte[16];

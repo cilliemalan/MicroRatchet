@@ -20,7 +20,7 @@ namespace MicroRatchet
             byte[] rootKey, byte[] remotePublicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
         {
-            if(receiveHeaderKey.Length != 32 || sendHeaderKey.Length != 32) throw new InvalidOperationException("Keys need to be 32 bytes.");
+            if (receiveHeaderKey.Length != 32 || sendHeaderKey.Length != 32) throw new InvalidOperationException("Keys need to be 32 bytes.");
             Log.Verbose($"--Initialize ECDH Ratchet");
             Log.Verbose($"Root Key:           {Log.ShowBytes(rootKey)}");
             Log.Verbose($"Prev ECDH Private: ({Log.ShowBytes(previousKeyPair.GetPublicKey())})");
@@ -34,10 +34,10 @@ namespace MicroRatchet
 
             // receive chain
             Log.Verbose("  --Receiving Chain");
-            var rcderived = previousKeyPair.DeriveKey(remotePublicKey);
+            var rcderived = previousKeyPair.DeriveKey(new ArraySegment<byte>(remotePublicKey));
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(rcderived)}");
-            var rckeys = kdf.GenerateKeys(rcderived, rootKey, 3, 32);
+            var rckeys = kdf.GenerateKeys(new ArraySegment<byte>(rcderived), new ArraySegment<byte>(rootKey), 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(rckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(rckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(rckeys[2])}");
@@ -46,10 +46,10 @@ namespace MicroRatchet
 
             // send chain
             Log.Verbose("  --Sending Chain");
-            var scderived = keyPair.DeriveKey(remotePublicKey);
+            var scderived = keyPair.DeriveKey(new ArraySegment<byte>(remotePublicKey));
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
-            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
+            var sckeys = kdf.GenerateKeys(new ArraySegment<byte>(scderived), new ArraySegment<byte>(rootKey), 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
@@ -87,10 +87,10 @@ namespace MicroRatchet
 
             // send chain
             Log.Verbose("  --Sending Chain");
-            var scderived = keyPair.DeriveKey(remotePublicKey0);
+            var scderived = keyPair.DeriveKey(new ArraySegment<byte>(remotePublicKey0));
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
-            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
+            var sckeys = kdf.GenerateKeys(new ArraySegment<byte>(scderived), new ArraySegment<byte>(rootKey), 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
@@ -119,7 +119,7 @@ namespace MicroRatchet
                 keyPair,
                 ReceivingChain.NextHeaderKey,
                 SendingChain.NextHeaderKey);
-            
+
             NextRootKey = null;
             EcdhKey = null;
             ReceivingChain.NextHeaderKey = null;
@@ -127,7 +127,7 @@ namespace MicroRatchet
 
             return nextStep;
         }
-        
+
         public static EcdhRatchetStep Create(IKeyAgreement EcdhKey, byte[] NextRootKey,
             int receivingGeneration, byte[] receivingHeaderKey, byte[] receivingNextHeaderKey, byte[] receivingChainKey,
             int sendingGeneration, byte[] sendingHeaderKey, byte[] sendingNextHeaderKey, byte[] sendingChainKey)

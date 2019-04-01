@@ -11,7 +11,7 @@ namespace MicroRatchet.Tests
 
         private class AesFactory : IAesFactory
         {
-            public IAes GetAes(bool forEncryption, byte[] key)
+            public IAes GetAes(bool forEncryption, ArraySegment<byte> key)
             {
                 var aes = new Aes();
                 aes.Initialize(forEncryption, key);

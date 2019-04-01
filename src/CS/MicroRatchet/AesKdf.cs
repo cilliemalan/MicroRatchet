@@ -13,20 +13,20 @@ namespace MicroRatchet
             _aesFactory = aesFactory;
         }
 
-        public byte[] GenerateBytes(byte[] key, byte[] info, int howManyBytes)
+        public byte[] GenerateBytes(ArraySegment<byte> key, ArraySegment<byte> info, int howManyBytes)
         {
             var aes = _aesFactory.GetAes(true, key);
 
             byte[] ctr = new byte[16];
 
             int infoBytesOffset = 0;
-            if (info != null)
+            if (info.Array != null)
             {
-                while (info.Length - infoBytesOffset > 0)
+                while (info.Count - infoBytesOffset > 0)
                 {
-                    for (int i = 0; i < 16 && i + infoBytesOffset < info.Length; i++)
+                    for (int i = 0; i < 16 && i + infoBytesOffset < info.Count; i++)
                     {
-                        ctr[i] ^= info[i + infoBytesOffset];
+                        ctr[i] ^= info.Array[info.Offset + i + infoBytesOffset];
                     }
 
                     aes.Process(new ArraySegment<byte>(ctr), new ArraySegment<byte>(ctr));

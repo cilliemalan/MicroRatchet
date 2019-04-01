@@ -6,6 +6,6 @@ namespace MicroRatchet
 {
     public interface IVerifierFactory
     {
-        IVerifier Create(byte[] publicKey);
+        IVerifier Create(ArraySegment<byte> publicKey);
     }
 }
