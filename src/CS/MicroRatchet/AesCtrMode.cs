@@ -9,7 +9,7 @@ namespace MicroRatchet
         private IAes _aes;
         private byte[] _iv;
 
-        public AesCtrMode(IAes aes, byte[] iv)
+        public AesCtrMode(IAes aes, ArraySegment<byte> iv)
         {
             _iv = FixIv(iv);
             _aes = aes ?? throw new ArgumentNullException(nameof(aes));
@@ -18,12 +18,12 @@ namespace MicroRatchet
             Log.Verbose($"   NONCE:   {Log.ShowBytes(_iv)}");
         }
 
-        private byte[] FixIv(byte[] iv)
+        private byte[] FixIv(ArraySegment<byte> iv)
         {
-            if (iv == null) throw new ArgumentNullException(nameof(iv));
+            if (iv.Array == null) throw new ArgumentNullException(nameof(iv));
 
             var newIv = new byte[16];
-            Array.Copy(iv, 0, newIv, 0, Math.Min(iv.Length, 16));
+            Array.Copy(iv.Array, iv.Offset, newIv, 0, Math.Min(iv.Count, 16));
             return newIv;
         }
         

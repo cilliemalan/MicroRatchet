@@ -38,12 +38,12 @@ namespace MicroRatchet
             _decompress = (i, b) => (ECPoint)m.Invoke(domainParms.Curve, new object[] { i, b });
         }
 
-        public KeyAgreement(ArraySegment<byte> privateKey, ArraySegment<byte> publicKey = default)
+        public KeyAgreement(byte[] privateKey, ArraySegment<byte> publicKey = default)
         {
             if (privateKey == null) throw new ArgumentNullException(nameof(privateKey));
-            if (privateKey.Count != 32) throw new ArgumentException("private key is strictly 32 bytes long");
+            if (privateKey.Length != 32) throw new ArgumentException("private key is strictly 32 bytes long");
             _privateKey = privateKey.ToArray();
-            var pkn = new BigInteger(privateKey.Array, privateKey.Offset, privateKey.Count);
+            var pkn = new BigInteger(privateKey);
             _pk = new ECPrivateKeyParameters(pkn, domainParms);
             _publicKey = publicKey.Array != null ? publicKey.ToArray() : null;
         }
@@ -131,7 +131,7 @@ namespace MicroRatchet
         {
             byte[] pri = new byte[32];
             stream.Read(pri, 0, 32);
-            return new KeyAgreement(new ArraySegment<byte>(pri));
+            return new KeyAgreement(pri);
         }
     }
 }

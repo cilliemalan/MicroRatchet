@@ -235,7 +235,7 @@ namespace MicroRatchet
                     }
 
                     // encrypt the payload
-                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(rootPreKey)), serverNonce);
+                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(rootPreKey)), new ArraySegment<byte>(serverNonce));
                     var encryptedPayload = cipher.Process(new ArraySegment<byte>(payload));
 
                     // calculate mac
@@ -272,7 +272,7 @@ namespace MicroRatchet
                     var rootEcdhKey = br.ReadBytes(EcdhSize);
                     IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
                     var rootPreKey = rootEcdh.DeriveKey(new ArraySegment<byte>(rootEcdhKey));
-                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(rootPreKey)), nonce);
+                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(rootPreKey)), new ArraySegment<byte>(nonce));
                     var payload = cipher.Process(new ArraySegment<byte>(
                         data,
                         EcdhSize + NonceSize,
@@ -342,7 +342,7 @@ namespace MicroRatchet
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send the first client message.");
 
-            return ConstructMessage(clientState, clientState.InitializationNonce, true, true, clientState.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
+            return ConstructMessage(clientState, new ArraySegment<byte>(clientState.InitializationNonce), true, true, clientState.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
         }
 
         private void ReceiveFirstMessage(State state, byte[] payload)
@@ -356,24 +356,20 @@ namespace MicroRatchet
             }
 
             // extract the nonce
-            byte[] nonce = new byte[NonceSize];
-            Array.Copy(payload, nonce, nonce.Length);
+            var nonce = new ArraySegment<byte>(payload, 0, 4);
 
             // extract other parts
             var messageSize = payload.Length;
             var headerSize = NonceSize + EcdhSize;
             var payloadSize = messageSize - MacSize - headerSize;
-            byte[] encryptedPayload = new byte[payloadSize];
-            byte[] encryptedHeader = new byte[headerSize];
-            byte[] mac = new byte[MacSize];
-            Array.Copy(payload, 0, encryptedHeader, 0, headerSize);
-            Array.Copy(payload, headerSize, encryptedPayload, 0, payloadSize);
-            Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
+            var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
+            var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
+            var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
 
             // check the mac
             var Mac = new Poly(AesFactory);
             byte[] headerKey = serverState.FirstReceiveHeaderKey;
-            Mac.Init(new ArraySegment<byte>(headerKey), new ArraySegment<byte>(nonce), MacSize * 8);
+            Mac.Init(new ArraySegment<byte>(headerKey), nonce, MacSize * 8);
             Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
             byte[] compareMac = Mac.Compute();
             if (!mac.Matches(compareMac))
@@ -388,13 +384,12 @@ namespace MicroRatchet
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
             // the message contains ecdh parameters
-            var clientEcdhPublic = new byte[EcdhSize];
-            Array.Copy(decryptedHeader, NonceSize, clientEcdhPublic, 0, EcdhSize);
+            var clientEcdhPublic = new ArraySegment<byte>(decryptedHeader, NonceSize, EcdhSize);
 
             // initialize the ecdh ratchet
             var ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
                 serverState.LocalEcdhRatchetStep0,
-                serverState.RootKey, clientEcdhPublic,
+                serverState.RootKey, clientEcdhPublic.ToArray(),
                 serverState.LocalEcdhRatchetStep1,
                 serverState.FirstReceiveHeaderKey,
                 serverState.FirstSendHeaderKey);
@@ -404,14 +399,12 @@ namespace MicroRatchet
             var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // decrypt the inner payload
-            var nonceBytes = new byte[NonceSize];
-            Array.Copy(decryptedHeader, nonceBytes, NonceSize);
+            var nonceBytes = new ArraySegment<byte>(decryptedHeader, 0, NonceSize);
             AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(key)), nonceBytes);
-            var decryptedInnerPayload = icipher.Process(new ArraySegment<byte>(encryptedPayload));
+            var decryptedInnerPayload = icipher.Process(encryptedPayload);
 
             // check the inner payload
-            var innerNonce = new byte[NonceSize];
-            Array.Copy(decryptedInnerPayload, innerNonce, NonceSize);
+            var innerNonce = new ArraySegment<byte>(decryptedInnerPayload, 0, NonceSize);
             if (!innerNonce.Matches(serverState.NextInitializationNonce))
             {
                 throw new InvalidOperationException("The inner encrypted nonce did not match the initialization nonce.");
@@ -430,7 +423,7 @@ namespace MicroRatchet
 
             var payload = serverState.NextInitializationNonce;
             serverState.NextInitializationNonce = null;
-            return ConstructMessage(serverState, payload, true, false, serverState.Ratchets.Last, MessageType.InitializationWithoutEcdh);
+            return ConstructMessage(serverState, new ArraySegment<byte>(payload), true, false, serverState.Ratchets.Last, MessageType.InitializationWithoutEcdh);
         }
 
         private void ReceiveFirstResponse(State state, byte[] data)
@@ -443,8 +436,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The first response from the server was not valid");
             }
 
-            var nonce = new byte[NonceSize];
-            Array.Copy(contents, nonce, NonceSize);
+            var nonce = new ArraySegment<byte>(contents, 0, NonceSize);
             if (!nonce.Matches(clientState.InitializationNonce))
             {
                 throw new InvalidOperationException("The first response from the server did not contain the correct nonce");
@@ -453,7 +445,7 @@ namespace MicroRatchet
             clientState.InitializationNonce = null;
         }
 
-        private byte[] ConstructMessage(State state, byte[] message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
+        private byte[] ConstructMessage(State state, ArraySegment<byte> message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
         {
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
@@ -469,15 +461,15 @@ namespace MicroRatchet
             // calculate some sizes
             var headerSize = NonceSize + (includeEcdh ? EcdhSize : 0);
             var overhead = headerSize + MacSize;
-            var messageSize = message.Length;
+            var messageSize = message.Count;
             var maxMessageSize = mtu - overhead;
 
             // build the payload: <payload, padding>
-            byte[] payload;
+            ArraySegment<byte> payload;
             if (pad && messageSize < maxMessageSize)
             {
-                payload = new byte[mtu - overhead];
-                Array.Copy(message, payload, message.Length);
+                payload = new ArraySegment<byte>(new byte[mtu - overhead]);
+                Array.Copy(message.Array, message.Offset, payload.Array, 0, message.Count);
             }
             else if (messageSize > maxMessageSize)
             {
@@ -489,8 +481,8 @@ namespace MicroRatchet
             }
 
             // encrypt the payload
-            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(payloadKey)), nonce);
-            var encryptedPayload = icipher.Process(new ArraySegment<byte>(payload));
+            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(payloadKey)), new ArraySegment<byte>(nonce));
+            var encryptedPayload = icipher.Process(payload);
 
             // build the header: <nonce(4), ecdh(32)?>
             byte[] header = new byte[headerSize];
@@ -504,7 +496,7 @@ namespace MicroRatchet
 
             // encrypt the header. Generate 32 kdf bytes. The first (keysize) is the header encryption key and the whole
             // 32 bytes is the MAC key.
-            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendingChain.HeaderKey), encryptedPayload);
+            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendingChain.HeaderKey), new ArraySegment<byte>(encryptedPayload));
             var encryptedHeader = hcipher.Process(new ArraySegment<byte>(header));
 
             // set the message type (we can do this because we're using a stream cipher)
@@ -513,9 +505,8 @@ namespace MicroRatchet
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
             var Mac = new Poly(AesFactory);
-            var encryptedNonce = new byte[4];
-            Array.Copy(encryptedHeader, encryptedNonce, 4);
-            Mac.Init(new ArraySegment<byte>(step.SendingChain.HeaderKey), new ArraySegment<byte>(encryptedNonce), MacSize * 8);
+            var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, 4);
+            Mac.Init(new ArraySegment<byte>(step.SendingChain.HeaderKey), encryptedNonce, MacSize * 8);
             Mac.Process(new ArraySegment<byte>(encryptedHeader));
             Mac.Process(new ArraySegment<byte>(encryptedPayload));
             var mac = Mac.Compute();
@@ -546,19 +537,15 @@ namespace MicroRatchet
             bool hasEcdh = overrideHasEcdh ?? (messageType == MessageType.NormalWithEcdh);
 
             // extract the nonce
-            byte[] nonce = new byte[NonceSize];
-            Array.Copy(payload, nonce, nonce.Length);
+            var nonce = new ArraySegment<byte>(payload, 0, NonceSize);
 
             // extract other parts
             var messageSize = payload.Length;
             var headerSize = hasEcdh ? NonceSize + EcdhSize : NonceSize;
             var payloadSize = messageSize - MacSize - headerSize;
-            byte[] encryptedPayload = new byte[payloadSize];
-            byte[] encryptedHeader = new byte[headerSize];
-            byte[] mac = new byte[MacSize];
-            Array.Copy(payload, 0, encryptedHeader, 0, headerSize);
-            Array.Copy(payload, headerSize, encryptedPayload, 0, payloadSize);
-            Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
+            var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
+            var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
+            var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
 
             // find the header key by checking the mac
             var Mac = new Poly(AesFactory);
@@ -570,7 +557,7 @@ namespace MicroRatchet
             {
                 cnt++;
                 headerKey = ratchet.ReceivingChain.HeaderKey;
-                Mac.Init(new ArraySegment<byte>(headerKey), new ArraySegment<byte>(nonce), MacSize * 8);
+                Mac.Init(new ArraySegment<byte>(headerKey), nonce, MacSize * 8);
                 Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
                 byte[] compareMac = Mac.Compute();
                 if (mac.Matches(compareMac))
@@ -581,7 +568,7 @@ namespace MicroRatchet
                 else if (ratchet.ReceivingChain.NextHeaderKey != null)
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
-                    Mac.Init(new ArraySegment<byte>(headerKey), new ArraySegment<byte>(nonce), MacSize * 8);
+                    Mac.Init(new ArraySegment<byte>(headerKey), nonce, MacSize * 8);
                     Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
                     compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))
@@ -607,8 +594,7 @@ namespace MicroRatchet
             if (hasEcdh)
             {
                 // the message contains ecdh parameters
-                var clientEcdhPublic = new byte[EcdhSize];
-                Array.Copy(decryptedHeader, NonceSize, clientEcdhPublic, 0, EcdhSize);
+                var clientEcdhPublic = new ArraySegment<byte>(decryptedHeader, NonceSize, EcdhSize);
 
                 if (usedNextHeaderKey)
                 {
@@ -616,7 +602,7 @@ namespace MicroRatchet
                     var newEcdh = KeyAgreementFactory.GenerateNew();
 
                     // this is the hottest line in the deconstruct process:
-                    EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
+                    EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic.ToArray(), newEcdh);
                     state.Ratchets.Add(newRatchet);
                     ratchetUsed = newRatchet;
                 }
@@ -626,10 +612,9 @@ namespace MicroRatchet
             var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // decrypt the inner payload
-            var nonceBytes = new byte[NonceSize];
-            Array.Copy(decryptedHeader, nonceBytes, NonceSize);
+            var nonceBytes = new ArraySegment<byte>(decryptedHeader, 0, NonceSize);
             AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, new ArraySegment<byte>(key)), nonceBytes);
-            var decryptedInnerPayload = icipher.Process(new ArraySegment<byte>(encryptedPayload));
+            var decryptedInnerPayload = icipher.Process(encryptedPayload);
             return decryptedInnerPayload;
         }
 
@@ -770,9 +755,9 @@ namespace MicroRatchet
             }
         }
 
-        private MessageInfo SendSingle(State state, byte[] payload, bool pad)
+        private MessageInfo SendSingle(State state, ArraySegment<byte> payload, bool pad)
         {
-            bool canIncludeEcdh = payload.Length <= Configuration.Mtu - 48;
+            bool canIncludeEcdh = payload.Count <= Configuration.Mtu - 48;
             EcdhRatchetStep step;
             if (canIncludeEcdh)
             {
@@ -789,9 +774,9 @@ namespace MicroRatchet
             };
         }
 
-        private MessageInfo SendInternal(byte[] payload, State state, bool pad)
+        private MessageInfo SendInternal(ArraySegment<byte> payload, State state, bool pad)
         {
-            if (payload.Length <= MaximumMessageSize)
+            if (payload.Count <= MaximumMessageSize)
             {
                 return SendSingle(state, payload, pad);
             }
@@ -951,7 +936,7 @@ namespace MicroRatchet
             return result;
         }
 
-        public MessageInfo Send(byte[] payload, bool pad = false)
+        public MessageInfo Send(ArraySegment<byte> payload, bool pad = false)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -960,7 +945,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            if (pad == false && payload.Length < MinimumMessageSize)
+            if (pad == false && payload.Count < MinimumMessageSize)
             {
                 throw new InvalidOperationException("The payload is too small for an unpadded message");
             }
