@@ -36,10 +36,10 @@ namespace MicroRatchet
 
             // receive chain
             Log.Verbose("  --Receiving Chain");
-            var rcinfo = previousKeyPair.DeriveKey(remotePublicKey);
+            var rcderived = previousKeyPair.DeriveKey(remotePublicKey);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
-            Log.Verbose($"  C Key Info:     {Log.ShowBytes(rcinfo)}");
-            var rckeys = kdf.GenerateKeys(rootKey, rcinfo, 3, keySize);
+            Log.Verbose($"  C Key Info:     {Log.ShowBytes(rcderived)}");
+            var rckeys = kdf.GenerateKeys(rcderived, rootKey, 3, keySize);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(rckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(rckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(rckeys[2])}");
@@ -48,10 +48,10 @@ namespace MicroRatchet
 
             // send chain
             Log.Verbose("  --Sending Chain");
-            var scinfo = keyPair.DeriveKey(remotePublicKey);
+            var scderived = keyPair.DeriveKey(remotePublicKey);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
-            Log.Verbose($"  C Key Info:     {Log.ShowBytes(scinfo)}");
-            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
+            Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
+            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, keySize);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
@@ -93,10 +93,10 @@ namespace MicroRatchet
 
             // send chain
             Log.Verbose("  --Sending Chain");
-            var scinfo = keyPair.DeriveKey(remotePublicKey0);
+            var scderived = keyPair.DeriveKey(remotePublicKey0);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
-            Log.Verbose($"  C Key Info:     {Log.ShowBytes(scinfo)}");
-            var sckeys = kdf.GenerateKeys(rootKey, scinfo, 3, keySize);
+            Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
+            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, keySize);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
