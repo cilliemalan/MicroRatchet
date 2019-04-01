@@ -18,7 +18,7 @@ namespace MicroRatchet.Performance
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
             Stopwatch sw = new Stopwatch();
-
+            
             Console.WriteLine("Generating data...");
             byte[] keys = new byte[16 * 1000000];
             byte[] blocks = new byte[16 * 1000000];
@@ -144,21 +144,23 @@ namespace MicroRatchet.Performance
 
             Thread.Sleep(1000);
             {
-                Console.WriteLine("Testing one way message send speed...");
+                Console.WriteLine("Testing one way message send speed (small)...");
                 var (client, server) = CreateAndInitialize();
-                var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(32)).ToArray();
+                var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(16)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
-                var m1 = client.Send(new byte[32]).Message;
-                var m2 = client.Send(new byte[32]).Message;
-                var m3 = client.Send(new byte[32]).Message;
+                var m1 = client.Send(new byte[16]).Message;
+                var m2 = client.Send(new byte[16]).Message;
+                var m3 = client.Send(new byte[16]).Message;
                 sw.Reset();
                 sw.Start();
                 for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
 
 
-                Console.WriteLine("Testing one way message receive speed...");
+                Thread.Sleep(1000);
+                Console.WriteLine("Testing one way message receive speed (small)...");
                 server.Receive(m1);
                 server.Receive(m2);
                 server.Receive(m3);
@@ -167,12 +169,74 @@ namespace MicroRatchet.Performance
                 for (int i = 0; i < messageCount; i++) server.Receive(messagesSent[i]);
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
+            }
+
+            Thread.Sleep(2000);
+            {
+                Console.WriteLine("Testing one way message send speed (large)...");
+                var (client, server) = CreateAndInitialize();
+                var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(64)).ToArray();
+                var messagesSent = new List<byte[]>(messageCount);
+                var m1 = client.Send(new byte[16]).Message;
+                var m2 = client.Send(new byte[16]).Message;
+                var m3 = client.Send(new byte[16]).Message;
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
+
+
+                Thread.Sleep(1000);
+                Console.WriteLine("Testing one way message receive speed (large)...");
+                server.Receive(m1);
+                server.Receive(m2);
+                server.Receive(m3);
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < messageCount; i++) server.Receive(messagesSent[i]);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
+            }
+
+            messageCount /= 10;
+            Thread.Sleep(2000);
+            {
+                Console.WriteLine("Testing one way message send speed (IP)...");
+                var (client, server) = CreateAndInitialize(1350);
+                var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(1300)).ToArray();
+                var messagesSent = new List<byte[]>(messageCount);
+                var m1 = client.Send(new byte[16]).Message;
+                var m2 = client.Send(new byte[16]).Message;
+                var m3 = client.Send(new byte[16]).Message;
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
+
+
+                Thread.Sleep(1000);
+                Console.WriteLine("Testing one way message receive speed (IP)...");
+                server.Receive(m1);
+                server.Receive(m2);
+                server.Receive(m3);
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < messageCount; i++) server.Receive(messagesSent[i]);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
             }
 
             Thread.Sleep(1000);
             {
                 Console.WriteLine("Testing ratchet speed...");
-                var (client, server) = CreateAndInitialize();
+                var (client, server) = CreateAndInitialize(1350);
                 var messagesToSend = Enumerable.Range(0, messageCount / 4000).Select(_ => rng.Generate(32)).ToArray();
                 server.Receive(client.Send(new byte[32]).Message);
                 client.Receive(server.Send(new byte[32]).Message);
@@ -189,6 +253,7 @@ namespace MicroRatchet.Performance
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(messageCount / 2000) / sw.Elapsed.TotalSeconds:F0}/s)");
             }
 
+            messageCount *= 10;
             Thread.Sleep(1000);
             {
                 var (client, server) = CreateAndInitialize();
@@ -327,7 +392,7 @@ namespace MicroRatchet.Performance
             }
         }
 
-        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize()
+        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int? mtu = null)
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
@@ -365,8 +430,8 @@ namespace MicroRatchet.Performance
             server.SaveState();
 
             return (
-                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, Mtu = 80 }),
-                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, Mtu = 80 }));
+                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, Mtu = mtu ?? 80 }),
+                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, Mtu = mtu ?? 80 }));
         }
     }
 }
