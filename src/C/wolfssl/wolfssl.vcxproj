@@ -106,7 +106,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl/;../../../thirdparty/wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;WOLFSSL_AES_DIRECT;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader />
@@ -149,7 +149,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl/;../../../thirdparty/wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;WOLFSSL_AES_DIRECT;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -164,7 +164,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl/;../../../thirdparty/wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;WOLFSSL_AES_DIRECT;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader />
@@ -208,7 +208,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>../../../thirdparty/wolfssl/;../../../thirdparty/wolfssl/IDE/WIN;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;HAVE_AESGCM;WOLFSSL_AES_COUNTER;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFCRYPT_ONLY;USE_FAST_MATH;TFM_TIMING_RESISTANT;HAVE_ECC;HAVE_POLY1305;HAVE_COMP_KEY;NO_RSA;ECC_TIMING_RESISTANT;WOLFSSL_AES_DIRECT;WOLFSSL_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>

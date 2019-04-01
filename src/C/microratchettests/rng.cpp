@@ -2,7 +2,7 @@
 #include <microratchet.h>
 #include "support.h"
 
-static mr_config _cfg{ 1000, 1, 0, 3, 10, 1, 0 };
+static mr_config _cfg{ 1000, 1 };
 
 TEST(Rng, Create) {
 	auto mr_ctx = mrclient_create(&_cfg);

@@ -15,17 +15,6 @@ extern "C" {
 	} _mr_ctx;
 
 
-	typedef struct {
-		unsigned char ipad[64];
-		unsigned char opad[64];
-	} _hmac_ctx;
-
-
-
-
-	int hmac_init(_hmac_ctx *hmac, mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen);
-	int hmac_process(_hmac_ctx *hmac, mr_ctx mr_ctx, const unsigned char* data, unsigned int datalen);
-	int hmac_compute(_hmac_ctx *hmac, mr_ctx mr_ctx, unsigned char* output, unsigned int spaceavail);
 
 	int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int spaceavail);
 #ifdef __cplusplus

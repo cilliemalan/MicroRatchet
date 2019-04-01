@@ -32,9 +32,6 @@
     <ClCompile Include="pch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gmac.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ecdh.c">
       <Filter>Source Files</Filter>
     </ClCompile>

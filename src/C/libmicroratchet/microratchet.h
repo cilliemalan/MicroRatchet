@@ -8,7 +8,6 @@ extern "C" {
 	typedef void* mr_ctx;
 	typedef void* mr_sha_ctx;
 	typedef void* mr_aes_ctx;
-	typedef void* mr_gmac_ctx;
 	typedef void* mr_poly_ctx;
 	typedef void* mr_ecdh_ctx;
 	typedef void* mr_ecdsa_ctx;
@@ -24,9 +23,8 @@ extern "C" {
 #define E_HARDWAREFAIL -5
 #define E_VERIFYFAIL -6
 
-	// these functions must be supplied by the integrating application. The project will fail to link
-	// if they are not implemented. NOTE: functions labeled as callbacks MUST NOT be implemented and
-	// are to be called when the corresponding operations complete.
+	// these functions must be supplied by the integrating application.
+	// The project will fail to link if they are not implemented.
 
 
 	///// SHA 256
@@ -38,32 +36,21 @@ extern "C" {
 	void mr_sha_destroy(mr_sha_ctx ctx);
 
 
-	///// AES 128/256 in CTR mode
+	///// AES
 	
 	mr_aes_ctx mr_aes_create(mr_ctx mr_ctx);
-	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
+	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize);
 	int mr_aes_process(mr_aes_ctx ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
 	void mr_aes_destroy(mr_aes_ctx ctx);
 
-	///// GMAC
 
-	mr_gmac_ctx mr_gmac_create(mr_ctx mr_ctx);
-	int mr_gmac_init(mr_gmac_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
-	void mr_gmac_init_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
-	int mr_gmac_process(mr_gmac_ctx ctx, const unsigned char* data, unsigned int amount);
-	void mr_gmac_process_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
-	int mr_gmac_compute(mr_gmac_ctx ctx, unsigned char* output, unsigned int spaceavail);
-	void mr_gmac_compute_cb(int status, mr_gmac_ctx ctx, mr_ctx mr_ctx);
-	void mr_gmac_destroy(mr_gmac_ctx ctx);
+	///// Poly1305 (with AES)
 
-	///// Poly1305 (without AES)
-	
 	mr_poly_ctx mr_poly_create(mr_ctx mr_ctx);
 	int mr_poly_init(mr_poly_ctx ctx, const unsigned char* key, unsigned int keysize);
 	int mr_poly_process(mr_poly_ctx ctx, const unsigned char* data, unsigned int amount);
 	int mr_poly_compute(mr_poly_ctx ctx, unsigned char* output, unsigned int spaceavail);
 	void mr_poly_destroy(mr_poly_ctx ctx);
-
 
 	///// ECDH
 	
@@ -104,18 +91,6 @@ extern "C" {
 	// free some memory previously allocated with mr_allocate.
 	void mr_free(mr_ctx ctx, void* pointer);
 
-	// get a pointer to hot storage. This storage will be small and written frequently.
-	int mr_get_hot_storage(mr_ctx ctx, int amountrequested, void** pointer, int* blocksize);
-
-	// called when the client wants to persist hot storage.
-	int mr_persist_hot(void** where, int howmuch);
-
-	// get a pointer to cold storage. This storage will be larger and written infrequently.
-	int mr_get_cold_storage(mr_ctx ctx, int amountrequested, void** pointer, int* blocksize);
-
-	// called when the client wants to persist cold storage.
-	int mr_persist_cold(mr_ctx ctx, void** where, int howmuch);
-
 
 	///// communcation
 	
@@ -129,11 +104,6 @@ extern "C" {
 	typedef struct t_mr_config {
 		unsigned short mtu;
 		unsigned char is_client;
-		unsigned char use_aes256;
-		unsigned char number_of_ratchets_to_keep;
-		unsigned short lost_keys_to_keep;
-		unsigned short ecdh_frequency;
-		void* user;
 	} mr_config;
 
 

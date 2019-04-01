@@ -1,7 +1,6 @@
 #include "pch.h"
 #include <microratchet.h>
 #include <wolfssl/wolfcrypt/aes.h>
-#include <wolfssl/wolfcrypt/sha256.h>
 
 typedef struct {
 	mr_ctx mr_ctx;
@@ -19,26 +18,14 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize)
+int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize)
 {
 	_mr_aes_ctx* ctx = _ctx;
-	if (keysize != 16 && keysize != 32) return E_INVALIDSIZE;
-	if (!key || !iv || !_ctx) return E_INVALIDARGUMENT;
+	if (keysize != 16 && keysize != 24 && keysize != 32) return E_INVALIDSIZE;
 
-	// trim IV to correct length
-	if (ivsize < 16)
-	{
-		unsigned char niv[16];
-		memset(niv, 0, 16);
-		memcpy(niv + ivsize, 0, 16 - ivsize);
-		int r = wc_AesSetKey(&ctx->wc_aes, key, keysize, niv, AES_ENCRYPTION);
-		if (r != 0) return E_INVALIDOP;
-	}
-	else
-	{
-		int r = wc_AesSetKey(&ctx->wc_aes, key, keysize, iv, AES_ENCRYPTION);
-		if (r != 0) return E_INVALIDOP;
-	}
+
+	int r = wc_AesSetKeyDirect(&ctx->wc_aes, key, keysize, 0, AES_ENCRYPTION);
+	if (r != 0) return E_INVALIDOP;
 
 	return E_SUCCESS;
 }	
@@ -48,9 +35,9 @@ int mr_aes_process(mr_aes_ctx _ctx, const unsigned char* data, unsigned int amou
 	_mr_aes_ctx* ctx = _ctx;
 	if (amount > spaceavail) return E_INVALIDSIZE;
 	if (!data || !output || !_ctx) return E_INVALIDARGUMENT;
+	if (amount < 16 || spaceavail < 16) return E_INVALIDSIZE;
 
-	int r = wc_AesCtrEncrypt(&ctx->wc_aes, output, data, amount);
-	if (r != 0) return E_INVALIDOP;
+	wc_AesEncryptDirect(&ctx->wc_aes, output, data);
 	return E_SUCCESS;
 }
 
