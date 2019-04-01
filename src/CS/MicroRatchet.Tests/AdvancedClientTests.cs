@@ -65,9 +65,9 @@ namespace MicroRatchet.Tests
         [InlineData(100, 10, 0.0, 0.0, false, 32, 64)]
         [InlineData(100, 100, 0.0, 0.0, false, 32, 64)]
         [InlineData(1000, 1000, 0.0, 0.0, false, 32, 64)]
-        [InlineData(100, 10, 0.0, 0.0, false, 8, 56)]
-        [InlineData(100, 100, 0.0, 0.0, false, 8, 56)]
-        [InlineData(1000, 1000, 0.0, 0.0, false, 8, 56)]
+        [InlineData(100, 10, 0.0, 0.0, false, 16, 56)]
+        [InlineData(100, 100, 0.0, 0.0, false, 16, 56)]
+        [InlineData(1000, 1000, 0.0, 0.0, false, 16, 56)]
         [Theory]
         public void LargeVolumeTestLargeMessages(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
@@ -83,24 +83,24 @@ namespace MicroRatchet.Tests
             AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
-        [InlineData(100, 100, 0.0, 0.1, false, 0, 64)]
-        [InlineData(100, 100, 0.1, 0.0, false, 0, 64)]
-        [InlineData(100, 100, 0.5, 0.5, false, 0, 64)]
-        [InlineData(100, 100, 0.1, 0.5, false, 0, 64)]
-        [InlineData(100, 100, 0.5, 0.1, false, 0, 64)]
-        [InlineData(100, 100, 0.5, 0.0, false, 0, 64)]
-        [InlineData(100, 100, 0.0, 0.5, false, 0, 64)]
+        [InlineData(100, 100, 0.0, 0.1, false, 16, 64)]
+        [InlineData(100, 100, 0.1, 0.0, false, 16, 64)]
+        [InlineData(100, 100, 0.5, 0.5, false, 16, 64)]
+        [InlineData(100, 100, 0.1, 0.5, false, 16, 64)]
+        [InlineData(100, 100, 0.5, 0.1, false, 16, 64)]
+        [InlineData(100, 100, 0.5, 0.0, false, 16, 64)]
+        [InlineData(100, 100, 0.0, 0.5, false, 16, 64)]
         [Theory]
         public void LargeVolumeTestLargeMessagesDrops(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {
             AdvancedTestInternal(clientMessagesCount, serverMessagesCount, clientDropChance, serverDropChance, outOfOrder, minsize, maxsize);
         }
 
-        [InlineData(100, 100, 0.0, 0.1, true, 0, 64)]
-        [InlineData(100, 100, 0.1, 0.0, true, 0, 64)]
-        [InlineData(100, 100, 0.5, 0.1, true, 0, 64)]
-        [InlineData(100, 100, 0.5, 0.0, true, 0, 64)]
-        [InlineData(100, 100, 0.0, 0.5, true, 0, 64)]
+        [InlineData(100, 100, 0.0, 0.1, true, 16, 64)]
+        [InlineData(100, 100, 0.1, 0.0, true, 16, 64)]
+        [InlineData(100, 100, 0.5, 0.1, true, 16, 64)]
+        [InlineData(100, 100, 0.5, 0.0, true, 16, 64)]
+        [InlineData(100, 100, 0.0, 0.5, true, 16, 64)]
         [Theory]
         public void LargeVolumeTestLargeMessagesDropsAndReorders(int clientMessagesCount, int serverMessagesCount, double clientDropChance = 0, double serverDropChance = 0, bool outOfOrder = false, int minsize = 16, int maxsize = 32)
         {

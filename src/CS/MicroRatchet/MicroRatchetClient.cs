@@ -13,6 +13,7 @@ namespace MicroRatchet
         public const int MacSize = 12;
         public const int EcdhSize = 32;
         public const int SignatureSize = 32;
+        public const int MinimumMessageSize = 16;
         public const int MinimumOverhead = NonceSize + MacSize;
         public const int OverheadWithEcdh = MinimumOverhead + EcdhSize;
         public const int EncryptedMultipartHeaderOverhead = 6;
@@ -47,7 +48,7 @@ namespace MicroRatchet
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
-            
+
             KeyDerivation = new AesKdf(Services.AesFactory);
             _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
                 config.MaximumBufferedPartialMessageSize,
@@ -73,22 +74,20 @@ namespace MicroRatchet
         private void CheckMtu()
         {
             int mtu = Configuration.Mtu;
-            if (LoadState()?.IsInitialized ?? false)
-            {
-                // minimum mtu is 48 bytes
-                if (mtu < OverheadWithEcdh) throw new InvalidOperationException("The MTU is not big enough to facilitate key exchange");
-            }
-            else
+            if (!(LoadState()?.IsInitialized ?? false))
             {
                 // minimum mtu is 52 bytes
                 int maxInitMessageSize = (mtu - 1) * 4;
                 if (InitResponseMessageSize > maxInitMessageSize) throw new InvalidOperationException("The MTU is not big enough to initialize the client");
             }
+
+            // minimum mtu is 64 bytes
+            if (mtu < OverheadWithEcdh + MinimumMessageSize) throw new InvalidOperationException("The MTU is not big enough to facilitate key exchange");
         }
 
         private IAes GetHeaderKeyCipher(byte[] key)
         {
-            foreach(var hkc in _headerKeyCiphers)
+            foreach (var hkc in _headerKeyCiphers)
             {
                 if (hkc.Item1.Matches(key)) return hkc.Item2;
             }
@@ -348,7 +347,7 @@ namespace MicroRatchet
         private void ReceiveFirstMessage(State state, byte[] payload)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
-            
+
             var messageType = GetMessageType(payload[0]);
             if (messageType != MessageType.InitializationWithEcdh)
             {
@@ -594,7 +593,7 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("Could not decrypt the incoming message");
             }
-            
+
             // decrypt the header
             AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), encryptedPayload);
             var decryptedHeader = hcipher.Process(new ArraySegment<byte>(payload, 0, headerSize));
@@ -767,7 +766,7 @@ namespace MicroRatchet
             }
         }
 
-        private MessageInfo SendSingle(State state, byte[] payload)
+        private MessageInfo SendSingle(State state, byte[] payload, bool pad)
         {
             bool canIncludeEcdh = payload.Length <= Configuration.Mtu - 48;
             EcdhRatchetStep step;
@@ -782,15 +781,15 @@ namespace MicroRatchet
 
             return new MessageInfo
             {
-                Messages = new[] { ConstructMessage(state, payload, false, canIncludeEcdh, step) }
+                Messages = new[] { ConstructMessage(state, payload, pad, canIncludeEcdh, step) }
             };
         }
 
-        private MessageInfo SendInternal(byte[] payload, State state)
+        private MessageInfo SendInternal(byte[] payload, State state, bool pad)
         {
             if (payload.Length <= MaximumMessageSize)
             {
-                return SendSingle(state, payload);
+                return SendSingle(state, payload, pad);
             }
             else
             {
@@ -939,7 +938,7 @@ namespace MicroRatchet
 
             throw new NotSupportedException("Unexpected message type received");
         }
-        
+
         public ReceiveResult Receive(byte[] data)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
@@ -948,7 +947,7 @@ namespace MicroRatchet
             return result;
         }
 
-        public MessageInfo Send(byte[] payload)
+        public MessageInfo Send(byte[] payload, bool pad = false)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             var state = LoadState();
@@ -957,7 +956,12 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            var response = SendInternal(payload, state);
+            if (pad == false && payload.Length < MinimumMessageSize)
+            {
+                throw new InvalidOperationException("The payload is too small for an unpadded message");
+            }
+
+            var response = SendInternal(payload, state, pad);
             Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             return response;
         }
