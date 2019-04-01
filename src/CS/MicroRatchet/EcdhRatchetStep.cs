@@ -20,9 +20,7 @@ namespace MicroRatchet
             byte[] rootKey, byte[] remotePublicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
         {
-            int keySize = rootKey.Length;
-            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
-            if(receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
+            if(receiveHeaderKey.Length != 32 || sendHeaderKey.Length != 32) throw new InvalidOperationException("Keys need to be 32 bytes.");
             Log.Verbose($"--Initialize ECDH Ratchet");
             Log.Verbose($"Root Key:           {Log.ShowBytes(rootKey)}");
             Log.Verbose($"Prev ECDH Private: ({Log.ShowBytes(previousKeyPair.GetPublicKey())})");
@@ -39,24 +37,24 @@ namespace MicroRatchet
             var rcderived = previousKeyPair.DeriveKey(remotePublicKey);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(rcderived)}");
-            var rckeys = kdf.GenerateKeys(rcderived, rootKey, 3, keySize);
+            var rckeys = kdf.GenerateKeys(rcderived, rootKey, 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(rckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(rckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(rckeys[2])}");
             rootKey = rckeys[0];
-            e.ReceivingChain.Initialize(keySize, receiveHeaderKey, rckeys[1], rckeys[2]);
+            e.ReceivingChain.Initialize(receiveHeaderKey, rckeys[1], rckeys[2]);
 
             // send chain
             Log.Verbose("  --Sending Chain");
             var scderived = keyPair.DeriveKey(remotePublicKey);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
-            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, keySize);
+            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
             rootKey = sckeys[0];
-            e.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
+            e.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
 
             // next root key
 
@@ -72,9 +70,7 @@ namespace MicroRatchet
             byte[] receiveHeaderKey, byte[] sendHeaderKey,
             IKeyAgreement nextKeyPair)
         {
-            int keySize = rootKey.Length;
-            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
-            if (receiveHeaderKey.Length != keySize || sendHeaderKey.Length != keySize) throw new InvalidOperationException("All keys sizes were not consistent.");
+            if (receiveHeaderKey.Length != 32 || sendHeaderKey.Length != 32) throw new InvalidOperationException("Keys need to be 32 bytes.");
             Log.Verbose($"--Initialize ECDH Ratchet CLIENT");
             Log.Verbose($"Root Key:           {Log.ShowBytes(rootKey)}");
             Log.Verbose($"ECDH Public 0:      {Log.ShowBytes(remotePublicKey0)}");
@@ -85,8 +81,6 @@ namespace MicroRatchet
             {
                 EcdhKey = keyPair
             };
-            e0.SendingChain.KeySize = keySize;
-            e0.SendingChain.KeySize = keySize;
 
             // receive chain doesn't exist
             Log.Verbose("  --Receiving Chain");
@@ -96,12 +90,12 @@ namespace MicroRatchet
             var scderived = keyPair.DeriveKey(remotePublicKey0);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
-            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, keySize);
+            var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
             Log.Verbose($"  C Key Out 0:    {Log.ShowBytes(sckeys[0])}");
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
             rootKey = sckeys[0];
-            e0.SendingChain.Initialize(keySize, sendHeaderKey, sckeys[1], sckeys[2]);
+            e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
 
             var nextSendHeaderKey = e0.SendingChain.NextHeaderKey;
             e0.SendingChain.NextHeaderKey = null;
@@ -138,16 +132,23 @@ namespace MicroRatchet
             int receivingGeneration, byte[] receivingHeaderKey, byte[] receivingNextHeaderKey, byte[] receivingChainKey,
             int sendingGeneration, byte[] sendingHeaderKey, byte[] sendingNextHeaderKey, byte[] sendingChainKey)
         {
-            int keySize = (NextRootKey ?? sendingHeaderKey ?? receivingHeaderKey).Length;
+            if (NextRootKey != null && NextRootKey.Length != 32) throw new InvalidOperationException("The next root key size needs to be 32 bytes");
+            if (receivingHeaderKey != null && receivingHeaderKey.Length != 32) throw new InvalidOperationException("The receiving header key size needs to be 32 bytes");
+            if (receivingNextHeaderKey != null && receivingNextHeaderKey.Length != 32) throw new InvalidOperationException("The next receiving header key size needs to be 32 bytes");
+            if (receivingChainKey != null && receivingChainKey.Length != 32) throw new InvalidOperationException("The receiving chain key size needs to be 32 bytes");
+            if (sendingHeaderKey != null && sendingHeaderKey.Length != 32) throw new InvalidOperationException("The sending header key size needs to be 32 bytes");
+            if (sendingNextHeaderKey != null && sendingNextHeaderKey.Length != 32) throw new InvalidOperationException("The next sending header key size needs to be 32 bytes");
+            if (sendingChainKey != null && sendingChainKey.Length != 32) throw new InvalidOperationException("The sending chain key size needs to be 32 bytes");
+
             var step = new EcdhRatchetStep()
             {
                 EcdhKey = EcdhKey,
                 NextRootKey = NextRootKey
             };
 
-            step.ReceivingChain.Initialize(keySize, receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
+            step.ReceivingChain.Initialize(receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
             step.ReceivingChain.Generation = receivingGeneration;
-            step.SendingChain.Initialize(keySize, sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
+            step.SendingChain.Initialize(sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
             step.SendingChain.Generation = sendingGeneration;
 
             return step;

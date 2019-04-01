@@ -187,7 +187,6 @@ namespace MicroRatchet
             // new ecdh pubkey(32) x2, signature(64)>, mac(12) = 212 bytes
 
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can send init response.");
-            var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(NonceSize);
@@ -195,11 +194,10 @@ namespace MicroRatchet
             serverState.NextInitializationNonce = serverNonce;
             var rootPreEcdh = KeyAgreementFactory.GenerateNew();
             var rootPreEcdhPubkey = rootPreEcdh.GetPublicKey();
-            var sharedSecret = rootPreEcdh.DeriveKey(remoteEcdhForInit);
 
             // generate server ECDH for root key and root key
             var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
-            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, keySize);
+            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, 32);
             serverState.RootKey = genKeys[0];
             serverState.FirstSendHeaderKey = genKeys[1];
             serverState.FirstReceiveHeaderKey = genKeys[2];
@@ -239,11 +237,11 @@ namespace MicroRatchet
                     }
 
                     // encrypt the payload
-                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, sharedSecret), serverNonce);
+                    AesCtrMode cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), serverNonce);
                     var encryptedPayload = cipher.Process(new ArraySegment<byte>(payload));
 
                     // calculate mac
-                    Mac.Init(sharedSecret, serverNonce, MacSize * 8);
+                    Mac.Init(rootPreKey, serverNonce, MacSize * 8);
                     messageStream.TryGetBuffer(out var messageStreamBuffer);
                     Mac.Process(messageStreamBuffer);
                     Mac.Process(new ArraySegment<byte>(encryptedPayload));
@@ -263,7 +261,6 @@ namespace MicroRatchet
         private void ReceiveInitializationResponse(State state, byte[] data)
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive an init response.");
-            var keySize = Configuration.UseAes256 ? 32 : 16;
 
             // new nonce(4), ecdh pubkey(32), <nonce(4), server pubkey(32), 
             // new ecdh pubkey(32) x2, signature(64)>, mac(12)
@@ -324,7 +321,7 @@ namespace MicroRatchet
                             var localStep1EcdhRatchet = KeyAgreementFactory.GenerateNew();
 
                             // initialize client root key and ecdh ratchet
-                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, nonce, 3, keySize);
+                            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, nonce, 3, 32);
                             var rootKey = genKeys[0];
                             var receiveHeaderKey = genKeys[1];
                             var sendHeaderKey = genKeys[2];
@@ -351,8 +348,7 @@ namespace MicroRatchet
         private void ReceiveFirstMessage(State state, byte[] payload)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
-
-            int keySize = Configuration.UseAes256 ? 32 : 16;
+            
             var messageType = GetMessageType(payload[0]);
             if (messageType != MessageType.InitializationWithEcdh)
             {
@@ -463,7 +459,6 @@ namespace MicroRatchet
             // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
 
             int mtu = Configuration.Mtu;
-            int keySize = Configuration.UseAes256 ? 32 : 16;
 
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
@@ -533,7 +528,6 @@ namespace MicroRatchet
 
         private byte[] DeconstructMessage(State state, byte[] payload, MessageType? expectedMessageType = null, bool? overrideHasEcdh = null)
         {
-            int keySize = Configuration.UseAes256 ? 32 : 16;
             var messageType = GetMessageType(payload[0]);
             if (expectedMessageType.HasValue)
             {
@@ -808,18 +802,16 @@ namespace MicroRatchet
         {
             if (_state == null)
             {
-                int keySize = Configuration.UseAes256 ? 32 : 16;
                 _state = Configuration.IsClient
-                    ? (State)ClientState.Load(Storage, KeyAgreementFactory, keySize)
-                    : ServerState.Load(Storage, KeyAgreementFactory, keySize);
+                    ? (State)ClientState.Load(Storage, KeyAgreementFactory, 32)
+                    : ServerState.Load(Storage, KeyAgreementFactory, 32);
             }
             return _state;
         }
 
         private State InitializeState()
         {
-            int keySize = Configuration.UseAes256 ? 32 : 16;
-            _state = State.Initialize(Configuration.IsClient, keySize);
+            _state = State.Initialize(Configuration.IsClient, 32);
             return _state;
         }
 

@@ -7,8 +7,6 @@ namespace MicroRatchet
 {
     internal struct SymmetricRacthet
     {
-        public int KeySize { get; set; }
-
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
         public Dictionary<int, byte[]> LostKeys;
@@ -16,18 +14,16 @@ namespace MicroRatchet
         public int Generation;
         public byte[] ChainKey;
 
-        public void Initialize(int keySize, byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
+        public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
         {
-            if (keySize != 32 && keySize != 16) throw new InvalidOperationException("Invalid key size. Must be 16 or 32 bytes.");
-            if ((headerKey != null && headerKey.Length != keySize) ||
-                (chainKey != null && chainKey.Length != keySize) ||
-                (nextHeaderKey != null && nextHeaderKey.Length != keySize)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
+            if ((headerKey != null && headerKey.Length != 32) ||
+                (chainKey != null && chainKey.Length != 32) ||
+                (nextHeaderKey != null && nextHeaderKey.Length != 32)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
 
             Log.Verbose($"  C Key HK:       {Log.ShowBytes(headerKey)}");
             Log.Verbose($"  C Key Chain:    {Log.ShowBytes(chainKey)}");
             Log.Verbose($"  C Key NHK:      {Log.ShowBytes(nextHeaderKey)}");
-
-            KeySize = keySize;
+            
             HeaderKey = headerKey;
             NextHeaderKey = nextHeaderKey;
             LostKeys = new Dictionary<int, byte[]>();
@@ -46,18 +42,23 @@ namespace MicroRatchet
 
         public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
         {
+            // message keys are 128 bit
             var (gen, chain) = GetLastGeneration();
-            var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
+            var nextKeyBytes = kdf.GenerateBytes(chain, null, 32 + 16);
+            byte[] nextChainKey = new byte[32];
+            Array.Copy(nextKeyBytes, nextChainKey, 32);
+            byte[] messageKey = new byte[16];
+            Array.Copy(nextKeyBytes, 32, messageKey, 0, 16);
             var nextGen = gen + 1;
 
             Log.Verbose($"      RTC  #:      {nextGen}");
             Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
-            Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
-            Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
+            Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextChainKey)}");
+            Log.Verbose($"      RTC OK:      {Log.ShowBytes(messageKey)}");
             
             Generation = nextGen;
-            ChainKey = nextKeys[0];
-            return (nextKeys[1], nextGen);
+            ChainKey = nextChainKey;
+            return (messageKey, nextGen);
         }
 
         public (byte[], int) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
@@ -85,18 +86,23 @@ namespace MicroRatchet
                 Log.Verbose($"      RTC  #:      {gen + 1}");
                 Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
 
-                var nextKeys = kdf.GenerateKeys(chain, null, 2, KeySize);
+                // message keys are 128 bit
+                var nextKeyBytes = kdf.GenerateBytes(chain, null, 32 + 16);
+                byte[] nextChainKey = new byte[32];
+                Array.Copy(nextKeyBytes, nextChainKey, 32);
+                byte[] messageKey = new byte[16];
+                Array.Copy(nextKeyBytes, 32, messageKey, 0, 16);
                 gen++;
-                chain = nextKeys[0];
-                key = nextKeys[1];
+                chain = nextChainKey;
+                key = messageKey;
 
                 if (gen != toGeneration)
                 {
                     LostKeys[gen] = key;
                 }
 
-                Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextKeys[0])}");
-                Log.Verbose($"      RTC OK:      {Log.ShowBytes(nextKeys[1])}");
+                Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextChainKey)}");
+                Log.Verbose($"      RTC OK:      {Log.ShowBytes(messageKey)}");
             }
             
             Generation = gen;

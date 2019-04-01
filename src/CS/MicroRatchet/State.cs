@@ -236,8 +236,8 @@ namespace MicroRatchet
                         if (ratchet.ReceivingChain.HeaderKey != null) throw new InvalidOperationException("The second last send only ratchet must NOT have the receiving header key");
                         if (ratchet.ReceivingChain.ChainKey != null) throw new InvalidOperationException("The second last send only ratchet must NOT have the receiving chain key");
 
-                        if (ratchet.SendingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
-                        if (ratchet.SendingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.SendingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.SendingChain.HeaderKey must be {KeySizeInBytes} bytes");
+                        if (ratchet.SendingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.SendingChain.ChainKey must be {KeySizeInBytes} bytes");
 
                         var sgeneration = BigEndianBitConverter.GetBytes(ratchet.SendingChain.Generation);
                         sgeneration[0] |= 0b0100_0000;
@@ -258,8 +258,8 @@ namespace MicroRatchet
                     if (ratchet.ReceivingChain.HeaderKey == null) throw new InvalidOperationException("The third last ratchet must have the receiving header key");
                     if (ratchet.ReceivingChain.ChainKey == null) throw new InvalidOperationException("The third last ratchet must have the receiving chain key");
 
-                    if (ratchet.ReceivingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
-                    if (ratchet.ReceivingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.NextRootKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.HeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.ReceivingChain.HeaderKey must be {KeySizeInBytes} bytes");
+                    if (ratchet.ReceivingChain.ChainKey.Length != KeySizeInBytes) throw new InvalidOperationException($"ratchet.ReceivingChain.ChainKey must be {KeySizeInBytes} bytes");
 
                     var rgeneration = BigEndianBitConverter.GetBytes(ratchet.ReceivingChain.Generation);
                     rgeneration[0] |= 0b1000_0000;

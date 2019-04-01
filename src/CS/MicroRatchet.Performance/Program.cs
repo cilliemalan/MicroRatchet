@@ -172,7 +172,7 @@ namespace MicroRatchet.Performance
             Thread.Sleep(1000);
             {
                 Console.WriteLine("Testing ratchet speed...");
-                var (client, server) = CreateAndInitialize(false);
+                var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount / 4000).Select(_ => rng.Generate(32)).ToArray();
                 server.Receive(client.Send(new byte[32]).Message);
                 client.Receive(server.Send(new byte[32]).Message);
@@ -327,15 +327,13 @@ namespace MicroRatchet.Performance
             }
         }
 
-        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(bool aes256 = false)
+        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize()
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
             DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
-            client.Configuration.UseAes256 = aes256;
-            server.Configuration.UseAes256 = aes256;
 
             var packet = client.InitiateInitialization();
 
@@ -367,8 +365,8 @@ namespace MicroRatchet.Performance
             server.SaveState();
 
             return (
-                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, Mtu = 80, UseAes256 = aes256 }),
-                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, Mtu = 80, UseAes256 = aes256 }));
+                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, Mtu = 80 }),
+                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, Mtu = 80 }));
         }
     }
 }

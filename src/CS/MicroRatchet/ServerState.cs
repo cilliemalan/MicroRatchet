@@ -120,8 +120,9 @@ namespace MicroRatchet
             }
         }
 
-        public static ServerState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize)
+        public static ServerState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize = 32)
         {
+            if (keySize != 32) throw new InvalidOperationException("Invalid key size");
             var state = new ServerState(keySize);
             state.LoadInternal(storage, kexFac);
             return state;

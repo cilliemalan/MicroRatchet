@@ -41,7 +41,6 @@ namespace MicroRatchet.Tests
 
             var client = new MicroRatchetClient(clientServices, true);
             var kex = clientServices.KeyAgreementFactory;
-            var ks = client.Configuration.UseAes256 ? 32 : 16;
 
             var clientInitPacket = client.InitiateInitialization();
             client.SaveState();

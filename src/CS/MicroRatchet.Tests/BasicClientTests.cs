@@ -314,8 +314,8 @@ namespace MicroRatchet.Tests
 
             client.SaveState();
             server.SaveState();
-            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance, client.Configuration.UseAes256 ? 32 : 16);
-            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance, server.Configuration.UseAes256 ? 32 : 16);
+            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance);
+            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
