@@ -26,7 +26,6 @@ namespace MicroRatchet
         public IStorageProvider Storage { get; set; }
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
         public IVerifierFactory VerifierFactory { get; set; }
-        public IMac Mac { get; set; } = new Poly();
         public IAesFactory AesFactory { get; }
 
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory

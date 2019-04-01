@@ -17,6 +17,18 @@ namespace MicroRatchet.Tests
         [InlineData(16, 64, 128)]
         [InlineData(16, 32, 96)]
         [InlineData(16, 64, 96)]
+        [InlineData(16, 80, 96)]
+        [InlineData(16, 1, 128)]
+        [InlineData(16, 2, 128)]
+        [InlineData(16, 3, 128)]
+        [InlineData(16, 4, 128)]
+        [InlineData(16, 5, 128)]
+        [InlineData(16, 8, 128)]
+        [InlineData(16, 9, 128)]
+        [InlineData(16, 16, 128)]
+        [InlineData(16, 16, 96)]
+        [InlineData(16, 13, 128)]
+        [InlineData(16, 13, 96)]
         [Theory]
         public void BasicPolyTests(int ivBytes, int dataBytes, int macSize)
         {
@@ -25,13 +37,13 @@ namespace MicroRatchet.Tests
             byte[] key = rng.Generate(32);
             byte[] data = rng.Generate(dataBytes);
 
-            Poly pmac = new Poly();
+            Poly pmac = new Poly(_aesFactory);
+            var bcpoly = new Poly1305(new AesEngine());
             pmac.Init(key, iv, macSize);
+            bcpoly.Init(new ParametersWithIV(new KeyParameter(key), iv));
             pmac.Process(new ArraySegment<byte>(data));
             byte[] mac = pmac.Compute();
 
-            var bcpoly = new Poly1305(new AesEngine());
-            bcpoly.Init(new ParametersWithIV(new KeyParameter(key), iv));
             bcpoly.BlockUpdate(data, 0, data.Length);
             byte[] bcmac = new byte[bcpoly.GetMacSize()];
             bcpoly.DoFinal(bcmac, 0);
@@ -40,16 +52,33 @@ namespace MicroRatchet.Tests
             Assert.Equal(bcmac, mac);
         }
 
-        [Fact]
-        public void PolyReuseKeyTest()
+        [InlineData(16, 320, 128)]
+        [InlineData(16, 32, 128)]
+        [InlineData(16, 64, 128)]
+        [InlineData(16, 32, 96)]
+        [InlineData(16, 64, 96)]
+        [InlineData(16, 80, 96)]
+        [InlineData(16, 1, 128)]
+        [InlineData(16, 2, 128)]
+        [InlineData(16, 3, 128)]
+        [InlineData(16, 4, 128)]
+        [InlineData(16, 5, 128)]
+        [InlineData(16, 8, 128)]
+        [InlineData(16, 9, 128)]
+        [InlineData(16, 16, 128)]
+        [InlineData(16, 16, 96)]
+        [InlineData(16, 13, 128)]
+        [InlineData(16, 13, 96)]
+        [Theory]
+        public void PolyReuseKeyTest(int ivBytes, int dataBytes, int macSize)
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
-            byte[] iv = rng.Generate(16);
+            byte[] iv = rng.Generate(ivBytes);
             byte[] key = rng.Generate(32);
-            byte[] data1 = rng.Generate(64);
-            byte[] data2 = rng.Generate(64);
+            byte[] data1 = rng.Generate(dataBytes);
+            byte[] data2 = rng.Generate(dataBytes);
 
-            var pmac = new Poly();
+            var pmac = new Poly(_aesFactory);
             pmac.Init(key, iv, 96);
             pmac.Process(new ArraySegment<byte>(data1));
             byte[] mac1 = pmac.Compute();
@@ -83,18 +112,18 @@ namespace MicroRatchet.Tests
             byte[] key = rng.Generate(32);
             byte[] data = rng.Generate(100);
 
-            Poly pmac = new Poly();
+            Poly pmac = new Poly(_aesFactory);
             pmac.Init(key, iv, 128);
             pmac.Process(new ArraySegment<byte>(data));
             byte[] mac1 = pmac.Compute();
 
-            pmac = new Poly();
+            pmac = new Poly(_aesFactory);
             pmac.Init(key, iv, 128);
             pmac.Process(new ArraySegment<byte>(data, 0, 50));
             pmac.Process(new ArraySegment<byte>(data, 50, 50));
             byte[] mac2 = pmac.Compute();
 
-            pmac = new Poly();
+            pmac = new Poly(_aesFactory);
             pmac.Init(key, iv, 128);
             pmac.Process(new ArraySegment<byte>(data, 0, 33));
             pmac.Process(new ArraySegment<byte>(data, 33, 33));
@@ -111,7 +140,7 @@ namespace MicroRatchet.Tests
         [Theory]
         public void PolyReferenceTests(byte[] key, byte[] iv, byte[] data, byte[] expected)
         {
-            Poly pmac = new Poly();
+            Poly pmac = new Poly(_aesFactory);
             pmac.Init(key, iv, 128);
             pmac.Process(new ArraySegment<byte>(data));
             byte[] mac = pmac.Compute();
@@ -130,6 +159,18 @@ namespace MicroRatchet.Tests
             
             Assert.Equal(expected, mac);
             Assert.Equal(expected, bcmac);
+        }
+
+        private static AesFactory _aesFactory = new AesFactory();
+
+        private class AesFactory : IAesFactory
+        {
+            public IAes GetAes(bool forEncryption, byte[] key)
+            {
+                var aes = new Aes();
+                aes.Initialize(forEncryption, key);
+                return aes;
+            }
         }
     }
 }

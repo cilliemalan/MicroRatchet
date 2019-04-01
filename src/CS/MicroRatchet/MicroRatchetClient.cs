@@ -25,7 +25,6 @@ namespace MicroRatchet
         IAesFactory AesFactory => Services.AesFactory;
         IKeyDerivation KeyDerivation;
         IVerifierFactory VerifierFactory => Services.VerifierFactory;
-        IMac Mac => Services.Mac;
         IStorageProvider Storage => Services.Storage;
 
         private MultipartMessageReconstructor _multipart;
@@ -240,6 +239,7 @@ namespace MicroRatchet
                     var encryptedPayload = cipher.Process(new ArraySegment<byte>(payload));
 
                     // calculate mac
+                    var Mac = new Poly(AesFactory);
                     Mac.Init(rootPreKey, serverNonce, MacSize * 8);
                     messageStream.TryGetBuffer(out var messageStreamBuffer);
                     Mac.Process(messageStreamBuffer);
@@ -279,6 +279,7 @@ namespace MicroRatchet
                         data.Length - EcdhSize - NonceSize - MacSize));
 
                     // check mac
+                    var Mac = new Poly(AesFactory);
                     br.BaseStream.Seek(data.Length - MacSize, SeekOrigin.Begin);
                     var mac = br.ReadBytes(MacSize);
                     Mac.Init(rootPreKey, nonce, MacSize * 8);
@@ -370,6 +371,7 @@ namespace MicroRatchet
             Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
 
             // check the mac
+            var Mac = new Poly(AesFactory);
             byte[] headerKey = serverState.FirstReceiveHeaderKey;
             Mac.Init(headerKey, nonce, MacSize * 8);
             Mac.Process(new ArraySegment<byte>(payload, 0, payload.Length - MacSize));
@@ -510,6 +512,7 @@ namespace MicroRatchet
 
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
+            var Mac = new Poly(AesFactory);
             var encryptedNonce = new byte[4];
             Array.Copy(encryptedHeader, encryptedNonce, 4);
             Mac.Init(step.SendingChain.HeaderKey, encryptedNonce, MacSize * 8);
@@ -558,6 +561,7 @@ namespace MicroRatchet
             Array.Copy(payload, headerSize + payloadSize, mac, 0, MacSize);
 
             // find the header key by checking the mac
+            var Mac = new Poly(AesFactory);
             byte[] headerKey = null;
             EcdhRatchetStep ratchetUsed = null;
             bool usedNextHeaderKey = false;
