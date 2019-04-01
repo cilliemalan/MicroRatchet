@@ -2,6 +2,7 @@
 #include <microratchet.h>
 
 #include <wolfssl/wolfcrypt/poly1305.h>
+#include <wolfssl/wolfcrypt/aes.h>
 
 //Poly1305
 
@@ -21,13 +22,21 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_poly_init(mr_poly_ctx _ctx, const unsigned char* key, unsigned int keysize)
+int mr_poly_init(mr_poly_ctx _ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	if (keysize != 32) return E_INVALIDSIZE;
-	if (!key || !_ctx) return E_INVALIDARGUMENT;
+	if (ivsize != 16) return E_INVALIDSIZE;
+	if (!key || !_ctx || !iv) return E_INVALIDARGUMENT;
 
-	int r = wc_Poly1305SetKey(&ctx->wc_poly, key, keysize);
+	unsigned char tkey[32];
+	memcpy(tkey, key, 16);
+	Aes aes;
+	int r = wc_AesSetKeyDirect(&aes, key + 16, 16, 0, AES_ENCRYPTION);
+	if (r != 0) return E_INVALIDOP;
+	wc_AesEncryptDirect(&aes, tkey + 16, iv);
+
+	r = wc_Poly1305SetKey(&ctx->wc_poly, tkey, 32);
 	if (r != 0) return E_INVALIDOP;
 	return E_SUCCESS;
 }

@@ -47,10 +47,11 @@ extern "C" {
 	///// Poly1305 (with AES)
 
 	mr_poly_ctx mr_poly_create(mr_ctx mr_ctx);
-	int mr_poly_init(mr_poly_ctx ctx, const unsigned char* key, unsigned int keysize);
+	int mr_poly_init(mr_poly_ctx ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize);
 	int mr_poly_process(mr_poly_ctx ctx, const unsigned char* data, unsigned int amount);
 	int mr_poly_compute(mr_poly_ctx ctx, unsigned char* output, unsigned int spaceavail);
 	void mr_poly_destroy(mr_poly_ctx ctx);
+
 
 	///// ECDH
 	
