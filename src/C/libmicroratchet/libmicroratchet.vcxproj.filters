@@ -35,5 +35,8 @@
     <ClCompile Include="client.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="aesctr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
