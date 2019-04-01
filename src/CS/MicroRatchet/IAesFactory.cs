@@ -6,6 +6,6 @@ namespace MicroRatchet
 {
     public interface IAesFactory
     {
-        IAes GetAes(bool forEncryption, ArraySegment<byte> key);
+        IAes GetAes(bool forEncryption, byte[] key);
     }
 }

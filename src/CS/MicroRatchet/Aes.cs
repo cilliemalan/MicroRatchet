@@ -10,10 +10,10 @@ namespace MicroRatchet
     {
         private AesEngine _aes;
 
-        public void Initialize(bool encryption, ArraySegment<byte> key)
+        public void Initialize(bool encryption, byte[] key)
         {
-            _aes = new Org.BouncyCastle.Crypto.Engines.AesEngine();
-            _aes.Init(encryption, new KeyParameter(key.Array, key.Offset, key.Count));
+            _aes = new AesEngine();
+            _aes.Init(encryption, new KeyParameter(key));
         }
 
         public void Process(ArraySegment<byte> input, ArraySegment<byte> output)

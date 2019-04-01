@@ -8,6 +8,13 @@ namespace MicroRatchet
 {
     internal static class Extensions
     {
+        public static byte[] ToArray(this ArraySegment<byte> arr)
+        {
+            var b = new byte[arr.Count];
+            Array.Copy(arr.Array, arr.Offset, b, 0, arr.Count);
+            return b;
+        }
+
         public static MessageInfo Send(this MicroRatchetClient mrc, byte[] payload, bool pad = false) =>
             mrc.Send(new ArraySegment<byte>(payload), pad);
 
@@ -23,6 +30,9 @@ namespace MicroRatchet
 
         public static byte[] ComputeDigest(this IDigest digest, byte[] data) =>
             digest.ComputeDigest(new ArraySegment<byte>(data));
+
+        public static byte[] ComputeDigest(this IDigest digest, byte[] data, int offset, int length) =>
+            digest.ComputeDigest(new ArraySegment<byte>(data, offset, length));
 
         public static bool Matches(this byte[] bytes, byte[] other)
         {
@@ -89,6 +99,12 @@ namespace MicroRatchet
         public static bool Verify(this IVerifier sig, byte[] data, int offset, int count, ArraySegment<byte> signature) =>
             sig.Verify(new ArraySegment<byte>(data, offset, count), signature);
 
+        public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, byte[] message) =>
+            VerifySignedMessage(sig, digest, new ArraySegment<byte>(message));
+
+        public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, byte[] message, int offset, int length) =>
+            VerifySignedMessage(sig, digest, new ArraySegment<byte>(message, offset, length));
+
         public static bool VerifySignedMessage(this IVerifier sig, IDigest digest, ArraySegment<byte> message)
         {
             if (message.Count <= sig.SignatureSize) throw new InvalidOperationException("The message size is smaller than or equal to the size of a signature");
@@ -100,7 +116,7 @@ namespace MicroRatchet
                 new ArraySegment<byte>(message.Array, message.Offset + message.Count - sig.SignatureSize, sig.SignatureSize));
         }
 
-        public static byte[][] GenerateKeys(this IKeyDerivation kdf, ArraySegment<byte> key, ArraySegment<byte> info, int numKeys, int keySize)
+        public static byte[][] GenerateKeys(this IKeyDerivation kdf, byte[] key, byte[] info, int numKeys, int keySize)
         {
             byte[] totalKeyBytes = kdf.GenerateBytes(key, info, keySize * numKeys);
             byte[][] keys = new byte[numKeys][];
@@ -113,5 +129,18 @@ namespace MicroRatchet
 
             return keys;
         }
+
+        public static void Init(this IMac mac, byte[] key, byte[] iv, int macSize) =>
+            mac.Init(key, new ArraySegment<byte>(iv), macSize);
+
+        public static void Init(this IMac mac, byte[] key, byte[] iv, int ivoffset, int ivlen, int macSize) =>
+            mac.Init(key, new ArraySegment<byte>(iv, ivoffset, ivlen), macSize);
+
+        public static void Process(this IMac mac, byte[] data) =>
+            mac.Process(new ArraySegment<byte>(data));
+
+        public static void Process(this IMac mac, byte[] data, int offset, int length) =>
+            mac.Process(new ArraySegment<byte>(data, offset, length));
+
     }
 }

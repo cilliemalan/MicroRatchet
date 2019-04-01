@@ -6,7 +6,7 @@ namespace MicroRatchet
 {
     public interface IMac
     {
-        void Init(ArraySegment<byte> key, ArraySegment<byte> iv, int macSize);
+        void Init(byte[] key, ArraySegment<byte> iv, int macSize);
         void Process(ArraySegment<byte> data);
         byte[] Compute();
     }
