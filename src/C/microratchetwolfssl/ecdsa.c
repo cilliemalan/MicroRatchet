@@ -20,6 +20,18 @@ mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
+int mr_ecdsa_setprivatekey(mr_ecdsa_ctx _ctx, const unsigned char* privatekey, unsigned int privatekeysize)
+{
+	_mr_ecdsa_ctx* ctx = _ctx;
+	if (privatekeysize < 32) return E_INVALIDSIZE;
+	if (!privatekey || !ctx) return E_INVALIDARGUMENT;
+
+	ecc_key* key = &ctx->key;
+	int result = ecc_load(key, privatekey, privatekeysize);
+	if (result != 0) return result;
+	return E_SUCCESS;
+}
+
 int mr_ecdsa_generate(mr_ecdsa_ctx _ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;

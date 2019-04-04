@@ -67,6 +67,7 @@ extern "C" {
 	///// ECDSA
 	
 	mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx);
+	int mr_ecdsa_setprivatekey(mr_ecdsa_ctx ctx, const unsigned char* privatekey, unsigned int privatekeysize);
 	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
 	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
 	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize);
