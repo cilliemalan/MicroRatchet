@@ -2,3 +2,7 @@
 	path = thirdparty/wolfssl
 	url = https://github.com/wolfSSL/wolfssl
 	branch = master
+[submodule "thirdparty/googletest"]
+	path = thirdparty/googletest
+	url = https://github.com/google/googletest
+	branch = master
