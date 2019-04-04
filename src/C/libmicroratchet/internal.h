@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define STATICASSERT(ex,msg) static_assert(ex,msg)
+
 #define KEY_SIZE 32
 #define MSG_KEY_SIZE 16
 #define NONCE_SIZE 4
@@ -79,6 +81,19 @@ extern "C" {
 	int aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const unsigned char *iv, unsigned int ivsize);
 	int aesctr_process(_mr_aesctr_ctx *ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
 
+	// some bit movings
+	void be_pack64(long long value, unsigned char* target);
+	void be_pack32(int value, unsigned char* target);
+	void be_pack16(short value, unsigned char* target);
+	void le_pack64(long long value, unsigned char* target);
+	void le_pack32(int value, unsigned char* target);
+	void le_pack16(short value, unsigned char* target);
+	long long be_unpack64(const unsigned char* d);
+	int be_unpack32(const unsigned char* d);
+	short be_unpack16(const unsigned char* d);
+	long long le_unpack64(const unsigned char* d);
+	int le_unpack32(const unsigned char* d);
+	short le_unpack16(const unsigned char* d);
 
 #ifdef __cplusplus
 }

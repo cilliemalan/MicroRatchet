@@ -51,6 +51,7 @@
   <ItemGroup>
     <ClCompile Include="aes.cpp" />
     <ClCompile Include="aesctr.cpp" />
+    <ClCompile Include="bitconverter.cpp" />
     <ClCompile Include="client.cpp" />
     <ClCompile Include="ecdh.cpp" />
     <ClCompile Include="ecdsa.cpp" />
