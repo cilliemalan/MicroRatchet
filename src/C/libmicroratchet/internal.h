@@ -1,5 +1,8 @@
 #pragma once
 
+#include "microratchet.h"
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,14 +19,6 @@ extern "C" {
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
 #define _N(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { ctx->next(__r, ctx, mr_ctx); return; } }
 #define _E(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { (mr_ctx->next = ctx->next)(__r, ctx, mr_ctx); return; } }
-
-	typedef struct _mr_ctx {
-		mr_config* config;
-		mr_sha_ctx sha_ctx;
-		_mr_initialization_state init;
-		_mr_ratchet_state ratchets[NUM_RATCHETS];
-		_mr_lostkey lost_keys[NUM_LOST_KEYS];
-	} _mr_ctx;
 
 	typedef struct _mr_initialization_state {
 		union {
@@ -43,18 +38,18 @@ extern "C" {
 		};
 	} _mr_initialization_state;
 
-	typedef struct _mr_lostkey {
-		_mr_chain_state* chain;
-		unsigned int generation;
-		unsigned char key[MSG_KEY_SIZE];
-	} _mr_lostkey;
-
 	typedef struct _mr_chain_state {
 		unsigned int generation;
 		unsigned char nextheaderkey[KEY_SIZE];
 		unsigned char headerkey[KEY_SIZE];
 		unsigned char chainkey[KEY_SIZE];
 	} _mr_chain_state;
+
+	typedef struct _mr_lostkey {
+		_mr_chain_state* chain;
+		unsigned int generation;
+		unsigned char key[MSG_KEY_SIZE];
+	} _mr_lostkey;
 
 	typedef struct _mr_ratchet_state {
 		mr_ecdh_ctx ecdhkey;
@@ -63,8 +58,14 @@ extern "C" {
 		_mr_chain_state receivingchain;
 	} _mr_ratchet_state;
 
-
-
+	typedef struct _mr_ctx {
+		mr_config* config;
+		mr_sha_ctx sha_ctx;
+		_mr_initialization_state init;
+		_mr_ratchet_state ratchets[NUM_RATCHETS];
+		_mr_lostkey lost_keys[NUM_LOST_KEYS];
+	} _mr_ctx;
+	
 	typedef struct _mr_aesctr_ctx {
 		mr_aes_ctx aes_ctx;
 		unsigned char ctr[16];
