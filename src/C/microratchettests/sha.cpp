@@ -55,7 +55,7 @@ void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_outp
 	mrclient_destroy(mr_ctx);
 }
 
-TEST(Sha, ComputeEmpty) {
+TEST(Sha, ReferenceTestEmpty) {
 	unsigned char output[32];
 	unsigned char expected[32]{
 		0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
@@ -76,7 +76,7 @@ TEST(Sha, ComputeEmpty) {
 	mrclient_destroy(mr_ctx);
 }
 
-TEST(Sha, ComputeShort1) {
+TEST(Sha, ReferenceTestShort1) {
 	const unsigned char input[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 	const unsigned char output[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
@@ -88,7 +88,7 @@ TEST(Sha, ComputeShort1) {
 	testsha(input, output);
 }
 
-TEST(Sha, ComputeShort2) {
+TEST(Sha, ReferenceTestShort2) {
 	const unsigned char input[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
 	const unsigned char output[32]{
 		0xAE, 0xB6, 0xB8, 0xE3, 0xE2, 0xF5, 0x96, 0x04,
@@ -100,7 +100,7 @@ TEST(Sha, ComputeShort2) {
 	testsha(input, output);
 }
 
-TEST(Sha, ComputeLong) {
+TEST(Sha, ReferenceTestLong) {
 	const unsigned char input[]{
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -131,7 +131,7 @@ TEST(Sha, ComputeLong) {
 	testsha(input, output);
 }
 
-TEST(Sha, ComputeTwice) {
+TEST(Sha, ReferenceTestTwice) {
 	const unsigned char input1[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 	const unsigned char expected1[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
