@@ -27,7 +27,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	char *sbuffer2 = new char[l1*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
-	ASSERT_STREQ(sbuffer1, sbuffer2); \
+	GTEST_ASSERT_(::testing::internal::CmpHelperSTREQ(#b1, #b2, sbuffer1, sbuffer2), GTEST_FATAL_FAILURE_); \
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
@@ -41,7 +41,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	char *sbuffer2 = new char[l1*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
-	ASSERT_STRNE(sbuffer1, sbuffer2); \
+	GTEST_ASSERT_(::testing::internal::CmpHelperSTRNE(#b1, #b2, sbuffer1, sbuffer2), GTEST_FATAL_FAILURE_); \
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
@@ -56,7 +56,7 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	char *sbuffer2 = new char[l1*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
-	EXPECT_STREQ(sbuffer1, sbuffer2); \
+	GTEST_ASSERT_(::testing::internal::CmpHelperSTREQ(#b1, #b2, sbuffer1, sbuffer2), GTEST_NONFATAL_FAILURE_); \
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
@@ -70,6 +70,6 @@ inline void buffer_to_string(const unsigned char* b1, unsigned int l1, char* out
 	char *sbuffer2 = new char[l1*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
-	EXPECT_STRNE(sbuffer1, sbuffer2); \
+	GTEST_ASSERT_(::testing::internal::CmpHelperSTRNE(#b1, #b2, sbuffer1, sbuffer2), GTEST_NONFATAL_FAILURE_); \
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
