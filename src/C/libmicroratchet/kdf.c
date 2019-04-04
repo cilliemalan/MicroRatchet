@@ -4,6 +4,10 @@
 
 int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int outputlen)
 {
+	if (!mr_ctx || !key || !output) return E_INVALIDARGUMENT;
+	if (keylen != 16 && keylen != 24 && keylen != 32) return E_INVALIDSIZE;
+	if (outputlen == 0) return E_SUCCESS;
+
 	int r = E_SUCCESS;
 
 	// initialize AES with key
@@ -15,9 +19,9 @@ int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, co
 	unsigned char ctr[16];
 	memset(ctr, 0, sizeof(ctr));
 	int info_offset = 0;
-	if (info)
+	if (info && infolen)
 	{
-		while (infolen - info_offset > 0)
+		while ((int)infolen - info_offset > 0)
 		{
 			for (unsigned int i = 0; i < 16 && i + info_offset < infolen; i++)
 			{
@@ -53,7 +57,7 @@ int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, co
 	}
 
 exit:
-	if (aes) mr_aes_destroy(aes);
+	mr_aes_destroy(aes);
 
 	return r;
 }
