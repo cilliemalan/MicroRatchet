@@ -103,7 +103,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 	return E_SUCCESS;
 }
 
-int ecc_load(ecc_key* key, unsigned char* data, unsigned int spaceavail)
+int ecc_load(ecc_key* key, const unsigned char* data, unsigned int spaceavail)
 {
 	memset(key, 0, sizeof(ecc_key));
 
