@@ -61,10 +61,19 @@ namespace MicroRatchet
             ecdh.Init(_pk);
             var key = ecdh.CalculateAgreement(pubk);
             var keyBytes = key.ToByteArray();
-            _sha.BlockUpdate(keyBytes, 0, keyBytes.Length);
-            byte[] output = new byte[32];
-            _sha.DoFinal(output, 0);
-            return output;
+
+            if (keyBytes.Length != 32)
+            {
+                byte[] output = new byte[32];
+                int l = keyBytes.Length;
+                int o = Math.Max(0, l - 32);
+                int t = Math.Min(32, l);
+                int w = 32 - t;
+                Array.Copy(keyBytes, o, output, w, t);
+                keyBytes = output;
+            }
+
+            return keyBytes;
         }
 
         private static ECPublicKeyParameters DecodePublicKey(ArraySegment<byte> pub)
