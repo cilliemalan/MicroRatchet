@@ -22,6 +22,8 @@ extern "C" {
 #define E_NOMEM -4
 #define E_HARDWAREFAIL -5
 #define E_VERIFYFAIL -6
+#define E_KEYLOST -7
+#define E_NOTFOUND -7
 
 	// these functions must be supplied by the integrating application.
 	// The project will fail to link if they are not implemented.

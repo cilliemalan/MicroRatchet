@@ -48,12 +48,13 @@ extern "C" {
 	} _mr_chain_state;
 
 	typedef struct _mr_lostkey {
-		_mr_chain_state* chain;
+		unsigned int ratchet;
 		unsigned int generation;
 		unsigned char key[MSG_KEY_SIZE];
 	} _mr_lostkey;
 
 	typedef struct _mr_ratchet_state {
+		unsigned int num;
 		mr_ecdh_ctx ecdhkey;
 		unsigned char nextrootkey[KEY_SIZE];
 		_mr_chain_state sendingchain;
@@ -67,7 +68,7 @@ extern "C" {
 		_mr_ratchet_state ratchets[NUM_RATCHETS];
 		_mr_lostkey lost_keys[NUM_LOST_KEYS];
 	} _mr_ctx;
-	
+
 	typedef struct _mr_aesctr_ctx {
 		mr_aes_ctx aes_ctx;
 		unsigned char ctr[16];
@@ -78,8 +79,8 @@ extern "C" {
 	int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int spaceavail);
 
 	// AES CTR
-	int aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const unsigned char *iv, unsigned int ivsize);
-	int aesctr_process(_mr_aesctr_ctx *ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
+	int aesctr_init(_mr_aesctr_ctx * ctx, mr_aes_ctx aes, const unsigned char* iv, unsigned int ivsize);
+	int aesctr_process(_mr_aesctr_ctx * ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
 
 	// some bit movings
 	void be_pack64(long long value, unsigned char* target);
@@ -94,6 +95,48 @@ extern "C" {
 	long long le_unpack64(const unsigned char* d);
 	int le_unpack32(const unsigned char* d);
 	short le_unpack16(const unsigned char* d);
+
+	// ratchetings
+	int ratchet_getorder(mr_ctx mr_ctx, int* indexes, unsigned int numindexes);
+	int ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	int ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	int ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	int ratchet_initialize_server(mr_ctx mr_ctx,
+		_mr_ratchet_state* ratchet,
+		mr_ecdh_ctx previouskeypair,
+		unsigned char* rootkey, unsigned int rootkeysize,
+		unsigned char* remotepubickey, unsigned int remotepubickeysize,
+		mr_ecdh_ctx keypair,
+		unsigned char* receiveheaderkey, unsigned int receiveheaderkeysize,
+		unsigned char* sendheaderkey, unsigned int sendheaderkeysize);
+	int ratchet_initialize_client(mr_ctx mr_ctx,
+		_mr_ratchet_state* ratchet1,
+		_mr_ratchet_state* ratchet2,
+		unsigned char* rootkey, unsigned int rootkeysize,
+		unsigned char* remotepubickey0, unsigned int remotepubickey0size,
+		unsigned char* remotepubickey1, unsigned int remotepubickey1size,
+		mr_ecdh_ctx keypair,
+		unsigned char* receiveheaderkey, unsigned int receiveheaderkeysize,
+		unsigned char* sendheaderkey, unsigned int sendheaderkeysize,
+		mr_ecdh_ctx nextkeypair);
+	int ratchet_initialize(
+		mr_ctx mr_ctx,
+		_mr_ratchet_state* ratchet,
+		unsigned int num,
+		mr_ecdh_ctx ecdhkey,
+		unsigned char* nextrootkey, unsigned int nextrootkeysize,
+		unsigned int receivinggeneration,
+		unsigned char* receivingheaderkey, unsigned int receivingheaderkeysize,
+		unsigned char* receivingnextheaderkey, unsigned int receivingnextheaderkeysize,
+		unsigned char* receivingchainkey, unsigned int receivingchainkeysize,
+		unsigned int sendinggeneration,
+		unsigned char* sendingheaderkey, unsigned int sendingheaderkeysize,
+		unsigned char* sendingnextheaderkey, unsigned int sendingnextheaderkeysize,
+		unsigned char* sendingchainkey, unsigned int sendingchainkeysize);
+	int ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, unsigned char* remotepublickey, unsigned int remotepublickeysize, mr_ecdh_ctx keypair);
+	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const unsigned char* headerkey, unsigned int headerkeysize, const unsigned char* chainkey, unsigned int chainkeysize, const unsigned char* nextheaderkey, unsigned int nextheaderkeysize);
+	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, unsigned char* key, unsigned int keysize, int* generation);
+	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, unsigned int generation, unsigned char* key, unsigned int keysize);
 
 #ifdef __cplusplus
 }
