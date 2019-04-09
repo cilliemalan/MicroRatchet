@@ -13,9 +13,27 @@ extern "C" {
 #define MSG_KEY_SIZE 16
 #define NONCE_SIZE 4
 #define MAC_SIZE 12
-#define ECNUM_SIZE 12
+#define ECNUM_SIZE 32
+#define SIGNATURE_SIZE (ECNUM_SIZE+ECNUM_SIZE)
 #define NUM_RATCHETS 5
 #define NUM_LOST_KEYS 10
+#define MIN_MSG_SIZE 16
+#define MIN_MSG_SIZE 16
+#define MIN_OVERHEAD (NONCE_SIZE + MAC_SIZE)
+#define OVERHEAD_WITH_ECDH (MIN_OVERHEAD + ECNUM_SIZE)
+#define INIT_REQ_MSG_SIZE (NONCE_SIZE + ECNUM_SIZE*2 + SIGNATURE_SIZE)
+#define INIT_RES_MSG_SIZE (NONCE_SIZE*2 + ECNUM_SIZE*4 + SIGNATURE_SIZE + MAC_SIZE)
+
+#define MSG_TYPE_NORMAL 0
+#define MSG_TYPE_NORMAL_WITH_ECDH 1
+// 2 = reserved
+#define MSG_TYPE_MULTIPART 3
+#define MSG_TYPE_INIT_REQ 4
+#define MSG_TYPE_INIT_WITHOUT_ECDH 4
+#define MSG_TYPE_INIT_RES 5
+#define MSG_TYPE_INIT_WITH_ECDH 5
+// 6 = reserved
+// 7 = reserved
 
 
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }

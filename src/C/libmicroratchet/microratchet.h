@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 	// structures
+	typedef char mr_bool;
 	typedef void* mr_ctx;
 	typedef void* mr_sha_ctx;
 	typedef void* mr_aes_ctx;
@@ -97,8 +98,8 @@ extern "C" {
 
 
 	///// communcation
-	
-	int mr_transmit(mr_ctx ctx, void* user, const unsigned char* data, int howmuch);
+
+	int mr_transmit(mr_ctx ctx, void* user, const unsigned char* data, unsigned int datasize);
 
 
 
@@ -115,21 +116,9 @@ extern "C" {
 
 	// create a new MicroRatchet client with the provided configuration. the client will hold a reference to the configuration.
 	mr_ctx mrclient_create(mr_config* config);
-
-	// process initialization. call this function when data received on the wire during the initialization phase.
-	// Call with null for the first time to initiate initialization. This function will transmit data as needed by calling mr_transmit.
-	// This function will return E_MORE when initialziation is not yet done. It will return E_SUCCESS when initialization has been completed.
-	// If initialization has previously completed and the client is already initialized, this function will not attempt to communicate.
-	// This function must be called with a complete message.
-	int mrclient_process_initialization(mr_ctx ctx, const unsigned char* bytes, int numbytes);
-
-	// process incoming data. Call this function when data is received on the wire after the client has been initialized.
-	int mrclient_receive_data(mr_ctx ctx, const unsigned char* bytes, int numbytes, unsigned char** output, int spaceavail, int* outputspace);
-
-	// transmit data. Call this function to send data after the client has been initialized.
-	int mrclient_send_data(mr_ctx ctx, const unsigned char* data, int numbytes);
-
-	// destroy a client
+	int mrclient_initiate_initialization(mr_ctx ctx, int force);
+	int mrclient_receive_data(mr_ctx ctx, const unsigned char* data, unsigned int datasize, unsigned char** output, unsigned int* outputsize);
+	int mrclient_send_data(mr_ctx ctx, const unsigned char* data, unsigned int datasize, int mustPad);
 	void mrclient_destroy(mr_ctx ctx);
 
 
