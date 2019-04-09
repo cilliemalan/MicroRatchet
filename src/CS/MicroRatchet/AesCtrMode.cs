@@ -8,7 +8,8 @@ namespace MicroRatchet
     {
         private IAes _aes;
         private byte[] _iv;
-        bool burnt = false;
+        private byte[] _ctrout;
+        private int _off;
 
         public AesCtrMode(IAes aes, ArraySegment<byte> iv)
         {
@@ -53,38 +54,39 @@ namespace MicroRatchet
 
         public void Process(ArraySegment<byte> data, ArraySegment<byte> output)
         {
-            if (burnt) throw new NotSupportedException("AesCtrMode can only be used once");
-            burnt = true;
-
             Log.Verbose("Cipher Process");
 
-            byte[] ctrout = new byte[16];
-            void ProcessBlock(
-                byte[] inbytes,
-                int inoffset,
-                int numBytesToProcess,
-                byte[] outbytes,
-                int outoffset)
-            {
-                _aes.Process(new ArraySegment<byte>(_iv), new ArraySegment<byte>(ctrout));
+            if (data.Array == null) throw new ArgumentNullException(nameof(data));
+            if (output.Array == null) throw new ArgumentNullException(nameof(output));
+            if (data.Count == 0) return;
+            if (output.Count < data.Count) throw new InvalidOperationException("output does not have enough space");
 
-                for (int i = 0; i < ctrout.Length && i < numBytesToProcess; i++)
+            int offset = 0;
+            while (offset < data.Count)
+            {
+                // create a cipherstream block if needed
+                if (_ctrout == null || _off == 16)
                 {
-                    outbytes[outoffset + i] = (byte)(ctrout[i] ^ inbytes[inoffset + i]);
+                    // push the counter through AES
+                    if (_ctrout == null) _ctrout = new byte[16];
+                    _aes.Process(new ArraySegment<byte>(_iv), new ArraySegment<byte>(_ctrout));
+                    _off = 0;
+
+                    // increment counter
+                    for (int z = 15; z >= 0 && ++_iv[z] == 0; z--) ;
                 }
 
-                // add 1 to the ctr (big endian)
-                for (int z = 15; z >= 0 && ++_iv[z] == 0; z--) ;
+                // transform the input with the cipherstream block
+                int bytesToTransform = Math.Min(data.Count - offset, 16 - _off);
+                for (int i = 0; i < bytesToTransform; i++)
+                {
+                    output.Array[output.Offset + i + offset] = (byte)(_ctrout[i + _off] ^ data.Array[data.Offset + i + offset]);
+                }
+
+                _off += bytesToTransform;
+                offset += bytesToTransform;
             }
 
-            for (int i = 0; i < data.Count; i += 16)
-            {
-                var toProcess = Math.Min(16, data.Count - i);
-                ProcessBlock(
-                    data.Array, data.Offset + i, toProcess,
-                    output.Array, output.Offset + i);
-            }
-            
             Log.Verbose($"   PAYLOAD: {Log.ShowBytes(data)}");
             Log.Verbose($"   OUTPUT:  {Log.ShowBytes(output)}");
             Log.Verbose($"--CTR CRYPTING--");

@@ -30,6 +30,49 @@ namespace MicroRatchet.Tests
             Assert.Equal(message, decrypted);
         }
 
+        [InlineData(1)]
+        [InlineData(5)]
+        [InlineData(8)]
+        [InlineData(10)]
+        [InlineData(15)]
+        [InlineData(16)]
+        [InlineData(17)]
+        [InlineData(20)]
+        [InlineData(30)]
+        [InlineData(31)]
+        [InlineData(32)]
+        [InlineData(33)]
+        [InlineData(60)]
+        [InlineData(63)]
+        [InlineData(64)]
+        [InlineData(65)]
+        [InlineData(1000)]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1025)]
+        [InlineData(1000000)]
+        [Theory]
+        public void MultiSizeTest(int size)
+        {
+            var r = new Random();
+            byte[] iv = new byte[16];
+            byte[] key = new byte[32];
+            byte[] message = new byte[size];
+            r.NextBytes(iv);
+            r.NextBytes(key);
+            r.NextBytes(message);
+
+            Aes a = new Aes();
+            a.Initialize(true, key);
+            AesCtrMode c = new AesCtrMode(a, iv);
+            var encrypted = c.Process(message);
+            a.Initialize(true, key);
+            c = new AesCtrMode(a, iv);
+            var decrypted = c.Process(encrypted);
+
+            Assert.Equal(message, decrypted);
+        }
+
         [Fact]
         public void RepeatibilityTest()
         {
@@ -128,6 +171,30 @@ namespace MicroRatchet.Tests
             var decrypted = c.Process(new ArraySegment<byte>(enc2, 10, 80));
 
             Assert.Equal(message.Skip(10).Take(80).ToArray(), decrypted);
+        }
+
+        [Fact]
+        public void ByteByByteTest()
+        {
+            var r = new Random();
+            byte[] iv = new byte[16];
+            byte[] key = new byte[32];
+            byte[] message = new byte[100];
+            r.NextBytes(iv);
+            r.NextBytes(key);
+            r.NextBytes(message);
+
+            Aes a = new Aes();
+            AesCtrMode c = new AesCtrMode(a, iv);
+            a.Initialize(true, key);
+            var encryptedA = c.Process(message);
+            c = new AesCtrMode(a, iv);
+            var encryptedB = Enumerable.Range(0, message.Length)
+                .Select(i => c.Process(new ArraySegment<byte>(message, i, 1)).AsEnumerable())
+                .Aggregate((x, y) => (x ?? new byte[0]).Concat(y))
+                .ToArray();
+
+            Assert.Equal(encryptedA, encryptedB);
         }
 
         [Theory]
