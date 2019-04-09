@@ -7,6 +7,8 @@ namespace MicroRatchet
 {
     internal struct SymmetricRacthet
     {
+        public static readonly byte[] ChainContext = new byte[16] { 0x7d, 0x93, 0x96, 0x05, 0xf5, 0xb6, 0xd2, 0xe2, 0x65, 0xd0, 0xde, 0xe6, 0xe4, 0x5d, 0x7a, 0x2c };
+
         public byte[] HeaderKey;
         public byte[] NextHeaderKey;
         public Dictionary<int, byte[]> LostKeys;
@@ -44,7 +46,7 @@ namespace MicroRatchet
         {
             // message keys are 128 bit
             var (gen, chain) = GetLastGeneration();
-            var nextKeyBytes = kdf.GenerateBytes(chain, default, 32 + 16);
+            var nextKeyBytes = kdf.GenerateBytes(chain, ChainContext, 32 + 16);
             byte[] nextChainKey = new byte[32];
             Array.Copy(nextKeyBytes, nextChainKey, 32);
             byte[] messageKey = new byte[16];
@@ -87,7 +89,7 @@ namespace MicroRatchet
                 Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
 
                 // message keys are 128 bit
-                var nextKeyBytes = kdf.GenerateBytes(chain, default, 32 + 16);
+                var nextKeyBytes = kdf.GenerateBytes(chain, ChainContext, 32 + 16);
                 byte[] nextChainKey = new byte[32];
                 Array.Copy(nextKeyBytes, nextChainKey, 32);
                 byte[] messageKey = new byte[16];
