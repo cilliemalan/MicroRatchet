@@ -30,7 +30,7 @@ extern "C" {
 
 
 	///// SHA 256
-	
+
 	mr_sha_ctx mr_sha_create(mr_ctx mr_ctx);
 	int mr_sha_init(mr_sha_ctx ctx);
 	int mr_sha_process(mr_sha_ctx ctx, const unsigned char* data, unsigned int howmuch);
@@ -39,7 +39,7 @@ extern "C" {
 
 
 	///// AES
-	
+
 	mr_aes_ctx mr_aes_create(mr_ctx mr_ctx);
 	int mr_aes_init(mr_aes_ctx ctx, const unsigned char* key, unsigned int keysize);
 	int mr_aes_process(mr_aes_ctx ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
@@ -56,32 +56,32 @@ extern "C" {
 
 
 	///// ECDH
-	
+
 	mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx);
-	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
+	int mr_ecdh_generate(mr_ecdh_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail);
 	int mr_ecdh_load(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail);
-	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail, unsigned int* derivedkeysize);
-	int mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
-	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
+	int mr_ecdh_derivekey(mr_ecdh_ctx ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail);
+	unsigned int mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
+	int mr_ecdh_store(mr_ecdh_ctx ctx, unsigned char* data, unsigned int spaceavail);
 	void mr_ecdh_destroy(mr_ecdh_ctx ctx);
 
 
 	///// ECDSA
-	
+
 	mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx);
 	int mr_ecdsa_setprivatekey(mr_ecdsa_ctx ctx, const unsigned char* privatekey, unsigned int privatekeysize);
-	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize);
-	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountread);
-	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize);
+	int mr_ecdsa_generate(mr_ecdsa_ctx ctx, unsigned char* publickey, unsigned int publickeyspaceavail);
+	int mr_ecdsa_load(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail);
+	int mr_ecdsa_sign(mr_ecdsa_ctx ctx, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail);
 	int mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned int* result);
 	int mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
-	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored);
+	int mr_ecdsa_store(mr_ecdsa_ctx ctx, unsigned char* data, unsigned int spaceavail);
 	void mr_ecdsa_destroy(mr_ecdsa_ctx ctx);
-	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, const unsigned char* publickey, unsigned int publickeysize, unsigned int* result, void* user);
+	int mr_ecdsa_verify_other(const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, const unsigned char* publickey, unsigned int publickeysize, unsigned int* result);
 
 
 	///// RNG
-	
+
 	mr_rng_ctx mr_rng_create(mr_ctx mr_ctx);
 	int mr_rng_generate(mr_rng_ctx ctx, unsigned char* output, unsigned int outputsize);
 	void mr_rng_destroy(mr_rng_ctx ctx);

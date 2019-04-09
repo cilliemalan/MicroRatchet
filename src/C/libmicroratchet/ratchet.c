@@ -123,18 +123,15 @@ int ratchet_initialize_server(mr_ctx mr_ctx,
 	ratchet->num = 1;
 
 	unsigned char tmp[KEY_SIZE * 3];
-	unsigned int derivedsize;
 
 	// receiving chain
-	_C(mr_ecdh_derivekey(previouskeypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE, &derivedsize));
-	if (derivedsize != KEY_SIZE) return E_INVALIDOP;
+	_C(mr_ecdh_derivekey(previouskeypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
 	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, receiveheaderkey, receiveheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;
 
 	// sending chain
-	_C(mr_ecdh_derivekey(keypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE, &derivedsize));
-	if (derivedsize != KEY_SIZE) return E_INVALIDOP;
+	_C(mr_ecdh_derivekey(keypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
 	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, sendheaderkey, sendheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;
@@ -167,11 +164,9 @@ int ratchet_initialize_client(mr_ctx mr_ctx,
 	ratchet1->num = 1;
 
 	unsigned char tmp[KEY_SIZE * 3];
-	unsigned int derivedsize;
 
 	// sending chain
-	_C(mr_ecdh_derivekey(keypair, remotepubickey0, remotepubickey0size, tmp, KEY_SIZE, &derivedsize));
-	if (derivedsize != KEY_SIZE) return E_INVALIDOP;
+	_C(mr_ecdh_derivekey(keypair, remotepubickey0, remotepubickey0size, tmp, KEY_SIZE));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
 	_C(chain_initialize(mr_ctx, &ratchet1->sendingchain, sendheaderkey, sendheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;

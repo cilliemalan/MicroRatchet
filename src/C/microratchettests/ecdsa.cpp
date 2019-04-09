@@ -15,14 +15,12 @@ TEST(Ecdsa, Create) {
 
 TEST(Ecdsa, Generate) {
 	unsigned char pubkey[32];
-	unsigned int pubkeysize;
 	memset(pubkey, 0xCC, sizeof(pubkey));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
-	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey), &pubkeysize);
+	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
-	EXPECT_EQ(pubkeysize, 32);
 
 	bool allcc = true;
 	for (auto d : pubkey) if (d != 0xCC)
@@ -37,9 +35,7 @@ TEST(Ecdsa, Generate) {
 
 TEST(Ecdsa, Sign) {
 	unsigned char pubkey[32];
-	unsigned int pubkeysize;
 	unsigned char signature[100];
-	unsigned int signaturesize;
 	const unsigned char digest[32] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -51,12 +47,11 @@ TEST(Ecdsa, Sign) {
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
-	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey), &pubkeysize);
+	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature), &signaturesize);
+	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature));
 	EXPECT_EQ(E_SUCCESS, result);
-	EXPECT_EQ(64, signaturesize);
 
 	bool allcc = true;
 	bool allz = true;
@@ -71,9 +66,7 @@ TEST(Ecdsa, Sign) {
 
 TEST(Ecdsa, Verify) {
 	unsigned char pubkey[32];
-	unsigned int pubkeysize;
-	unsigned char signature[100];
-	unsigned int signaturesize;
+	unsigned char signature[64];
 	const unsigned char digest[32] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -85,14 +78,14 @@ TEST(Ecdsa, Verify) {
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
-	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey), &pubkeysize);
+	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature), &signaturesize);
+	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	unsigned int res;
-	result = call_and_wait(mr_ecdsa_verify, mr_ctx, ecdsa, (const unsigned char*)signature, signaturesize, digest, (unsigned int)sizeof(digest), &res);
+	result = call_and_wait(mr_ecdsa_verify, mr_ctx, ecdsa, (const unsigned char*)signature, (unsigned int)sizeof(signature), digest, (unsigned int)sizeof(digest), &res);
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 
@@ -102,9 +95,7 @@ TEST(Ecdsa, Verify) {
 
 TEST(Ecdsa, VerifyOther) {
 	unsigned char pubkey[32];
-	unsigned int pubkeysize;
-	unsigned char signature[100];
-	unsigned int signaturesize;
+	unsigned char signature[64];
 	const unsigned char digest[32] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
@@ -116,14 +107,14 @@ TEST(Ecdsa, VerifyOther) {
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
-	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey), &pubkeysize);
+	int result = call_and_wait(mr_ecdsa_generate, mr_ctx, ecdsa, pubkey, (unsigned int)sizeof(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature), &signaturesize);
+	result = call_and_wait(mr_ecdsa_sign, mr_ctx, ecdsa, digest, (unsigned int)sizeof(digest), signature, (unsigned int)sizeof(signature));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	unsigned int res;
-	result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, (const unsigned char*)signature, signaturesize, (const unsigned char*)digest, (unsigned int)sizeof(digest), (const unsigned char*)pubkey, pubkeysize, &res, mr_ctx);
+	result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, (const unsigned char*)signature, (unsigned int)sizeof(signature), (const unsigned char*)digest, (unsigned int)sizeof(digest), (const unsigned char*)pubkey, (unsigned int)sizeof(pubkey), &res);
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 
@@ -139,7 +130,7 @@ void test_verify_ecdsa(const unsigned char* pubkey, unsigned int sizeofpubkey,
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 
 	unsigned int res;
-	int result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, signature, sizeofsignature, digest, sizeofdigest, pubkey, sizeofpubkey, &res, mr_ctx);
+	int result = call_and_wait(mr_ecdsa_verify_other, mr_ctx, signature, sizeofsignature, digest, sizeofdigest, pubkey, sizeofpubkey, &res);
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 

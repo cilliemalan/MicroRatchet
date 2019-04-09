@@ -69,10 +69,10 @@ int ecc_import_public(const unsigned char* otherpublickey, unsigned int otherpub
 }
 
 
-int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeyspaceavail, unsigned int* publickeysize)
+int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeyspaceavail)
 {
 	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
-	if (!publickey || !key || !publickeysize) return E_INVALIDARGUMENT;
+	if (!publickey || !key) return E_INVALIDARGUMENT;
 
 	WC_RNG rng;
 	int result = wc_InitRng(&rng);
@@ -98,7 +98,6 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 	memset(publickey, 0, 32);
 	result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
 	if (result != 0) return E_INVALIDOP;
-	*publickeysize = 32;
 
 	return E_SUCCESS;
 }
@@ -118,19 +117,21 @@ int ecc_store_size_needed(const mp_int* key)
 	return mp_unsigned_bin_size((mp_int*)key);
 }
 
-int ecc_store(const ecc_key* key, unsigned char* data, unsigned int spaceavail, unsigned int* amountstored)
+int ecc_store(const ecc_key* key, unsigned char* data, unsigned int spaceavail)
 {
+	if (!key || !data) return E_INVALIDARG;
+	if (spaceavail < 32) return E_INVALIDSIZE;
+
 	int len = mp_unsigned_bin_size((mp_int*)&key->k);
-	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
+	if (len < 0 || (unsigned int)len > 32) return E_INVALIDSIZE;
 	int r = mp_to_unsigned_bin((mp_int*)&key->k, data);
 	if (r != 0) return E_INVALIDOP;
-	*amountstored = (unsigned int)len;
 	return E_SUCCESS;
 }
 
-int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail, unsigned int* signaturesize)
+int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail)
 {
-	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
+	if (!key || !digest || !signature) return E_INVALIDARG;
 	if (signaturespaceavail < 64) return E_INVALIDSIZE;
 
 	WC_RNG rng;
@@ -151,7 +152,6 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	result = mp_to_unsigned_bin(&s, signature + (64 - l));
 	if (result != 0) return E_INVALIDOP;
 
-	*signaturesize = 64;
 	return E_SUCCESS;
 }
 
