@@ -38,6 +38,7 @@ namespace MicroRatchet.Tests
         {
             byte[] key = new byte[32];
             byte[] info = new byte[32];
+            key[0] = (byte)i; // just to get rid of a warning
             r.NextBytes(key);
             r.NextBytes(info);
 
