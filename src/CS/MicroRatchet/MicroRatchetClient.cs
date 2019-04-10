@@ -801,7 +801,7 @@ namespace MicroRatchet
             var isEncrypted = (data[0] & 0b1000_0000) == 0;
             var messageType = isEncrypted ? (MessageType)(-1) : GetMessageType(data[0]);
 
-            if (!isInitialized)
+            if (!isInitialized || !isEncrypted)
             {
                 if (isEncrypted || messageType != MessageType.MultiPartMessageUnencrypted)
                 {
@@ -818,7 +818,7 @@ namespace MicroRatchet
                         ToSendBack = toSendBack
                     };
                 }
-                else
+                else if (!isEncrypted && messageType == MessageType.MultiPartMessageUnencrypted)
                 {
                     var (payload, num, total) = DeconstructUnencryptedMultipartMessagePart(data);
                     var output = _multipart.Ingest(payload, 0, num, total); //seq = 0 is for initialization
@@ -847,6 +847,10 @@ namespace MicroRatchet
                             ToSendBack = null
                         };
                     }
+                }
+                else
+                {
+                    throw new InvalidOperationException("Unexpected message");
                 }
             }
             else
