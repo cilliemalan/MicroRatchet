@@ -9,12 +9,12 @@ namespace MicroRatchet
         Normal = 0b000,
         NormalWithEcdh = 0b001,
         // Reserved = 0b010,
-        MultiPartMessageUnencrypted = 0b011,
+        // Reserved = 0b011,
         InitializationRequest = 0b100,
         InitializationWithoutEcdh = 0b100,
         InitializationResponse = 0b101,
         InitializationWithEcdh = 0b101,
         // Reserved = 0b110
-        // Reserved = 0b111
+        MultiPartMessageUnencrypted = 0b111,
     }
 }
