@@ -133,7 +133,6 @@ namespace MicroRatchet
             var initializationNonce = new ArraySegment<byte>(data, 0, 4);
             var clientPublicKey = new ArraySegment<byte>(data, NonceSize, EcPntSize);
             var remoteEcdhForInit = new ArraySegment<byte>(data, NonceSize + EcPntSize, EcPntSize);
-            var signature = new ArraySegment<byte>(data, NonceSize + EcPntSize * 2, SignatureSize);
 
             if (serverState.ClientPublicKey != null)
             {
@@ -328,6 +327,7 @@ namespace MicroRatchet
             var headerSize = NonceSize + EcPntSize;
             var payloadSize = messageSize - MacSize - headerSize;
             var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
+            var payloadExceptNonceAndMac = new ArraySegment<byte>(payload, NonceSize, messageSize - NonceSize - MacSize);
             var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
             var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
 
@@ -335,7 +335,7 @@ namespace MicroRatchet
             var Mac = new Poly(AesFactory);
             byte[] headerKey = serverState.FirstReceiveHeaderKey;
             Mac.Init(headerKey, nonce, MacSize * 8);
-            Mac.Process(payload, 0, payload.Length - MacSize);
+            Mac.Process(payloadExceptNonceAndMac);
             byte[] compareMac = Mac.Compute();
             if (!mac.Matches(compareMac))
             {
@@ -344,7 +344,7 @@ namespace MicroRatchet
 
             // decrypt the header
             AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), encryptedPayload);
-            var decryptedHeader = hcipher.Process(payload, 0, headerSize);
+            var decryptedHeader = hcipher.Process(encryptedHeader);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
@@ -470,9 +470,12 @@ namespace MicroRatchet
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
             var Mac = new Poly(AesFactory);
-            var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, 4);
+            var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, NonceSize);
             Mac.Init(step.SendingChain.HeaderKey, encryptedNonce, MacSize * 8);
-            Mac.Process(encryptedHeader);
+            if (includeEcdh)
+            {
+                Mac.Process(encryptedHeader, NonceSize, EcPntSize);
+            }
             Mac.Process(encryptedPayload);
             var mac = Mac.Compute();
 
@@ -509,6 +512,7 @@ namespace MicroRatchet
             var headerSize = hasEcdh ? NonceSize + EcPntSize : NonceSize;
             var payloadSize = messageSize - MacSize - headerSize;
             var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
+            var payloadExceptNonceAndMac = new ArraySegment<byte>(payload, NonceSize, messageSize - NonceSize - MacSize);
             var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
             var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
 
@@ -523,7 +527,7 @@ namespace MicroRatchet
                 cnt++;
                 headerKey = ratchet.ReceivingChain.HeaderKey;
                 Mac.Init(headerKey, nonce, MacSize * 8);
-                Mac.Process(payload, 0, payload.Length - MacSize);
+                Mac.Process(payloadExceptNonceAndMac);
                 byte[] compareMac = Mac.Compute();
                 if (mac.Matches(compareMac))
                 {
@@ -534,7 +538,7 @@ namespace MicroRatchet
                 {
                     headerKey = ratchet.ReceivingChain.NextHeaderKey;
                     Mac.Init(headerKey, nonce, MacSize * 8);
-                    Mac.Process(payload, 0, payload.Length - MacSize);
+                    Mac.Process(payloadExceptNonceAndMac);
                     compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))
                     {
@@ -552,7 +556,7 @@ namespace MicroRatchet
 
             // decrypt the header
             AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), encryptedPayload);
-            var decryptedHeader = hcipher.Process(payload, 0, headerSize);
+            var decryptedHeader = hcipher.Process(encryptedHeader);
             decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
             int step = BigEndianBitConverter.ToInt32(decryptedHeader);
 
