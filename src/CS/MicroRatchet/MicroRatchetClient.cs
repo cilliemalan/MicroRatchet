@@ -306,74 +306,14 @@ namespace MicroRatchet
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send the first client message.");
 
-            return ConstructMessage(clientState, new ArraySegment<byte>(clientState.InitializationNonce), true, true, clientState.Ratchets.SecondToLast, MessageType.InitializationWithEcdh);
+            return ConstructMessage(clientState, new ArraySegment<byte>(clientState.InitializationNonce), true, true, clientState.Ratchets.SecondToLast);
         }
 
         private void ReceiveFirstMessage(State state, byte[] payload)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
-            var messageType = GetMessageType(payload[0]);
-            if (messageType != MessageType.InitializationWithEcdh)
-            {
-                throw new InvalidOperationException("The message had an unexpected message type");
-            }
-
-            // extract the nonce
-            var nonce = new ArraySegment<byte>(payload, 0, 4);
-
-            // extract other parts
-            var messageSize = payload.Length;
-            var headerSize = NonceSize + EcPntSize;
-            var payloadSize = messageSize - MacSize - headerSize;
-            var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
-            var payloadExceptNonceAndMac = new ArraySegment<byte>(payload, NonceSize, messageSize - NonceSize - MacSize);
-            var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
-            var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
-
-            // check the mac
-            var Mac = new Poly(AesFactory);
-            byte[] headerKey = serverState.FirstReceiveHeaderKey;
-            Mac.Init(headerKey, nonce, MacSize * 8);
-            Mac.Process(payloadExceptNonceAndMac);
-            byte[] compareMac = Mac.Compute();
-            if (!mac.Matches(compareMac))
-            {
-                throw new InvalidOperationException("The first received message authentication code did not match");
-            }
-
-            // decrypt the header
-            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), encryptedPayload);
-            var decryptedHeader = hcipher.Process(encryptedHeader);
-            decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
-            int step = BigEndianBitConverter.ToInt32(decryptedHeader);
-
-            // the message contains ecdh parameters
-            var clientEcdhPublic = new ArraySegment<byte>(decryptedHeader, NonceSize, EcPntSize);
-
-            // initialize the ecdh ratchet
-            var ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
-                serverState.LocalEcdhRatchetStep0,
-                serverState.RootKey, clientEcdhPublic,
-                serverState.LocalEcdhRatchetStep1,
-                serverState.FirstReceiveHeaderKey,
-                serverState.FirstSendHeaderKey);
-            serverState.Ratchets.Add(ratchetUsed);
-
-            // get the inner payload key from the server receive chain
-            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
-
-            // decrypt the inner payload
-            var nonceBytes = new ArraySegment<byte>(decryptedHeader, 0, NonceSize);
-            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, key), nonceBytes);
-            var decryptedInnerPayload = icipher.Process(encryptedPayload);
-
-            // check the inner payload
-            var innerNonce = new ArraySegment<byte>(decryptedInnerPayload, 0, NonceSize);
-            if (!innerNonce.Matches(serverState.NextInitializationNonce))
-            {
-                throw new InvalidOperationException("The inner encrypted nonce did not match the initialization nonce.");
-            }
+            DeconstructMessage(state, payload, serverState.FirstReceiveHeaderKey);
 
             serverState.FirstSendHeaderKey = null;
             serverState.FirstReceiveHeaderKey = null;
@@ -388,14 +328,14 @@ namespace MicroRatchet
 
             var payload = serverState.NextInitializationNonce;
             serverState.NextInitializationNonce = null;
-            return ConstructMessage(serverState, new ArraySegment<byte>(payload), true, false, serverState.Ratchets.Last, MessageType.InitializationWithoutEcdh);
+            return ConstructMessage(serverState, new ArraySegment<byte>(payload), true, false, serverState.Ratchets.Last);
         }
 
         private void ReceiveFirstResponse(State state, byte[] data)
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive the first response.");
 
-            var contents = DeconstructMessage(clientState, data, MessageType.InitializationWithoutEcdh, false);
+            var contents = DeconstructMessage(clientState, data);
             if (contents == null || contents.Length < 32)
             {
                 throw new InvalidOperationException("The first response from the server was not valid");
@@ -410,20 +350,25 @@ namespace MicroRatchet
             clientState.InitializationNonce = null;
         }
 
-        private byte[] ConstructMessage(State state, ArraySegment<byte> message, bool pad, bool includeEcdh, EcdhRatchetStep step, MessageType? overrideMessageType = null)
+        private byte[] ConstructMessage(State state, ArraySegment<byte> message, bool pad, bool includeEcdh, EcdhRatchetStep step)
         {
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
             // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
 
-            int mtu = Configuration.Mtu;
-
             // get the payload key and nonce
             var (payloadKey, messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
-            var messageType = overrideMessageType ?? (includeEcdh ? MessageType.NormalWithEcdh : MessageType.Normal);
+
+            // make sure the first two bits of the nonce are clear
+            // the message type goes there
+            if ((nonce[0] & 0b1100_0000) != 0)
+            {
+                throw new InvalidOperationException($"The message number is too big. Cannot encrypt more than {(1 << 30) - 1} messages without exchanging keys");
+            }
 
             // calculate some sizes
+            int mtu = Configuration.Mtu;
             var headerSize = NonceSize + (includeEcdh ? EcPntSize : 0);
             var overhead = headerSize + MacSize;
             var messageSize = message.Count;
@@ -452,20 +397,29 @@ namespace MicroRatchet
             // build the header: <nonce(4), ecdh(32)?>
             byte[] header = new byte[headerSize];
             Array.Copy(nonce, header, NonceSize);
+            MessageType messageType;
             if (includeEcdh)
             {
-                // this is the hottest line in the send process
+                messageType = MessageType.NormalWithEcdh;
                 var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
                 Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
             }
+            else
+            {
+                messageType = MessageType.Normal;
+            }
 
-            // encrypt the header. Generate 32 kdf bytes. The first (keysize) is the header encryption key and the whole
-            // 32 bytes is the MAC key.
-            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendingChain.HeaderKey), encryptedPayload);
+            // set the message type on the header
+            header[0] = SetMessageType(header[0], messageType);
+
+            // encrypt the header using the header key and using the
+            // last MinMessageSize bytes of the message as the nonce.
+            var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - MinimumMessageSize, MinimumMessageSize);
+            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendingChain.HeaderKey), headerEncryptionNonce);
             var encryptedHeader = hcipher.Process(header);
 
-            // set the message type (we can do this because we're using a stream cipher)
-            encryptedHeader[0] = SetMessageType(encryptedHeader[0], messageType);
+            // clear the first bit of the message indicating that it is a normal message
+            encryptedHeader[0] = (byte)(encryptedHeader[0] & 0b0111_1111);
 
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
@@ -487,102 +441,126 @@ namespace MicroRatchet
             return result;
         }
 
-        private byte[] DeconstructMessage(State state, byte[] payload, MessageType? expectedMessageType = null, bool? overrideHasEcdh = null)
+        private byte[] DeconstructMessage(State state, byte[] payload, byte[] overrideHeaderKey = null)
         {
-            var messageType = GetMessageType(payload[0]);
-            if (expectedMessageType.HasValue)
-            {
-                if (expectedMessageType.Value != messageType)
-                {
-                    throw new InvalidOperationException("The message had an unexpected message type");
-                }
-            }
-            else if (messageType != MessageType.Normal && messageType != MessageType.NormalWithEcdh)
-            {
-                throw new InvalidOperationException("The message had an unexpected message type");
-            }
-
-            bool hasEcdh = overrideHasEcdh ?? (messageType == MessageType.NormalWithEcdh);
-
-            // extract the nonce
-            var nonce = new ArraySegment<byte>(payload, 0, NonceSize);
-
-            // extract other parts
+            // get some basic parts
             var messageSize = payload.Length;
-            var headerSize = hasEcdh ? NonceSize + EcPntSize : NonceSize;
-            var payloadSize = messageSize - MacSize - headerSize;
-            var encryptedHeader = new ArraySegment<byte>(payload, 0, headerSize);
+            var encryptedNonce = new ArraySegment<byte>(payload, 0, NonceSize);
             var payloadExceptNonceAndMac = new ArraySegment<byte>(payload, NonceSize, messageSize - NonceSize - MacSize);
-            var encryptedPayload = new ArraySegment<byte>(payload, headerSize, payloadSize);
-            var mac = new ArraySegment<byte>(payload, headerSize + payloadSize, MacSize);
+            var mac = new ArraySegment<byte>(payload, messageSize - MacSize, MacSize);
 
             // find the header key by checking the mac
             var Mac = new Poly(AesFactory);
+            bool usedNextHeaderKey = false;
             byte[] headerKey = null;
             EcdhRatchetStep ratchetUsed = null;
-            bool usedNextHeaderKey = false;
-            int cnt = 0;
-            foreach (var ratchet in state.Ratchets.Enumerate())
+            if (overrideHeaderKey != null)
             {
-                cnt++;
-                headerKey = ratchet.ReceivingChain.HeaderKey;
-                Mac.Init(headerKey, nonce, MacSize * 8);
+                headerKey = overrideHeaderKey;
+                Mac.Init(headerKey, encryptedNonce, MacSize * 8);
                 Mac.Process(payloadExceptNonceAndMac);
                 byte[] compareMac = Mac.Compute();
-                if (mac.Matches(compareMac))
+                if (!mac.Matches(compareMac))
                 {
-                    ratchetUsed = ratchet;
-                    break;
+                    throw new InvalidOperationException("Could not decrypt the incoming message with given header key");
                 }
-                else if (ratchet.ReceivingChain.NextHeaderKey != null)
+            }
+            else
+            {
+                int cnt = 0;
+                foreach (var ratchet in state.Ratchets.Enumerate())
                 {
-                    headerKey = ratchet.ReceivingChain.NextHeaderKey;
-                    Mac.Init(headerKey, nonce, MacSize * 8);
+                    cnt++;
+                    headerKey = ratchet.ReceivingChain.HeaderKey;
+                    Mac.Init(headerKey, encryptedNonce, MacSize * 8);
                     Mac.Process(payloadExceptNonceAndMac);
-                    compareMac = Mac.Compute();
+                    byte[] compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))
                     {
-                        usedNextHeaderKey = true;
                         ratchetUsed = ratchet;
                         break;
+                    }
+                    else if (ratchet.ReceivingChain.NextHeaderKey != null)
+                    {
+                        headerKey = ratchet.ReceivingChain.NextHeaderKey;
+                        Mac.Init(headerKey, encryptedNonce, MacSize * 8);
+                        Mac.Process(payloadExceptNonceAndMac);
+                        compareMac = Mac.Compute();
+                        if (mac.Matches(compareMac))
+                        {
+                            usedNextHeaderKey = true;
+                            ratchetUsed = ratchet;
+                            break;
+                        }
+                    }
+                }
+
+                if (ratchetUsed == null)
+                {
+                    throw new InvalidOperationException("Could not decrypt the incoming message");
+                }
+            }
+
+
+            // decrypt the nonce
+            var headerEncryptionNonce = new ArraySegment<byte>(payload, payload.Length - MacSize - MinimumMessageSize, MinimumMessageSize);
+            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), headerEncryptionNonce);
+            byte[] decryptedNonce = hcipher.Process(encryptedNonce);
+
+            // clear the first bit again and get message type
+            decryptedNonce[0] = (byte)(decryptedNonce[0] & 0b0111_1111);
+            var messageType = GetMessageType(decryptedNonce[0]);
+            decryptedNonce[0] = ClearMessageType(decryptedNonce[0]);
+
+            // extract ecdh if needed
+            bool hasEcdh = messageType == MessageType.NormalWithEcdh;
+            int step = BigEndianBitConverter.ToInt32(decryptedNonce);
+            if (hasEcdh)
+            {
+                var clientEcdhPublic = new ArraySegment<byte>(hcipher.Process(new ArraySegment<byte>(payload, NonceSize, EcPntSize)));
+
+                if (ratchetUsed == null)
+                {
+                    // an override header key was used.
+                    // this means we have to initialize the ratchet
+                    if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can initialize a ratchet.");
+                    ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
+                        serverState.LocalEcdhRatchetStep0,
+                        serverState.RootKey, clientEcdhPublic,
+                        serverState.LocalEcdhRatchetStep1,
+                        serverState.FirstReceiveHeaderKey,
+                        serverState.FirstSendHeaderKey);
+                    serverState.Ratchets.Add(ratchetUsed);
+                }
+                else
+                {
+                    if (usedNextHeaderKey)
+                    {
+                        // perform ecdh ratchet
+                        var newEcdh = KeyAgreementFactory.GenerateNew();
+
+                        // this is the hottest line in the deconstruct process:
+                        EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
+                        state.Ratchets.Add(newRatchet);
+                        ratchetUsed = newRatchet;
                     }
                 }
             }
 
-            if (ratchetUsed == null)
-            {
-                throw new InvalidOperationException("Could not decrypt the incoming message");
-            }
-
-            // decrypt the header
-            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), encryptedPayload);
-            var decryptedHeader = hcipher.Process(encryptedHeader);
-            decryptedHeader[0] = ClearMessageType(decryptedHeader[0]);
-            int step = BigEndianBitConverter.ToInt32(decryptedHeader);
-
-            if (hasEcdh)
-            {
-                // the message contains ecdh parameters
-                var clientEcdhPublic = new ArraySegment<byte>(decryptedHeader, NonceSize, EcPntSize);
-
-                if (usedNextHeaderKey)
-                {
-                    // perform ecdh ratchet
-                    var newEcdh = KeyAgreementFactory.GenerateNew();
-
-                    // this is the hottest line in the deconstruct process:
-                    EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
-                    state.Ratchets.Add(newRatchet);
-                    ratchetUsed = newRatchet;
-                }
-            }
 
             // get the inner payload key from the server receive chain
+            if (ratchetUsed == null)
+            {
+                throw new InvalidOperationException("An override header key was used but the message did not contain ECDH parameters");
+            }
             var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
+            // get the encrypted payload
+            int payloadOffset = hasEcdh ? NonceSize + EcPntSize : NonceSize;
+            var encryptedPayload = new ArraySegment<byte>(payload, payloadOffset, messageSize - payloadOffset - MacSize);
+
             // decrypt the inner payload
-            var nonceBytes = new ArraySegment<byte>(decryptedHeader, 0, NonceSize);
-            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, key), nonceBytes);
+            AesCtrMode icipher = new AesCtrMode(AesFactory.GetAes(true, key), decryptedNonce);
             var decryptedInnerPayload = icipher.Process(encryptedPayload);
             return decryptedInnerPayload;
         }
@@ -637,6 +615,9 @@ namespace MicroRatchet
             byte[] sendback;
             if (Configuration.IsClient)
             {
+                Log.Verbose("\n\n###CLIENT");
+                var clientState = (ClientState)state;
+
                 if (dataReceived == null)
                 {
                     // step 1: send first init request from client
@@ -644,32 +625,35 @@ namespace MicroRatchet
                 }
                 else
                 {
-                    var clientState = (ClientState)state;
-                    var type = GetMessageType(dataReceived[0]);
+                    var isEncrypted = (dataReceived[0] & 0b1000_0000) == 0;
 
-                    if (clientState.Ratchets.Count == 0)
+                    if (!isEncrypted)
                     {
-                        if (type == MessageType.InitializationResponse)
+                        var messageType = GetMessageType(dataReceived[0]);
+                        if (clientState.Ratchets.Count == 0)
                         {
-                            // step 2: init response from server
-                            ReceiveInitializationResponse(clientState, dataReceived);
-                            sendback = SendFirstClientMessage(clientState);
+                            if (messageType == MessageType.InitializationResponse)
+                            {
+                                // step 2: init response from server
+                                ReceiveInitializationResponse(clientState, dataReceived);
+                                sendback = SendFirstClientMessage(clientState);
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException("Expected an initialization response but got something else.");
+                            }
                         }
                         else
                         {
-                            throw new InvalidOperationException("Expected an initialization response but got something else.");
+                            throw new InvalidOperationException("Unexpected initialization message");
                         }
                     }
-                    else if (type == MessageType.InitializationWithoutEcdh)
+                    else
                     {
                         // step 3: receive first message from server
                         ReceiveFirstResponse(clientState, dataReceived);
                         // initialization completed successfully.
                         sendback = null;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Unexpected message received during client initialization");
                     }
                 }
             }
@@ -680,23 +664,27 @@ namespace MicroRatchet
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
 
-                var type = GetMessageType(dataReceived[0]);
+                var isEncrypted = (dataReceived[0] & 0b1000_0000) == 0;
 
-                if (type == MessageType.InitializationRequest)
+                if (!isEncrypted)
                 {
-                    // step 1: client init request
-                    var (initializationNonce, remoteEcdhForInit) = ReceiveInitializationRequest(serverState, dataReceived);
-                    sendback = SendInitializationResponse(serverState, initializationNonce, remoteEcdhForInit);
+                    var messageType = GetMessageType(dataReceived[0]);
+                    if (messageType == MessageType.InitializationRequest)
+                    {
+                        // step 1: client init request
+                        var (initializationNonce, remoteEcdhForInit) = ReceiveInitializationRequest(serverState, dataReceived);
+                        sendback = SendInitializationResponse(serverState, initializationNonce, remoteEcdhForInit);
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unexpected message received during server initialization");
+                    }
                 }
-                else if (type == MessageType.InitializationWithEcdh)
+                else
                 {
                     // step 2: first message from client
                     ReceiveFirstMessage(serverState, dataReceived);
                     sendback = SendFirstResponse(serverState);
-                }
-                else
-                {
-                    throw new InvalidOperationException("Unexpected message received during server initialization");
                 }
             }
 
@@ -809,92 +797,68 @@ namespace MicroRatchet
         private ReceiveResult ReceiveInternal(byte[] data)
         {
             var state = LoadState();
-            var messageType = GetMessageType(data[0]);
-            var isClient = Configuration.IsClient;
             var isInitialized = state?.IsInitialized ?? false;
+            var isEncrypted = (data[0] & 0b1000_0000) == 0;
+            var messageType = isEncrypted ? (MessageType)(-1) : GetMessageType(data[0]);
 
-            if (IsInitializationMessge(messageType))
+            if (!isInitialized)
             {
-                if (isClient && isInitialized)
+                if (isEncrypted || messageType != MessageType.MultiPartMessageUnencrypted)
                 {
-                    throw new InvalidOperationException("Received initialization message after initialization has been completed");
-                }
-
-                if (state == null)
-                {
-                    state = InitializeState();
-                }
-                var toSendBack = ProcessInitialization(state, data);
-
-                return new ReceiveResult
-                {
-                    Payload = null,
-                    ReceivedDataType = ReceivedDataType.InitializationWithResponse,
-                    ToSendBack = toSendBack
-                };
-            }
-            else if (messageType == MessageType.MultiPartMessageUnencrypted)
-            {
-                if (isClient && isInitialized)
-                {
-                    throw new InvalidOperationException("Received initialization message after initialization has been completed");
-                }
-
-                var (payload, num, total) = DeconstructUnencryptedMultipartMessagePart(data);
-                var output = _multipart.Ingest(payload, 0, num, total); //seq = 0 is for initialization
-                if (output != null)
-                {
-                    var innerMessageType = GetMessageType(output[0]);
-                    if (!IsInitializationMessge(innerMessageType))
+                    if (state == null)
                     {
-                        throw new InvalidOperationException("Only initialization can be used for unencrypted multipart messages");
+                        state = InitializeState();
                     }
-                    var r2 = Receive(output);
+                    var toSendBack = ProcessInitialization(state, data);
+
                     return new ReceiveResult
                     {
-                        MessageNumber = num,
-                        MultipartSequence = 0,
-                        TotalMessages = total,
-                        Payload = r2.Payload,
-                        ReceivedDataType = r2.ReceivedDataType,
-                        ToSendBack = r2.ToSendBack
+                        Payload = null,
+                        ReceivedDataType = ReceivedDataType.InitializationWithResponse,
+                        ToSendBack = toSendBack
                     };
                 }
                 else
                 {
-                    return new ReceiveResult
+                    var (payload, num, total) = DeconstructUnencryptedMultipartMessagePart(data);
+                    var output = _multipart.Ingest(payload, 0, num, total); //seq = 0 is for initialization
+                    if (output != null)
                     {
-                        MultipartSequence = 0,
-                        MessageNumber = num,
-                        TotalMessages = total,
-                        Payload = payload,
-                        ReceivedDataType = ReceivedDataType.Partial,
-                        ToSendBack = null
-                    };
+                        var r2 = Receive(output);
+                        return new ReceiveResult
+                        {
+                            MessageNumber = num,
+                            MultipartSequence = 0,
+                            TotalMessages = total,
+                            Payload = r2.Payload,
+                            ReceivedDataType = r2.ReceivedDataType,
+                            ToSendBack = r2.ToSendBack
+                        };
+                    }
+                    else
+                    {
+                        return new ReceiveResult
+                        {
+                            MultipartSequence = 0,
+                            MessageNumber = num,
+                            TotalMessages = total,
+                            Payload = payload,
+                            ReceivedDataType = ReceivedDataType.Partial,
+                            ToSendBack = null
+                        };
+                    }
                 }
             }
             else
             {
                 _multipart.Tick();
-                if (IsNormalMessage(messageType))
+                return new ReceiveResult
                 {
-                    return new ReceiveResult
-                    {
-                        Payload = DeconstructMessage(state, data),
-                        ToSendBack = null,
-                        ReceivedDataType = ReceivedDataType.Normal
-                    };
-                }
-                else if (IsMultipartMessage(messageType))
-                {
-                    if (messageType == MessageType.MultiPartMessageUnencrypted)
-                    {
-                        throw new NotImplementedException();
-                    }
-                }
+                    Payload = DeconstructMessage(state, data),
+                    ToSendBack = null,
+                    ReceivedDataType = ReceivedDataType.Normal
+                };
             }
-
-            throw new NotSupportedException("Unexpected message type received");
         }
 
         public ReceiveResult Receive(byte[] data)
