@@ -737,7 +737,7 @@ namespace MicroRatchet
             return _state;
         }
 
-        private static bool IsEncryptedMessage(byte b) => (b & 0b1000_0000) != 0;
+        private static bool IsEncryptedMessage(byte b) => (b & 0b1000_0000) == 0;
         private static bool IsMultipartMessage(byte b) => (b & 0b1100_0000) == 0b1100_0000;
         private static bool IsInitializationMessage(byte b) => (b & 0b1100_0000) == 0b1000_0000;
         private static bool HasEcdh(byte b) => (b & 0b0100_0000) != 0;
