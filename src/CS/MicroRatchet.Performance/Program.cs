@@ -144,7 +144,27 @@ namespace MicroRatchet.Performance
 
             Thread.Sleep(1000);
             {
-                Console.WriteLine("Testing one way message send speed (small)...");
+                SymmetricRacthet sr = new SymmetricRacthet();
+                var (client, server) = CreateAndInitialize();
+                var kdf = new AesKdf(client.Services.AesFactory);
+                sr.Initialize(null, rng.Generate(32), null);
+                Console.WriteLine("Testing Symmetric Ratchet Speed");
+                sr.RatchetForSending(kdf);
+                sr.RatchetForSending(kdf);
+                sr.RatchetForSending(kdf);
+                sr.RatchetForSending(kdf);
+                sw.Reset();
+                sw.Start();
+                int cnt = 1000000;
+                for (int i = 0; i < cnt; i++) sr.RatchetForSending(kdf);
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({cnt / sw.Elapsed.TotalSeconds:F0}/s)");
+                Console.WriteLine($"It would take { (double)int.MaxValue / 2 / (cnt / sw.Elapsed.TotalSeconds) / 60:F0} minutes to do 2^32 ratchets");
+            }
+
+            Thread.Sleep(1000);
+            {
+                Console.WriteLine("Testing one way message send speed (small: 16 bytes)...");
                 var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(16)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
@@ -160,7 +180,7 @@ namespace MicroRatchet.Performance
 
 
                 Thread.Sleep(1000);
-                Console.WriteLine("Testing one way message receive speed (small)...");
+                Console.WriteLine("Testing one way message receive speed (small: 16 bytes)...");
                 server.Receive(m1);
                 server.Receive(m2);
                 server.Receive(m3);
@@ -174,7 +194,7 @@ namespace MicroRatchet.Performance
 
             Thread.Sleep(2000);
             {
-                Console.WriteLine("Testing one way message send speed (large)...");
+                Console.WriteLine("Testing one way message send speed (large: 64 bytes)...");
                 var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(64)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
@@ -190,7 +210,7 @@ namespace MicroRatchet.Performance
 
 
                 Thread.Sleep(1000);
-                Console.WriteLine("Testing one way message receive speed (large)...");
+                Console.WriteLine("Testing one way message receive speed (large: 64 bytes)...");
                 server.Receive(m1);
                 server.Receive(m2);
                 server.Receive(m3);
@@ -205,7 +225,7 @@ namespace MicroRatchet.Performance
             messageCount /= 10;
             Thread.Sleep(2000);
             {
-                Console.WriteLine("Testing one way message send speed (IP)...");
+                Console.WriteLine("Testing one way message send speed (IP: 1350 bytes)...");
                 var (client, server) = CreateAndInitialize(1350);
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(1300)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
@@ -221,7 +241,7 @@ namespace MicroRatchet.Performance
 
 
                 Thread.Sleep(1000);
-                Console.WriteLine("Testing one way message receive speed (IP)...");
+                Console.WriteLine("Testing one way message receive speed (IP: 1350 bytes)...");
                 server.Receive(m1);
                 server.Receive(m2);
                 server.Receive(m3);
@@ -235,7 +255,7 @@ namespace MicroRatchet.Performance
 
             Thread.Sleep(1000);
             {
-                Console.WriteLine("Testing ratchet speed...");
+                Console.WriteLine("Testing ECDHratchet speed...");
                 var (client, server) = CreateAndInitialize(1350);
                 var messagesToSend = Enumerable.Range(0, messageCount / 4000).Select(_ => rng.Generate(32)).ToArray();
                 server.Receive(client.Send(new byte[32]).Message);
