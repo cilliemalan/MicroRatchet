@@ -60,8 +60,8 @@ namespace MicroRatchet.Tests
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
             ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
 
-            Assert.Equal(clientState.Ratchets[0].SendingChain.HeaderKey, serverState.FirstReceiveHeaderKey);
-            Assert.Equal(clientState.Ratchets[1].ReceivingChain.HeaderKey, serverState.FirstSendHeaderKey);
+            Assert.Equal(clientState.Ratchets[0].SendHeaderKey, serverState.FirstReceiveHeaderKey);
+            Assert.Equal(clientState.Ratchets[1].ReceiveHeaderKey, serverState.FirstSendHeaderKey);
         }
 
         [Fact]
@@ -187,8 +187,8 @@ namespace MicroRatchet.Tests
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
             ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
 
-            Assert.Equal(clientState.Ratchets[0].SendingChain.HeaderKey, serverState.FirstReceiveHeaderKey);
-            Assert.Equal(clientState.Ratchets[1].ReceivingChain.HeaderKey, serverState.FirstSendHeaderKey);
+            Assert.Equal(clientState.Ratchets[0].SendHeaderKey, serverState.FirstReceiveHeaderKey);
+            Assert.Equal(clientState.Ratchets[1].ReceiveHeaderKey, serverState.FirstSendHeaderKey);
         }
 
         [Fact]

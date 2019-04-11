@@ -407,7 +407,7 @@ namespace MicroRatchet
             // encrypt the header using the header key and using the
             // last MinMessageSize bytes of the message as the nonce.
             var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - MinimumMessageSize, MinimumMessageSize);
-            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendingChain.HeaderKey), headerEncryptionNonce);
+            AesCtrMode hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendHeaderKey), headerEncryptionNonce);
             var encryptedHeader = hcipher.Process(header);
 
             // clear the first bit of the message indicating that it is a normal message
@@ -417,7 +417,7 @@ namespace MicroRatchet
             // the mac uses the header encryption derived key (all 32 bytes)
             var Mac = new Poly(AesFactory);
             var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, NonceSize);
-            Mac.Init(step.SendingChain.HeaderKey, encryptedNonce, MacSize * 8);
+            Mac.Init(step.SendHeaderKey, encryptedNonce, MacSize * 8);
             if (includeEcdh)
             {
                 Mac.Process(encryptedHeader, NonceSize, EcPntSize);
@@ -463,7 +463,7 @@ namespace MicroRatchet
                 foreach (var ratchet in state.Ratchets.Enumerate())
                 {
                     cnt++;
-                    headerKey = ratchet.ReceivingChain.HeaderKey;
+                    headerKey = ratchet.ReceiveHeaderKey;
                     Mac.Init(headerKey, encryptedNonce, MacSize * 8);
                     Mac.Process(payloadExceptNonceAndMac);
                     byte[] compareMac = Mac.Compute();
@@ -472,9 +472,9 @@ namespace MicroRatchet
                         ratchetUsed = ratchet;
                         break;
                     }
-                    else if (ratchet.ReceivingChain.NextHeaderKey != null)
+                    else if (ratchet.NextReceiveHeaderKey != null)
                     {
-                        headerKey = ratchet.ReceivingChain.NextHeaderKey;
+                        headerKey = ratchet.NextReceiveHeaderKey;
                         Mac.Init(headerKey, encryptedNonce, MacSize * 8);
                         Mac.Process(payloadExceptNonceAndMac);
                         compareMac = Mac.Compute();

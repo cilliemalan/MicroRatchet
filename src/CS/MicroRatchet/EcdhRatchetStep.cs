@@ -10,6 +10,10 @@ namespace MicroRatchet
     {
         public IKeyAgreement EcdhKey;
         public byte[] NextRootKey;
+        public byte[] SendHeaderKey;
+        public byte[] NextSendHeaderKey;
+        public byte[] ReceiveHeaderKey;
+        public byte[] NextReceiveHeaderKey;
         public SymmetricRacthet ReceivingChain;
         public SymmetricRacthet SendingChain;
 
@@ -30,6 +34,8 @@ namespace MicroRatchet
             var e = new EcdhRatchetStep
             {
                 EcdhKey = keyPair,
+                ReceiveHeaderKey = receiveHeaderKey,
+                SendHeaderKey = sendHeaderKey
             };
 
             // receive chain
@@ -42,7 +48,8 @@ namespace MicroRatchet
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(rckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(rckeys[2])}");
             rootKey = rckeys[0];
-            e.ReceivingChain.Initialize(receiveHeaderKey, rckeys[1], rckeys[2]);
+            e.ReceivingChain.Initialize(rckeys[1]);
+            e.NextReceiveHeaderKey = rckeys[2];
 
             // send chain
             Log.Verbose("  --Sending Chain");
@@ -54,10 +61,10 @@ namespace MicroRatchet
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
             rootKey = sckeys[0];
-            e.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
+            e.SendingChain.Initialize(sckeys[1]);
+            e.NextSendHeaderKey = sckeys[2];
 
             // next root key
-
             Log.Verbose($"Next Root Key:     ({Log.ShowBytes(rootKey)})");
             e.NextRootKey = rootKey;
             return e;
@@ -79,7 +86,8 @@ namespace MicroRatchet
 
             var e0 = new EcdhRatchetStep
             {
-                EcdhKey = keyPair
+                EcdhKey = keyPair,
+                SendHeaderKey = sendHeaderKey
             };
 
             // receive chain doesn't exist
@@ -95,10 +103,9 @@ namespace MicroRatchet
             Log.Verbose($"  C Key Out 1:    {Log.ShowBytes(sckeys[1])}");
             Log.Verbose($"  C Key Out 2:    {Log.ShowBytes(sckeys[2])}");
             rootKey = sckeys[0];
-            e0.SendingChain.Initialize(sendHeaderKey, sckeys[1], sckeys[2]);
-
-            var nextSendHeaderKey = e0.SendingChain.NextHeaderKey;
-            e0.SendingChain.NextHeaderKey = null;
+            e0.SendingChain.Initialize(sckeys[1]);
+            var nextSendHeaderKey = sckeys[2];
+            
             var e1 = InitializeServer(kdf,
                 keyPair,
                 rootKey,
@@ -117,13 +124,13 @@ namespace MicroRatchet
                 NextRootKey,
                 remotePublicKey,
                 keyPair,
-                ReceivingChain.NextHeaderKey,
-                SendingChain.NextHeaderKey);
+                NextReceiveHeaderKey,
+                NextSendHeaderKey);
 
             NextRootKey = null;
             EcdhKey = null;
-            ReceivingChain.NextHeaderKey = null;
-            SendingChain.NextHeaderKey = null;
+            NextSendHeaderKey = null;
+            NextReceiveHeaderKey = null;
 
             return nextStep;
         }
@@ -143,12 +150,16 @@ namespace MicroRatchet
             var step = new EcdhRatchetStep()
             {
                 EcdhKey = EcdhKey,
-                NextRootKey = NextRootKey
+                NextRootKey = NextRootKey,
+                ReceiveHeaderKey = receivingHeaderKey,
+                NextReceiveHeaderKey = receivingNextHeaderKey,
+                SendHeaderKey = sendingHeaderKey,
+                NextSendHeaderKey = sendingNextHeaderKey
             };
 
-            step.ReceivingChain.Initialize(receivingHeaderKey, receivingChainKey, receivingNextHeaderKey);
+            step.ReceivingChain.Initialize(receivingChainKey);
             step.ReceivingChain.Generation = receivingGeneration;
-            step.SendingChain.Initialize(sendingHeaderKey, sendingChainKey, sendingNextHeaderKey);
+            step.SendingChain.Initialize(sendingChainKey);
             step.SendingChain.Generation = sendingGeneration;
 
             return step;

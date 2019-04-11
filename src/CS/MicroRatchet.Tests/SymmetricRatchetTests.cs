@@ -16,17 +16,11 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
-            byte[] headerKey = rng.Generate(32);
             byte[] chainKey = rng.Generate(32);
-            byte[] nextHeaderKey = rng.Generate(32);
-            sr.Initialize(headerKey, chainKey, nextHeaderKey);
+            sr.Initialize(chainKey);
 
-            Assert.NotNull(sr.HeaderKey);
             Assert.NotNull(sr.ChainKey);
-            Assert.NotNull(sr.NextHeaderKey);
-            Assert.Equal(headerKey, sr.HeaderKey);
             Assert.Equal(chainKey, sr.ChainKey);
-            Assert.Equal(nextHeaderKey, sr.NextHeaderKey);
             Assert.NotNull(sr.LostKeys);
             Assert.Equal(0, sr.Generation);
         }
@@ -36,7 +30,7 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
-            sr.Initialize(rng.Generate(32), rng.Generate(32), rng.Generate(32));
+            sr.Initialize(rng.Generate(32));
 
             var (key, generation) = sr.RatchetForSending(kdf);
 
@@ -50,7 +44,7 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
-            sr.Initialize(null, rng.Generate(32), null);
+            sr.Initialize(rng.Generate(32));
 
             var (key, generation) = sr.RatchetForSending(kdf);
 
@@ -65,7 +59,7 @@ namespace MicroRatchet.Tests
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
             byte[] chainKey = rng.Generate(32);
-            sr.Initialize(rng.Generate(32), chainKey, rng.Generate(32));
+            sr.Initialize(chainKey);
 
             var (key, generation) = sr.RatchetForSending(kdf);
 
@@ -80,7 +74,7 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
-            sr.Initialize(rng.Generate(32), rng.Generate(32), rng.Generate(32));
+            sr.Initialize(rng.Generate(32));
 
             var (key1, generation1) = sr.RatchetForSending(kdf);
             var (key2, generation2) = sr.RatchetForSending(kdf);
@@ -100,11 +94,9 @@ namespace MicroRatchet.Tests
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet send = new SymmetricRacthet();
             SymmetricRacthet recv = new SymmetricRacthet();
-            byte[] headerKey = rng.Generate(32);
             byte[] chainKey = rng.Generate(32);
-            byte[] nextHeaderKey = rng.Generate(32);
-            send.Initialize(headerKey, chainKey, nextHeaderKey);
-            recv.Initialize(headerKey, chainKey, nextHeaderKey);
+            send.Initialize( chainKey);
+            recv.Initialize( chainKey);
 
             var (skey, sgeneration) = send.RatchetForSending(kdf);
             var (rkey, rgeneration) = recv.RatchetForReceiving(kdf, sgeneration);
@@ -121,11 +113,9 @@ namespace MicroRatchet.Tests
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet send = new SymmetricRacthet();
             SymmetricRacthet recv = new SymmetricRacthet();
-            byte[] headerKey = rng.Generate(32);
             byte[] chainKey = rng.Generate(32);
-            byte[] nextHeaderKey = rng.Generate(32);
-            send.Initialize(headerKey, chainKey, nextHeaderKey);
-            recv.Initialize(headerKey, chainKey, nextHeaderKey);
+            send.Initialize(chainKey);
+            recv.Initialize(chainKey);
 
             var (skey1, sgeneration1) = send.RatchetForSending(kdf);
             var (skey2, sgeneration2) = send.RatchetForSending(kdf);
@@ -154,11 +144,9 @@ namespace MicroRatchet.Tests
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet send = new SymmetricRacthet();
             SymmetricRacthet recv = new SymmetricRacthet();
-            byte[] headerKey = rng.Generate(32);
             byte[] chainKey = rng.Generate(32);
-            byte[] nextHeaderKey = rng.Generate(32);
-            send.Initialize(headerKey, chainKey, nextHeaderKey);
-            recv.Initialize(headerKey, chainKey, nextHeaderKey);
+            send.Initialize(chainKey);
+            recv.Initialize(chainKey);
 
             byte[] key;
             for (; ; )
@@ -184,7 +172,7 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet sr = new SymmetricRacthet();
-            sr.Initialize(null, rng.Generate(32), null);
+            sr.Initialize(rng.Generate(32));
             List<byte[]> allkeys = new List<byte[]>();
 
             for (int i = 0; i < howmany; i++)
@@ -203,7 +191,7 @@ namespace MicroRatchet.Tests
         {
             RandomNumberGenerator rng = new RandomNumberGenerator();
             SymmetricRacthet recv = new SymmetricRacthet();
-            recv.Initialize(rng.Generate(32), rng.Generate(32), rng.Generate(32));
+            recv.Initialize(rng.Generate(32));
 
             recv.RatchetForReceiving(kdf, howmany);
         }
@@ -217,7 +205,7 @@ namespace MicroRatchet.Tests
         public void ReferenceTest(byte[] chainkey, int generation, byte[] expectedkey)
         {
             SymmetricRacthet sr = new SymmetricRacthet();
-            sr.Initialize(null, chainkey, null);
+            sr.Initialize(chainkey);
 
             for (; ; )
             {

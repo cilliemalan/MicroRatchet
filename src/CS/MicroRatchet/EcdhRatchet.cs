@@ -34,12 +34,14 @@ namespace MicroRatchet
                 // the third-to-last step and older will never again be used for sending
                 var oldstep = _steps[_steps.Count - 3];
                 oldstep.SendingChain.Reset();
+                oldstep.NextSendHeaderKey = null;
+                oldstep.SendHeaderKey = null;
             }
         }
 
         public void Trim(int maxSteps, int trimTo)
         {
-            if(_steps.Count > maxSteps)
+            if (_steps.Count > maxSteps)
             {
                 _steps.RemoveRange(0, _steps.Count - trimTo);
             }
@@ -48,7 +50,7 @@ namespace MicroRatchet
         public void Clear() => _steps.Clear();
 
         public IEnumerable<EcdhRatchetStep> Enumerate() =>
-            _steps.Where(x => x.ReceivingChain.HeaderKey != null)
+            _steps.Where(x => x.ReceiveHeaderKey != null)
             .Reverse();
 
         public IEnumerable<EcdhRatchetStep> AsEnumerable() => _steps.AsEnumerable();

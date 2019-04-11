@@ -9,25 +9,19 @@ namespace MicroRatchet
     {
         public static readonly byte[] ChainContext = new byte[16] { 0x7d, 0x93, 0x96, 0x05, 0xf5, 0xb6, 0xd2, 0xe2, 0x65, 0xd0, 0xde, 0xe6, 0xe4, 0x5d, 0x7a, 0x2c };
 
-        public byte[] HeaderKey;
-        public byte[] NextHeaderKey;
         public Dictionary<int, byte[]> LostKeys;
 
         public int Generation;
         public byte[] ChainKey;
 
-        public void Initialize(byte[] headerKey, byte[] chainKey, byte[] nextHeaderKey)
+        public void Initialize(byte[] chainKey)
         {
-            if ((headerKey != null && headerKey.Length != 32) ||
-                (chainKey != null && chainKey.Length != 32) ||
-                (nextHeaderKey != null && nextHeaderKey.Length != 32)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
+            if ((chainKey != null && chainKey.Length != 32)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
 
-            Log.Verbose($"  C Key HK:       {Log.ShowBytes(headerKey)}");
+            //Log.Verbose($"  C Key HK:       {Log.ShowBytes(headerKey)}");
             Log.Verbose($"  C Key Chain:    {Log.ShowBytes(chainKey)}");
-            Log.Verbose($"  C Key NHK:      {Log.ShowBytes(nextHeaderKey)}");
+            //Log.Verbose($"  C Key NHK:      {Log.ShowBytes(nextHeaderKey)}");
             
-            HeaderKey = headerKey;
-            NextHeaderKey = nextHeaderKey;
             LostKeys = new Dictionary<int, byte[]>();
             Generation = 0;
             ChainKey = chainKey;
@@ -35,8 +29,6 @@ namespace MicroRatchet
 
         public void Reset()
         {
-            HeaderKey = null;
-            NextHeaderKey = null;
             LostKeys = null;
             Generation = 0;
             ChainKey = null;

@@ -147,7 +147,7 @@ namespace MicroRatchet.Performance
                 SymmetricRacthet sr = new SymmetricRacthet();
                 var (client, server) = CreateAndInitialize();
                 var kdf = new AesKdf(client.Services.AesFactory);
-                sr.Initialize(null, rng.Generate(32), null);
+                sr.Initialize(rng.Generate(32));
                 Console.WriteLine("Testing Symmetric Ratchet Speed");
                 sr.RatchetForSending(kdf);
                 sr.RatchetForSending(kdf);
