@@ -21,7 +21,6 @@ namespace MicroRatchet.Tests
 
             Assert.NotNull(sr.ChainKey);
             Assert.Equal(chainKey, sr.ChainKey);
-            Assert.NotNull(sr.LostKeys);
             Assert.Equal(0, sr.Generation);
         }
 

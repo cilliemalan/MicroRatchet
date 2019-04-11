@@ -9,70 +9,72 @@ namespace MicroRatchet
     {
         public static readonly byte[] ChainContext = new byte[16] { 0x7d, 0x93, 0x96, 0x05, 0xf5, 0xb6, 0xd2, 0xe2, 0x65, 0xd0, 0xde, 0xe6, 0xe4, 0x5d, 0x7a, 0x2c };
 
-        public Dictionary<int, byte[]> LostKeys;
-
         public int Generation;
         public byte[] ChainKey;
 
+        public int OldGeneration;
+        public byte[] OldChainKey;
+
         public void Initialize(byte[] chainKey)
         {
-            if ((chainKey != null && chainKey.Length != 32)) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
+            if (chainKey != null && chainKey.Length != 32) throw new InvalidOperationException("All keys sizes must be equal to the set key size");
 
-            //Log.Verbose($"  C Key HK:       {Log.ShowBytes(headerKey)}");
             Log.Verbose($"  C Key Chain:    {Log.ShowBytes(chainKey)}");
-            //Log.Verbose($"  C Key NHK:      {Log.ShowBytes(nextHeaderKey)}");
-            
-            LostKeys = new Dictionary<int, byte[]>();
+
             Generation = 0;
             ChainKey = chainKey;
+            OldGeneration = 0;
+            OldChainKey = null;
         }
 
         public void Reset()
         {
-            LostKeys = null;
             Generation = 0;
             ChainKey = null;
+            OldGeneration = 0;
+            OldChainKey = null;
         }
 
         public (byte[] key, int generation) RatchetForSending(IKeyDerivation kdf)
         {
             // message keys are 128 bit
-            var (gen, chain) = GetLastGeneration();
-            var nextKeyBytes = kdf.GenerateBytes(chain, ChainContext, 32 + 16);
+            var nextKeyBytes = kdf.GenerateBytes(ChainKey, ChainContext, 32 + 16);
             byte[] nextChainKey = new byte[32];
             Array.Copy(nextKeyBytes, nextChainKey, 32);
             byte[] messageKey = new byte[16];
             Array.Copy(nextKeyBytes, 32, messageKey, 0, 16);
-            var nextGen = gen + 1;
 
-            Log.Verbose($"      RTC  #:      {nextGen}");
-            Log.Verbose($"      RTC IN:      {Log.ShowBytes(chain)}");
+            Log.Verbose($"      RTC  #:      {Generation + 1}");
+            Log.Verbose($"      RTC IN:      {Log.ShowBytes(ChainKey)}");
             Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextChainKey)}");
             Log.Verbose($"      RTC OK:      {Log.ShowBytes(messageKey)}");
-            
-            Generation = nextGen;
+
+            Generation++;
             ChainKey = nextChainKey;
-            return (messageKey, nextGen);
+            return (messageKey, Generation);
         }
 
         public (byte[], int) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
         {
-            // check lost keys
-            if (LostKeys.TryGetValue(toGeneration, out var lostKey))
+            int gen;
+            byte[] chain;
+            if (toGeneration > Generation)
             {
-                var result = (lostKey, toGeneration);
-                LostKeys.Remove(toGeneration);
-                return result;
+                gen = Generation;
+                chain = ChainKey;
+            }
+            else if (toGeneration > OldGeneration && OldChainKey != null)
+            {
+                gen = OldGeneration;
+                chain = OldChainKey;
+            }
+            else
+            {
+                throw new InvalidOperationException("Could not ratchet to the generation because the old keys have been lost");
             }
 
-            // get the latest chain key we have that is smaller than the requested generation
-            var (gen, chain) = GetLastGenerationBefore(toGeneration);
-
-            if (chain == null)
-            {
-                throw new InvalidOperationException("Could not ratchet to the required generation because the keys have been deleted.");
-            }
-
+            bool mustSkip = toGeneration > Generation && toGeneration - Generation > 1;
+            bool incrementOld = toGeneration > OldGeneration && OldChainKey != null && toGeneration == OldGeneration + 1;
 
             byte[] key = null;
             while (gen < toGeneration)
@@ -86,39 +88,31 @@ namespace MicroRatchet
                 Array.Copy(nextKeyBytes, nextChainKey, 32);
                 byte[] messageKey = new byte[16];
                 Array.Copy(nextKeyBytes, 32, messageKey, 0, 16);
+
                 gen++;
                 chain = nextChainKey;
                 key = messageKey;
 
-                if (gen != toGeneration)
-                {
-                    LostKeys[gen] = key;
-                }
-
                 Log.Verbose($"      RTC CK:      {Log.ShowBytes(nextChainKey)}");
                 Log.Verbose($"      RTC OK:      {Log.ShowBytes(messageKey)}");
             }
-            
+
+            if (mustSkip && OldChainKey == null)
+            {
+                OldChainKey = ChainKey;
+                OldGeneration = Generation;
+            }
+
             Generation = gen;
             ChainKey = chain;
+
+            if (incrementOld)
+            {
+                OldGeneration++;
+                OldChainKey = chain;
+            }
+
             return (key, gen);
-        }
-
-        private (int generation, byte[] chain) GetLastGeneration()
-        {
-            return (Generation, ChainKey);
-        }
-
-        private (int generation, byte[] chain) GetLastGenerationBefore(int generation)
-        {
-            if (generation <= Generation)
-            {
-                return default;
-            }
-            else
-            {
-                return (Generation, ChainKey);
-            }
         }
     }
 }

@@ -133,26 +133,6 @@ namespace MicroRatchet
                 if (last) { last = false; secondToLast = true; }
             }
 
-            for (; ; ) // 36 bytes per key
-            {
-                // check if this is still a lost record
-                long spaceleft = stream.Length - stream.Position;
-                if (spaceleft < 33) break;
-                var b = stream.ReadByte();
-                if (b == 0) break;
-                stream.Seek(-1, SeekOrigin.Current);
-
-
-                byte[] genbytes = new byte[4];
-                byte[] keybytes = new byte[KeySizeInBytes];
-                stream.Read(genbytes, 0, 4);
-                stream.Read(keybytes, 0, KeySizeInBytes);
-                var compoundgen = BigEndianBitConverter.ToUInt32(genbytes, 0);
-                int gen = (int)((compoundgen & 0b11111111_00000000_00000000_00000000) >> 24);
-                int kgen = (int)(compoundgen & 0b00000000_11111111_11111111_11111111);
-                steps[gen - 1].ReceivingChain.LostKeys.Add(kgen, keybytes);
-            }
-
             if (!Ratchets.IsEmpty) Ratchets = new EcdhRatchet();
             Ratchets = new EcdhRatchet();
 
@@ -272,42 +252,6 @@ namespace MicroRatchet
 
                 if (secondToLast) { secondToLast = false; }
                 if (last) { last = false; secondToLast = true; }
-            }
-
-            var lostKeys = reverseRatchets
-                .Select((x, i) => (gen: i + 1, ratchet: x))
-                .Where(x => x.ratchet.ReceivingChain.LostKeys != null)
-                .SelectMany(x => x.ratchet.ReceivingChain.LostKeys.OrderByDescending(k => k.Key).Select((k, ki) => (nkey: ki, x.gen, kgen: k.Key, key: k.Value)))
-                .OrderBy(x => (x.nkey, -x.gen))
-                .Take(numLostKeysToStore)
-                .Select((a) => (a.gen, a.kgen, a.key))
-                .ToArray();
-
-            int numLostKeysStored = 0;
-            foreach (var (gen, kgen, key) in lostKeys)
-            {
-                if (key.Length != KeySizeInBytes) throw new InvalidOperationException($"keys must be {KeySizeInBytes} bytes");
-
-                long spaceleft = stream.Length - stream.Position;
-                if (spaceleft < (KeySizeInBytes + 1))
-                {
-                    break;
-                }
-
-                if (numLostKeysStored > numLostKeysToStore)
-                {
-                    stream.WriteByte(0);
-                    break;
-                }
-
-                // store 1 bit indicator, 7 bits rgen, 24 bits cgen
-                var compoundkgen = (uint)gen << 24 | ((uint)kgen & 0b00000000_11111111_11111111_11111111);
-                compoundkgen &= 0b01111111_11111111_11111111_11111111;
-                var genbytes = BigEndianBitConverter.GetBytes(compoundkgen);
-                stream.Write(genbytes, 0, 4);
-                stream.Write(key, 0, KeySizeInBytes);
-
-                numLostKeysStored++;
             }
 
             if (stream.Length - stream.Position >= 1)
