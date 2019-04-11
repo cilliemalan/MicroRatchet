@@ -77,5 +77,17 @@ namespace MicroRatchet.Tests
             };
             return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
         }
+
+        public static IAesFactory AesFactory { get; } = new _AesFactory();
+
+        private class _AesFactory : IAesFactory
+        {
+            public IAes GetAes(bool forEncryption, byte[] key)
+            {
+                var a = new Aes();
+                a.Initialize(forEncryption, key);
+                return a;
+            }
+        }
     }
 }

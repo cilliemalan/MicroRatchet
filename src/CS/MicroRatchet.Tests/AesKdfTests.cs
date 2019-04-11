@@ -8,16 +8,6 @@ namespace MicroRatchet.Tests
     public class AesKdfTests
     {
         private Random r = new Random();
-
-        private class AesFactory : IAesFactory
-        {
-            public IAes GetAes(bool forEncryption, byte[] key)
-            {
-                var aes = new Aes();
-                aes.Initialize(forEncryption, key);
-                return aes;
-            }
-        }
         
         [Fact(DisplayName = "AESKDF works with all zero input")]
         public void BasicReferenceTest()
@@ -25,7 +15,7 @@ namespace MicroRatchet.Tests
             byte[] key = new byte[32];
             byte[] info = new byte[32];
 
-            var derived = new AesKdf(new AesFactory()).GenerateBytes(key, info, 32);
+            var derived = new AesKdf(Common.AesFactory).GenerateBytes(key, info, 32);
         }
 
         [InlineData(1)]
@@ -42,7 +32,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new AesKdf(new AesFactory()).GenerateBytes(key, info, 32);
+            var derived = new AesKdf(Common.AesFactory).GenerateBytes(key, info, 32);
         }
 
         [InlineData(3)]
@@ -64,7 +54,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new AesKdf(new AesFactory()).GenerateBytes(key, info, outputLength);
+            var derived = new AesKdf(Common.AesFactory).GenerateBytes(key, info, outputLength);
         }
 
         [InlineData(3)]
@@ -86,7 +76,7 @@ namespace MicroRatchet.Tests
             r.NextBytes(key);
             r.NextBytes(info);
 
-            var derived = new AesKdf(new AesFactory()).GenerateBytes(key, info, 32);
+            var derived = new AesKdf(Common.AesFactory).GenerateBytes(key, info, 32);
         }
 
         [Theory]
@@ -102,7 +92,7 @@ namespace MicroRatchet.Tests
         [InlineData(new byte[] { 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x07, 0x45, 0x19, 0x3f, 0x99, 0x2f, 0x6f, 0x7e, 0xa2, 0xfb, 0x71 }, new byte[] { 0xb2, 0x59, 0x65, 0x23, 0x3c, 0x91, 0x3c, 0x3d, 0xeb, 0x22, 0x2e, 0x79, 0x86, 0x68, 0x4c, 0xe6 }, new byte[] { 0x78, 0x88, 0x8f, 0xbd, 0x04, 0x44, 0xbf, 0x99, 0xfa, 0xf9, 0x56, 0x9a, 0x3f, 0x87, 0x41, 0xbe })]
         public void ReferenceTest(byte[] key, byte[] info, byte[] expected)
         {
-            var output = new AesKdf(new AesFactory()).GenerateBytes(key, info, expected.Length);
+            var output = new AesKdf(Common.AesFactory).GenerateBytes(key, info, expected.Length);
 
             Assert.Equal(expected, output);
         }
