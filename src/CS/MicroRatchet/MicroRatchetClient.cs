@@ -18,18 +18,18 @@ namespace MicroRatchet
         public const int OverheadWithEcdh = MinimumOverhead + EcPntSize; // 48
         public const int EncryptedMultipartHeaderOverhead = 6;
 
-        IDigest Digest => Services.Digest;
-        ISignature Signature => Services.Signature;
-        IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
-        IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
-        IAesFactory AesFactory => Services.AesFactory;
-        IKeyDerivation KeyDerivation;
-        IVerifierFactory VerifierFactory => Services.VerifierFactory;
-        IStorageProvider Storage => Services.Storage;
+        private IDigest Digest => Services.Digest;
+        private ISignature Signature => Services.Signature;
+        private IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
+        private IKeyAgreementFactory KeyAgreementFactory => Services.KeyAgreementFactory;
+        private IAesFactory AesFactory => Services.AesFactory;
+        private IKeyDerivation KeyDerivation { get; }
+        private IVerifierFactory VerifierFactory => Services.VerifierFactory;
+        private IStorageProvider Storage => Services.Storage;
 
-        private MultipartMessageReconstructor _multipart;
+        private readonly MultipartMessageReconstructor _multipart;
         private State _state;
-        private List<(byte[], IAes)> _headerKeyCiphers = new List<(byte[], IAes)>();
+        private readonly List<(byte[], IAes)> _headerKeyCiphers = new List<(byte[], IAes)>();
 
         public IServices Services { get; }
 
@@ -39,9 +39,6 @@ namespace MicroRatchet
         public int MaximumMessageSize => Configuration.Mtu - MinimumOverhead;
         public int MaximumMessageSizeWithEcdh => Configuration.Mtu - OverheadWithEcdh;
         public int MultipartMessageSize => Configuration.Mtu - MinimumOverhead - EncryptedMultipartHeaderOverhead;
-        public int MaxMultipartMessageTotalSize => MultipartMessageSize * 65536;
-        public int InitRequestMessageSize => NonceSize + EcPntSize + EcPntSize + SignatureSize;
-        public int InitResponseMessageSize => NonceSize * 2 + EcPntSize * 4 + SignatureSize + MacSize;
 
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
@@ -49,7 +46,7 @@ namespace MicroRatchet
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
 
             KeyDerivation = new AesKdf(Services.AesFactory);
-            _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
+            _multipart = new MultipartMessageReconstructor(MaximumMessageSize,
                 config.MaximumBufferedPartialMessageSize,
                 config.PartialMessageTimeout);
 
@@ -416,7 +413,6 @@ namespace MicroRatchet
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
             var Mac = new Poly(AesFactory);
-            var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, NonceSize);
             byte[] maciv = new byte[16];
             int epl = encryptedPayload.Length;
             int ehl = encryptedHeader.Length;
@@ -555,7 +551,7 @@ namespace MicroRatchet
             {
                 throw new InvalidOperationException("An override header key was used but the message did not contain ECDH parameters");
             }
-            var (key, nr) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
+            var (key, _) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // get the encrypted payload
             int payloadOffset = hasEcdh ? NonceSize + EcPntSize : NonceSize;
@@ -777,7 +773,6 @@ namespace MicroRatchet
             var state = LoadState();
             var isInitialized = state?.IsInitialized ?? false;
             var isEncrypted = IsEncryptedMessage(data[0]);
-            var isInitialization = IsInitializationMessage(data[0]);
             var isMultipart = IsMultipartMessage(data[0]);
 
             if (!isInitialized || !isEncrypted)
