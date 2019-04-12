@@ -417,19 +417,28 @@ namespace MicroRatchet
             // the mac uses the header encryption derived key (all 32 bytes)
             var Mac = new Poly(AesFactory);
             var encryptedNonce = new ArraySegment<byte>(encryptedHeader, 0, NonceSize);
-            Mac.Init(step.SendHeaderKey, encryptedNonce, MacSize * 8);
-            if (includeEcdh)
+            byte[] maciv = new byte[16];
+            int epl = encryptedPayload.Length;
+            int ehl = encryptedHeader.Length;
+            if (ehl < maciv.Length)
             {
-                Mac.Process(encryptedHeader, NonceSize, EcPntSize);
+                Array.Copy(encryptedHeader, maciv, ehl);
+                Array.Copy(encryptedPayload, 0, maciv, ehl, 16 - ehl);
             }
+            else
+            {
+                Array.Copy(encryptedHeader, maciv, maciv.Length);
+            }
+            Mac.Init(step.SendHeaderKey, maciv, MacSize * 8);
+            Mac.Process(encryptedHeader);
             Mac.Process(encryptedPayload);
             var mac = Mac.Compute();
 
             // construct the resulting message
-            byte[] result = new byte[encryptedHeader.Length + encryptedPayload.Length + mac.Length];
-            Array.Copy(encryptedHeader, 0, result, 0, encryptedHeader.Length);
-            Array.Copy(encryptedPayload, 0, result, encryptedHeader.Length, encryptedPayload.Length);
-            Array.Copy(mac, 0, result, encryptedHeader.Length + encryptedPayload.Length, mac.Length);
+            byte[] result = new byte[ehl + epl + mac.Length];
+            Array.Copy(encryptedHeader, 0, result, 0, ehl);
+            Array.Copy(encryptedPayload, 0, result, ehl, epl);
+            Array.Copy(mac, 0, result, ehl + epl, mac.Length);
             return result;
         }
 
@@ -438,10 +447,12 @@ namespace MicroRatchet
             // get some basic parts
             var messageSize = payload.Length;
             var encryptedNonce = new ArraySegment<byte>(payload, 0, NonceSize);
-            var payloadExceptNonceAndMac = new ArraySegment<byte>(payload, NonceSize, messageSize - NonceSize - MacSize);
+            var payloadExceptMac = new ArraySegment<byte>(payload, 0, messageSize - MacSize);
             var mac = new ArraySegment<byte>(payload, messageSize - MacSize, MacSize);
 
             // find the header key by checking the mac
+            var maciv = new byte[16];
+            Array.Copy(payload, maciv, 16);
             var Mac = new Poly(AesFactory);
             bool usedNextHeaderKey = false;
             byte[] headerKey = null;
@@ -449,8 +460,8 @@ namespace MicroRatchet
             if (overrideHeaderKey != null)
             {
                 headerKey = overrideHeaderKey;
-                Mac.Init(headerKey, encryptedNonce, MacSize * 8);
-                Mac.Process(payloadExceptNonceAndMac);
+                Mac.Init(headerKey, maciv, MacSize * 8);
+                Mac.Process(payloadExceptMac);
                 byte[] compareMac = Mac.Compute();
                 if (!mac.Matches(compareMac))
                 {
@@ -464,8 +475,8 @@ namespace MicroRatchet
                 {
                     cnt++;
                     headerKey = ratchet.ReceiveHeaderKey;
-                    Mac.Init(headerKey, encryptedNonce, MacSize * 8);
-                    Mac.Process(payloadExceptNonceAndMac);
+                    Mac.Init(headerKey, maciv, MacSize * 8);
+                    Mac.Process(payloadExceptMac);
                     byte[] compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))
                     {
@@ -475,8 +486,8 @@ namespace MicroRatchet
                     else if (ratchet.NextReceiveHeaderKey != null)
                     {
                         headerKey = ratchet.NextReceiveHeaderKey;
-                        Mac.Init(headerKey, encryptedNonce, MacSize * 8);
-                        Mac.Process(payloadExceptNonceAndMac);
+                        Mac.Init(headerKey, maciv, MacSize * 8);
+                        Mac.Process(payloadExceptMac);
                         compareMac = Mac.Compute();
                         if (mac.Matches(compareMac))
                         {
