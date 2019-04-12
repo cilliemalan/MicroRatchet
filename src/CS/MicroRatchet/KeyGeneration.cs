@@ -16,7 +16,7 @@ using Org.BouncyCastle.Security;
 
 namespace MicroRatchet
 {
-    internal class KeyGeneration
+    internal static class KeyGeneration
     {
         private static readonly ECDomainParameters domainParms;
 
