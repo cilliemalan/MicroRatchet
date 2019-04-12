@@ -54,7 +54,7 @@ namespace MicroRatchet
             return (messageKey, Generation);
         }
 
-        public (byte[], int) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
+        public (byte[] key, int generation) RatchetForReceiving(IKeyDerivation kdf, int toGeneration)
         {
             int gen;
             byte[] chain;
