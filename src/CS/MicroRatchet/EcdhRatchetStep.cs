@@ -19,7 +19,7 @@ namespace MicroRatchet
 
         private EcdhRatchetStep() { }
 
-        public static EcdhRatchetStep InitializeServer(IKeyDerivation kdf,
+        public static EcdhRatchetStep InitializeServer(IKeyDerivation kdf, IDigest digest,
             IKeyAgreement previousKeyPair,
             byte[] rootKey, ArraySegment<byte> remotePublicKey, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey)
@@ -41,6 +41,7 @@ namespace MicroRatchet
             // receive chain
             Log.Verbose("  --Receiving Chain");
             var rcderived = previousKeyPair.DeriveKey(remotePublicKey);
+            rcderived = digest.ComputeDigest(rcderived);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(rcderived)}");
             var rckeys = kdf.GenerateKeys(rcderived, rootKey, 3, 32);
@@ -54,6 +55,7 @@ namespace MicroRatchet
             // send chain
             Log.Verbose("  --Sending Chain");
             var scderived = keyPair.DeriveKey(remotePublicKey);
+            scderived = digest.ComputeDigest(scderived);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
             var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
@@ -72,7 +74,7 @@ namespace MicroRatchet
 
         public byte[] GetPublicKey(IKeyAgreementFactory kexfac) => EcdhKey.GetPublicKey();
 
-        public static EcdhRatchetStep[] InitializeClient(IKeyDerivation kdf,
+        public static EcdhRatchetStep[] InitializeClient(IKeyDerivation kdf, IDigest digest,
             byte[] rootKey, ArraySegment<byte> remotePublicKey0, ArraySegment<byte> remotePublicKey1, IKeyAgreement keyPair,
             byte[] receiveHeaderKey, byte[] sendHeaderKey,
             IKeyAgreement nextKeyPair)
@@ -96,6 +98,7 @@ namespace MicroRatchet
             // send chain
             Log.Verbose("  --Sending Chain");
             var scderived = keyPair.DeriveKey(remotePublicKey0);
+            scderived = digest.ComputeDigest(scderived);
             Log.Verbose($"  C Input Key:    {Log.ShowBytes(rootKey)}");
             Log.Verbose($"  C Key Info:     {Log.ShowBytes(scderived)}");
             var sckeys = kdf.GenerateKeys(scderived, rootKey, 3, 32);
@@ -106,7 +109,7 @@ namespace MicroRatchet
             e0.SendingChain.Initialize(sckeys[1]);
             var nextSendHeaderKey = sckeys[2];
             
-            var e1 = InitializeServer(kdf,
+            var e1 = InitializeServer(kdf, digest,
                 keyPair,
                 rootKey,
                 remotePublicKey1,
@@ -117,9 +120,9 @@ namespace MicroRatchet
             return new[] { e0, e1 };
         }
 
-        public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, ArraySegment<byte> remotePublicKey, IKeyAgreement keyPair)
+        public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, IDigest digest, ArraySegment<byte> remotePublicKey, IKeyAgreement keyPair)
         {
-            var nextStep = InitializeServer(kdf,
+            var nextStep = InitializeServer(kdf, digest,
                 EcdhKey,
                 NextRootKey,
                 remotePublicKey,

@@ -176,6 +176,7 @@ namespace MicroRatchet
 
             // generate server ECDH for root key and root key
             var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
+            rootPreKey = Digest.ComputeDigest(rootPreKey);
             var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, 32);
             serverState.RootKey = genKeys[0];
             serverState.FirstSendHeaderKey = genKeys[1];
@@ -241,6 +242,7 @@ namespace MicroRatchet
             // decrypt
             IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
             var rootPreKey = rootEcdh.DeriveKey(rootEcdhKey);
+            rootPreKey = Digest.ComputeDigest(rootPreKey);
             var cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), nonce);
             var payload = cipher.Process(encryptedPayload);
 
@@ -285,7 +287,7 @@ namespace MicroRatchet
             var receiveHeaderKey = genKeys[1];
             var sendHeaderKey = genKeys[2];
 
-            clientState.Ratchets.Add(EcdhRatchetStep.InitializeClient(KeyDerivation, rootKey,
+            clientState.Ratchets.Add(EcdhRatchetStep.InitializeClient(KeyDerivation, Digest, rootKey,
                 remoteRatchetEcdh0, remoteRatchetEcdh1, localStep0EcdhRatchet,
                 receiveHeaderKey, sendHeaderKey,
                 localStep1EcdhRatchet));
@@ -520,7 +522,7 @@ namespace MicroRatchet
                     // an override header key was used.
                     // this means we have to initialize the ratchet
                     if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can initialize a ratchet.");
-                    ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation,
+                    ratchetUsed = EcdhRatchetStep.InitializeServer(KeyDerivation, Digest,
                         serverState.LocalEcdhRatchetStep0,
                         serverState.RootKey, clientEcdhPublic,
                         serverState.LocalEcdhRatchetStep1,
@@ -536,7 +538,7 @@ namespace MicroRatchet
                         IKeyAgreement newEcdh = KeyAgreementFactory.GenerateNew();
 
                         // this is the hottest line in the deconstruct process:
-                        EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, clientEcdhPublic, newEcdh);
+                        EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, Digest, clientEcdhPublic, newEcdh);
                         state.Ratchets.Add(newRatchet);
                         ratchetUsed = newRatchet;
                     }
