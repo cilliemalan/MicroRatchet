@@ -51,7 +51,7 @@ int mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const unsigned char* otherpublickey, uns
 	int result = ecc_import_public(otherpublickey, otherpublickeysize, &pub);
 	if (result != 0) return E_INVALIDOP;
 
-	int dummy;
+	int dummy = derivedkeyspaceavail;
 	result = wc_ecc_shared_secret_ex(&ctx->key, &pub, derivedkey, &dummy);
 	if (result != 0 || dummy != 32) return E_INVALIDOP;
 	return E_SUCCESS;
