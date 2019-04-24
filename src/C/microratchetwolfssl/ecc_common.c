@@ -77,7 +77,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 	WC_RNG rng;
 	int result = wc_InitRng(&rng);
 	if (result != 0) return E_INVALIDOP;
-	int pubkeylen = 0;
+	unsigned int pubkeylen = 0;
 	for (;;)
 	{
 		result = wc_ecc_make_key_ex(&rng, 32, key, ECC_SECP256R1);
@@ -87,7 +87,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 		if (mp_iseven(key->pubkey.y))
 		{
 			// try until the public key x component is under or at 256 bits.
-			pubkeylen = mp_unsigned_bin_size(key->pubkey.x);
+			pubkeylen = (unsigned int)mp_unsigned_bin_size(key->pubkey.x);
 			if (pubkeylen <= 32)
 			{
 				break;
@@ -95,8 +95,8 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 		}
 	}
 
-	memset(publickey, 0, 32);
 	result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
+	if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
 	if (result != 0) return E_INVALIDOP;
 
 	return E_SUCCESS;
@@ -143,13 +143,15 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	if (result != 0) return E_INVALIDOP;
 	result = wc_ecc_sign_hash_ex(digest, digestsize, &rng, (ecc_key*)key, &r, &s);
 	if (result != 0) return E_INVALIDOP;
-	int l = mp_unsigned_bin_size(&r);
+	unsigned int l = (unsigned int)mp_unsigned_bin_size(&r);
 	if (l > 32) return E_INVALIDOP;
 	result = mp_to_unsigned_bin(&r, signature + (32 - l));
+	if (l < 32) memset(signature, 0, 32 - l);
 	if (result != 0) return E_INVALIDOP;
 	l = mp_unsigned_bin_size(&s);
 	if (l > 32) return E_INVALIDOP;
 	result = mp_to_unsigned_bin(&s, signature + (64 - l));
+	if (l < 32) memset(signature + 32, 0, 32 - l);
 	if (result != 0) return E_INVALIDOP;
 
 	return E_SUCCESS;
