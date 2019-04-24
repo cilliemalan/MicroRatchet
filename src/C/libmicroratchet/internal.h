@@ -16,7 +16,6 @@ extern "C" {
 #define ECNUM_SIZE 32
 #define SIGNATURE_SIZE (ECNUM_SIZE+ECNUM_SIZE)
 #define NUM_RATCHETS 5
-#define NUM_LOST_KEYS 10
 #define MIN_MSG_SIZE 16
 #define MIN_MSG_SIZE 16
 #define MIN_OVERHEAD (NONCE_SIZE + MAC_SIZE)
@@ -63,13 +62,10 @@ extern "C" {
 		unsigned char nextheaderkey[KEY_SIZE];
 		unsigned char headerkey[KEY_SIZE];
 		unsigned char chainkey[KEY_SIZE];
-	} _mr_chain_state;
 
-	typedef struct _mr_lostkey {
-		unsigned int ratchet;
-		unsigned int generation;
-		unsigned char key[MSG_KEY_SIZE];
-	} _mr_lostkey;
+		unsigned int oldgeneration;
+		unsigned char oldchainkey[KEY_SIZE];
+	} _mr_chain_state;
 
 	typedef struct _mr_ratchet_state {
 		unsigned int num;
@@ -84,7 +80,6 @@ extern "C" {
 		mr_sha_ctx sha_ctx;
 		_mr_initialization_state init;
 		_mr_ratchet_state ratchets[NUM_RATCHETS];
-		_mr_lostkey lost_keys[NUM_LOST_KEYS];
 	} _mr_ctx;
 
 	typedef struct _mr_aesctr_ctx {
@@ -153,8 +148,8 @@ extern "C" {
 		unsigned char* sendingchainkey, unsigned int sendingchainkeysize);
 	int ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, unsigned char* remotepublickey, unsigned int remotepublickeysize, mr_ecdh_ctx keypair);
 	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const unsigned char* headerkey, unsigned int headerkeysize, const unsigned char* chainkey, unsigned int chainkeysize, const unsigned char* nextheaderkey, unsigned int nextheaderkeysize);
-	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, unsigned char* key, unsigned int keysize, int* generation);
-	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, unsigned int generation, unsigned char* key, unsigned int keysize);
+	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, unsigned char* key, unsigned int keysize, unsigned int* generation);
+	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, unsigned int generation, unsigned char* key, unsigned int keysize);
 
 #ifdef __cplusplus
 }

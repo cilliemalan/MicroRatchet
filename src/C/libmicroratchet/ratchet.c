@@ -2,11 +2,24 @@
 #include "microratchet.h"
 #include "internal.h"
 
+static unsigned char _chain_context[] = { 0x7d, 0x93, 0x96, 0x05, 0xf5, 0xb6, 0xd2, 0xe2, 0x65, 0xd0, 0xde, 0xe6, 0xe4, 0x5d, 0x7a, 0x2c };
+
+static int keyallzeroes(const unsigned char* k)
+{
+	const unsigned int* ik = (const unsigned int* )k;
+	for (int i = 0; i < KEY_SIZE / (sizeof(int) / sizeof(char)); i++)
+	{
+		if (ik[i] != 0) return 0;
+	}
+	return 1;
+}
+
+
 int ratchet_getorder(mr_ctx mr_ctx, int* indexes, unsigned int numindexes)
 {
 	if (!mr_ctx || !indexes) return E_INVALIDOP;
 	if (numindexes < NUM_RATCHETS) return E_INVALIDSIZE;
-	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
+	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
 
 	unsigned int mustbeunder = 0xffffffff;
 	for (int i = 0; i < NUM_RATCHETS; i++)
@@ -33,7 +46,7 @@ int ratchet_getorder(mr_ctx mr_ctx, int* indexes, unsigned int numindexes)
 	return E_SUCCESS;
 }
 
-int ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
+int ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 {
 	if (!mr_ctx || !ratchet) return E_INVALIDOP;
 	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
@@ -59,7 +72,7 @@ int ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 	return E_SUCCESS;
 }
 
-int ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
+int ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 {
 	if (!mr_ctx || !ratchet) return E_INVALIDOP;
 	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
@@ -82,7 +95,7 @@ int ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 	return E_SUCCESS;
 }
 
-int ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
+int ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 {
 	if (!mr_ctx || !ratchet) return E_INVALIDOP;
 	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
@@ -104,7 +117,7 @@ int ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 }
 
 int ratchet_initialize_server(mr_ctx mr_ctx,
-	_mr_ratchet_state* ratchet,
+	_mr_ratchet_state * ratchet,
 	mr_ecdh_ctx previouskeypair,
 	unsigned char* rootkey, unsigned int rootkeysize,
 	unsigned char* remotepubickey, unsigned int remotepubickeysize,
@@ -257,95 +270,108 @@ int chain_initialize(mr_ctx mr_ctx, _mr_chain_state * chain_state, const unsigne
 	if (chainkey && chainkeysize != KEY_SIZE) return E_INVALIDSIZE;
 	if (nextheaderkey && nextheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
 
-	if (headerkey) memcpy(chain_state->headerkey, headerkey, 32);
-	else memset(chain_state->headerkey, 0, 32);
-	if (chainkey) memcpy(chain_state->chainkey, chainkey, 32);
-	else memset(chain_state->chainkey, 0, 32);
-	if (nextheaderkey) memcpy(chain_state->nextheaderkey, nextheaderkey, 32);
-	else memset(chain_state->nextheaderkey, 0, 32);
+	if (headerkey) memcpy(chain_state->headerkey, headerkey, KEY_SIZE);
+	else memset(chain_state->headerkey, 0, KEY_SIZE);
+	if (chainkey) memcpy(chain_state->chainkey, chainkey, KEY_SIZE);
+	else memset(chain_state->chainkey, 0, KEY_SIZE);
+	if (nextheaderkey) memcpy(chain_state->nextheaderkey, nextheaderkey, KEY_SIZE);
+	else memset(chain_state->nextheaderkey, 0, KEY_SIZE);
+
 	chain_state->generation = 0;
+	chain_state->oldgeneration = 0;
+
+	memset(chain_state->oldchainkey, 0, KEY_SIZE);
 
 	return E_SUCCESS;
 }
 
-int chain_ratchetforsending(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, unsigned char* key, unsigned int keysize, int* generation)
+int chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state * chain, unsigned char* key, unsigned int keysize, unsigned int* generation)
 {
-	if (!mr_ctx || !ratchet || !key || !generation) return E_INVALIDARGUMENT;
+	if (!mr_ctx || !chain || !key || !generation) return E_INVALIDARGUMENT;
 	if (keysize != MSG_KEY_SIZE) return E_INVALIDSIZE;
 
-	unsigned char tmp[KEY_SIZE + MSG_KEY_SIZE];
+	struct {
+		unsigned char nck[KEY_SIZE];
+		unsigned char key[MSG_KEY_SIZE];
+	} keys;
+	_C(kdf_compute(mr_ctx, chain->chainkey, KEY_SIZE, _chain_context, sizeof(_chain_context), keys.nck, sizeof(keys)));
 
-	unsigned char* chain = ratchet->sendingchain.chainkey;
-	_C(kdf_compute(mr_ctx, chain, KEY_SIZE, 0, 0, tmp, sizeof(tmp)));
-
-	memcpy(chain, tmp, KEY_SIZE);
-	memcpy(key, tmp + KEY_SIZE, MSG_KEY_SIZE);
-	*generation = ++ratchet->sendingchain.generation;
+	memcpy(chain->chainkey, keys.nck, KEY_SIZE);
+	memcpy(key, keys.key, MSG_KEY_SIZE);
+	*generation = ++chain->generation;
 
 	return E_SUCCESS;
 }
 
-int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, unsigned int generation, unsigned char* key, unsigned int keysize)
+int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state * chain, unsigned int generation, unsigned char* key, unsigned int keysize)
 {
-	if (!mr_ctx || !ratchet || !key) return E_INVALIDARGUMENT;
+	if (!mr_ctx || !chain || !key) return E_INVALIDARGUMENT;
 	if (keysize != MSG_KEY_SIZE) return E_INVALIDSIZE;
 
-	// look for a lost key
-	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
-	for (int i = 0; i < NUM_LOST_KEYS; i++)
+	unsigned int gen;
+	unsigned char* ck;
+	int oldkeyallzeroes = keyallzeroes(chain->oldchainkey);
+
+	// figure out if we're starting to ratchet from the chain key or the "old chain key"
+	if (generation > chain->generation)
 	{
-		if (ctx->lost_keys[i].ratchet == ratchet->num)
-		{
-			if (ctx->lost_keys[i].generation == generation)
-			{
-				memcpy(key, ctx->lost_keys[i].key, MSG_KEY_SIZE);
-				memset(&ctx->lost_keys[i], 0, sizeof(_mr_lostkey));
-				return E_SUCCESS;
-			}
-		}
+		// generation is bigger than the chain gen so we start at the chain key
+		gen = chain->generation;
+		ck = chain->chainkey;
 	}
-
-	if (generation <= ratchet->receivingchain.generation) return E_KEYLOST;
-
-	unsigned char tmp[KEY_SIZE + MSG_KEY_SIZE];
-	unsigned char* chain = ratchet->receivingchain.chainkey;
-	unsigned char* chaintmp = chain;
-
-	while (ratchet->receivingchain.generation < generation)
+	else
 	{
-		_C(kdf_compute(mr_ctx, chaintmp, KEY_SIZE, 0, 0, tmp, sizeof(tmp)));
-		chaintmp = tmp;
-		ratchet->receivingchain.generation++;
-
-		// store lost key
-		if (ratchet->receivingchain.generation != generation && generation - ratchet->receivingchain.generation < (NUM_LOST_KEYS / 2))
+		if (generation > chain->oldgeneration && !oldkeyallzeroes)
 		{
-			int oldest_lost_key_gen = 0x7fffffff;
-			int oldest_lost_key = -1;
-			for (int i = 0; i < NUM_LOST_KEYS; i++)
-			{
-				if (ctx->lost_keys[i].generation == 0 && ctx->lost_keys[i].ratchet == 0)
-				{
-					oldest_lost_key = i; break;
-				}
-				else
-				{
-					int genind = ctx->lost_keys[i].ratchet * 1000 + ctx->lost_keys[i].generation;
-					if (genind < oldest_lost_key_gen)
-					{
-						oldest_lost_key_gen = genind;
-						oldest_lost_key = i;
-					}
-				}
-			}
+			// generation is old and we have an older chain key so start from that.
+			gen = chain->oldgeneration;
+			ck = chain->oldchainkey;
 		}
 		else
 		{
-			memcpy(chain, tmp, KEY_SIZE);
-			memcpy(key, tmp + KEY_SIZE, MSG_KEY_SIZE);
-			return E_SUCCESS;
+			return E_KEYLOST;
 		}
 	}
 
-	return E_INVALIDOP;
+	int mustSkip = generation > chain->generation && (generation - chain->generation) > 1;
+	int incrementOld = generation > chain->oldgeneration && generation <= chain->generation &&
+		!oldkeyallzeroes && (generation == chain->oldgeneration + 1);
+
+	// ratchet until ++gen == generation
+	unsigned char* cku = ck;
+	struct {
+		unsigned char nck[KEY_SIZE];
+		unsigned char key[MSG_KEY_SIZE];
+	} keys;
+	for (;gen < generation; gen++)
+	{
+		_C(kdf_compute(mr_ctx, cku, KEY_SIZE, _chain_context, sizeof(_chain_context), keys.nck, sizeof(keys)));
+		cku = keys.nck;
+	}
+
+	// copy out the key
+	memcpy(key, keys.key, keysize);
+
+	// we had to skip, old chain key gets updated if its not set already
+	if (mustSkip && oldkeyallzeroes)
+	{
+		memcpy(chain->oldchainkey, chain->chainkey, KEY_SIZE);
+		chain->oldgeneration = chain->generation;
+	}
+
+	// we started with the old chain key and only went one step so udpate it
+	if (incrementOld)
+	{
+		memcpy(chain->oldchainkey, keys.nck, KEY_SIZE);
+		chain->oldgeneration++;
+	}
+
+	// if the requested generation is greater than the chain gen, update it
+	if (generation > chain->generation)
+	{
+		memcpy(chain->chainkey, keys.nck, KEY_SIZE);
+		chain->generation = gen;
+	}
+
+	return E_SUCCESS;
 }
