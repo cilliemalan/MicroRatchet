@@ -103,8 +103,11 @@ namespace MicroRatchet
                 OldGeneration = Generation;
             }
 
-            Generation = gen;
-            ChainKey = chain;
+            if (toGeneration > Generation)
+            {
+                Generation = gen;
+                ChainKey = chain;
+            }
 
             if (incrementOld)
             {
