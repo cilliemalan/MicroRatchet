@@ -23,8 +23,8 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
 	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
 	ASSERT_EQ(__l1, __l2); \
-	char *sbuffer1 = new char[__l1*2+1]; \
-	char *sbuffer2 = new char[__l2*2+1]; \
+	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
+	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	GTEST_ASSERT_(::testing::internal::CmpHelperSTREQ(#b1, #b2, sbuffer1, sbuffer2), GTEST_FATAL_FAILURE_); \
@@ -37,8 +37,8 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
 	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
 	ASSERT_EQ(__l1, __l2); \
-	char *sbuffer1 = new char[__l1*2+1]; \
-	char *sbuffer2 = new char[__l2*2+1]; \
+	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
+	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	GTEST_ASSERT_(::testing::internal::CmpHelperSTRNE(#b1, #b2, sbuffer1, sbuffer2), GTEST_FATAL_FAILURE_); \
@@ -66,8 +66,8 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
 	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
 	EXPECT_EQ(__l1, __l2); \
-	char *sbuffer1 = new char[__l1*2+1]; \
-	char *sbuffer2 = new char[__l2*2+1]; \
+	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
+	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
 	buffer_to_string(__b1, __l1, sbuffer1); \
 	buffer_to_string(__b2, __l2, sbuffer2); \
 	GTEST_ASSERT_(::testing::internal::CmpHelperSTRNE(#b1, #b2, sbuffer1, sbuffer2), GTEST_NONFATAL_FAILURE_); \
