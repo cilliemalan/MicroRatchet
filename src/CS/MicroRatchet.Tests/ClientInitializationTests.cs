@@ -23,7 +23,7 @@ namespace MicroRatchet.Tests
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
 
-            Assert.Equal(4, clientState.InitializationNonce.Length);
+            Assert.Equal(MicroRatchetClient.InitializationNonceSize, clientState.InitializationNonce.Length);
         }
 
         [Fact]
@@ -148,7 +148,7 @@ namespace MicroRatchet.Tests
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
 
-            Assert.Equal(4, clientState.InitializationNonce.Length);
+            Assert.Equal(MicroRatchetClient.InitializationNonceSize, clientState.InitializationNonce.Length);
             Assert.True(clientInitPacket.IsMultipartMessage);
             Assert.Equal(2, clientInitPacket.Messages.Length);
         }

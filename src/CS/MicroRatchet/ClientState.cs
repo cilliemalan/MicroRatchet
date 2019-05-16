@@ -41,9 +41,9 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (InitializationNonce.Length != MicroRatchetClient.NonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.NonceSize} bytes");
+                    if (InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
 
-                    if (InitializationNonce != null) memory.Write(InitializationNonce, 0, MicroRatchetClient.NonceSize); else memory.Seek(MicroRatchetClient.NonceSize, SeekOrigin.Current);
+                    if (InitializationNonce != null) memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
                 }
 
                 if (hasEcdh)
@@ -80,9 +80,9 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetClient.NonceSize) InitializationNonce = new byte[MicroRatchetClient.NonceSize];
+                    if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) InitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
 
-                    memory.Read(InitializationNonce, 0, MicroRatchetClient.NonceSize);
+                    memory.Read(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
                 }
 
                 if (hasEcdh)
