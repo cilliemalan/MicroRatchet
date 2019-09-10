@@ -16,6 +16,9 @@ using Org.BouncyCastle.Security;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// Functions for generating a ECDSA key pairs.
+    /// </summary>
     internal static class KeyGeneration
     {
         private static readonly ECDomainParameters domainParms;

@@ -6,6 +6,9 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// SHA256 Digest.
+    /// </summary>
     internal class Digest : IDisposable, IDigest
     {
         Sha256Digest _sha = new Sha256Digest();

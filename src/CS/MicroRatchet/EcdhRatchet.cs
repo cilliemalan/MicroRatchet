@@ -7,6 +7,9 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// The ECDH key ratcheting process.
+    /// </summary>
     internal class EcdhRatchet
     {
         private List<EcdhRatchetStep> _steps = new List<EcdhRatchetStep>();

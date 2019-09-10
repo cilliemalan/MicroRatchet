@@ -16,6 +16,9 @@ using Org.BouncyCastle.Security;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// ECDH key agreement using secp256r1/NIST P-256
+    /// </summary>
     internal class KeyAgreement : IDisposable, IKeyAgreement
     {
         private static readonly ECDomainParameters domainParms;

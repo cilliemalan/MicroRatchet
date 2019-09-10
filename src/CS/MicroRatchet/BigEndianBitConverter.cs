@@ -4,6 +4,7 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>Like <see cref="BitConverter" /> but big endian.</summary>
     internal static class BigEndianBitConverter
     {
         public static byte[] GetBytes(int value) => new byte[]

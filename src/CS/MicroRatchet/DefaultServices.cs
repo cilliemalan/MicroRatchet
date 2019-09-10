@@ -6,6 +6,9 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// A default implementation of the services needed by <see cref="MicroRatchetClient" />.
+    /// </summary>
     public class DefaultServices : IServices
     {
         public DefaultServices(byte[] privateKey, int hotSpace = 1024, int coldSpace = 8192)

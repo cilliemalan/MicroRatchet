@@ -4,6 +4,12 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    ///<summary>
+    /// AES counter mode implementation. The plaintext stream
+    /// is XORed with a pseudorandom stream of 16 byte blocks generated
+    /// by AES encrypting monotonically increasing 16 byte numbers, starting
+    /// with a given nonce/iv.
+    ///</summary>
     internal class AesCtrMode
     {
         private IAes _aes;

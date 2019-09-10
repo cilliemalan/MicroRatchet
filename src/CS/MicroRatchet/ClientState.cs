@@ -6,6 +6,9 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// 
+    /// </summary>
     internal class ClientState : State
     {
         protected override int Version => 1;

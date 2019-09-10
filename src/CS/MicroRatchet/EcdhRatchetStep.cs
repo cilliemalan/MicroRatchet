@@ -6,6 +6,9 @@ using System.Text;
 
 namespace MicroRatchet
 {
+    /// <summary>
+    /// The state for an ECDH ratchet step.
+    /// </summary>
     internal class EcdhRatchetStep
     {
         public IKeyAgreement EcdhKey;
