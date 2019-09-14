@@ -165,16 +165,14 @@ namespace MicroRatchet.Tests
                         var message = client.Send(payload);
 
                         bool dropped = false;
-                        foreach (var p in message.Messages)
+                        
+                        if (r.NextDouble() > clientDropChance)
                         {
-                            if (r.NextDouble() > clientDropChance)
-                            {
-                                messagesSentFromClient.Add(p);
-                            }
-                            else
-                            {
-                                dropped = true;
-                            }
+                            messagesSentFromClient.Add(message.Message);
+                        }
+                        else
+                        {
+                            dropped = true;
                         }
 
                         if (dropped == false)
@@ -192,18 +190,16 @@ namespace MicroRatchet.Tests
                         var message = server.Send(payload);
 
                         bool dropped = false;
-                        foreach (var p in message.Messages)
+                        
+                        if (r.NextDouble() > serverDropChance)
                         {
-                            if (r.NextDouble() > serverDropChance)
-                            {
-                                messagesSentFromServer.Add(p);
-                            }
-                            else
-                            {
-                                dropped = true;
-                            }
+                            messagesSentFromServer.Add(message.Message);
                         }
-
+                        else
+                        {
+                            dropped = true;
+                        }
+                        
                         if (dropped == false)
                         {
                             clientExpects.Add(payload);

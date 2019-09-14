@@ -135,108 +135,6 @@ namespace MicroRatchet.Tests
         }
 
         [Fact]
-        public void ClientLargeInit1MessageTest()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true, 80);
-
-            var clientInitPacket = client.InitiateInitialization();
-            client.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-
-            Assert.NotNull(clientState.LocalEcdhForInit);
-            Assert.NotNull(clientState.InitializationNonce);
-
-            Assert.Equal(MicroRatchetClient.InitializationNonceSize, clientState.InitializationNonce.Length);
-            Assert.True(clientInitPacket.IsMultipartMessage);
-            Assert.Equal(2, clientInitPacket.Messages.Length);
-        }
-
-        [Fact]
-        public void ClientLargeInit2ProcessTest()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true, 80);
-            var server = new MicroRatchetClient(serverServices, false, 80);
-
-            var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
-            client.SaveState();
-            server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
-        }
-
-        [Fact]
-        public void ClientLargeInit3ProcessResponseTest()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true, 80);
-            var server = new MicroRatchetClient(serverServices, false, 80);
-
-            var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
-            var firstPacket = client.ReceiveMultiple(responsePacket).ToSendBack;
-            client.SaveState();
-            server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
-
-            Assert.Equal(clientState.Ratchets[0].SendHeaderKey, serverState.FirstReceiveHeaderKey);
-            Assert.Equal(clientState.Ratchets[1].ReceiveHeaderKey, serverState.FirstSendHeaderKey);
-        }
-
-        [Fact]
-        public void ClientLargeInit4ProcessFirstPacketSendTest()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true, 80);
-            var server = new MicroRatchetClient(serverServices, false, 80);
-
-            var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
-            var firstPacket = client.ReceiveMultiple(responsePacket).ToSendBack;
-            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
-            client.SaveState();
-            server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
-
-            Assert.NotNull(firstResponse);
-            Assert.Equal(2, clientState.Ratchets.Count);
-            Assert.Equal(1, serverState.Ratchets.Count);
-        }
-
-        [Fact]
-        public void ClientLargeInit5ProcessComplete()
-        {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-
-            var client = new MicroRatchetClient(clientServices, true, 80);
-            var server = new MicroRatchetClient(serverServices, false, 80);
-
-            var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
-            var firstPacket = client.ReceiveMultiple(responsePacket).ToSendBack;
-            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
-            var lastResult = client.Receive(firstResponse.Message).ToSendBack;
-            client.SaveState();
-            server.SaveState();
-            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
-            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
-
-            Assert.Null(lastResult);
-        }
-
-        [Fact]
         public void HotReinitialization()
         {
             DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
@@ -283,12 +181,12 @@ namespace MicroRatchet.Tests
 
             // oh noes! Client fail! reinitialize
             clientServices.Storage = new InMemoryStorage(1024, 8192);
-            client = new MicroRatchetClient(clientServices, true, 80);
-            server = new MicroRatchetClient(serverServices, false, 80);
+            client = new MicroRatchetClient(clientServices, true, 1000);
+            server = new MicroRatchetClient(serverServices, false, 1000);
             {
                 var clientInitPacket = client.InitiateInitialization();
-                var responsePacket = server.ReceiveMultiple(clientInitPacket).ToSendBack;
-                var firstPacket = client.ReceiveMultiple(responsePacket).ToSendBack;
+                var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
+                var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
                 var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
                 var lastResult = client.Receive(firstResponse.Message).ToSendBack;
                 client.SaveState();

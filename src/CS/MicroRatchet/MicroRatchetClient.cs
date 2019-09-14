@@ -23,8 +23,6 @@ namespace MicroRatchet
         private IKeyDerivation KeyDerivation { get; }
         private IVerifierFactory VerifierFactory => Services.VerifierFactory;
         private IStorageProvider Storage => Services.Storage;
-
-        private readonly MultipartMessageReconstructor _multipart;
         private State _state;
         private readonly List<(byte[], IAes)> _headerKeyCiphers = new List<(byte[], IAes)>();
 
@@ -43,9 +41,6 @@ namespace MicroRatchet
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
 
             KeyDerivation = new AesKdf(Services.AesFactory);
-            _multipart = new MultipartMessageReconstructor(MaximumMessageSize,
-                config.MaximumBufferedPartialMessageSize,
-                config.PartialMessageTimeout);
 
             CheckMtu();
         }
@@ -59,9 +54,6 @@ namespace MicroRatchet
             };
             if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
             KeyDerivation = new AesKdf(Services.AesFactory);
-            _multipart = new MultipartMessageReconstructor(MultipartMessageSize,
-                Configuration.MaximumBufferedPartialMessageSize,
-                Configuration.PartialMessageTimeout);
 
             CheckMtu();
         }
@@ -110,13 +102,13 @@ namespace MicroRatchet
             IKeyAgreement clientEcdh = KeyAgreementFactory.GenerateNew();
             clientState.LocalEcdhForInit = clientEcdh;
 
-            // nonce(4), pubkey(32), ecdh(32), signature(64)
+            // nonce(16), pubkey(32), ecdh(32), signature(64)
             var initializationMessageSize = InitializationNonceSize + EcPntSize * 2;
             var initializationMessageSizeWithSignature = initializationMessageSize + EcPntSize * 2;
             var message = new byte[initializationMessageSizeWithSignature];
             Array.Copy(clientState.InitializationNonce, 0, message, 0, InitializationNonceSize);
             Array.Copy(pubkey, 0, message, InitializationNonceSize, EcPntSize);
-            Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, 32);
+            Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, EcPntSize);
             var digest = Digest.ComputeDigest(message, 0, initializationMessageSize);
             Array.Copy(Signature.Sign(digest), 0, message, InitializationNonceSize + EcPntSize * 2, SignatureSize);
             return message;
@@ -688,11 +680,11 @@ namespace MicroRatchet
             {
                 if (sendback.Length > Configuration.Mtu)
                 {
-                    return new MessageInfo { Messages = ConstructUnencryptedMultipartMessage(sendback) };
+                    throw new InvalidOperationException("The MTU is too small");
                 }
                 else
                 {
-                    return new MessageInfo { Messages = new[] { sendback } };
+                    return new MessageInfo { Message = sendback };
                 }
             }
             else
@@ -716,7 +708,7 @@ namespace MicroRatchet
 
             return new MessageInfo
             {
-                Messages = new[] { ConstructMessage(payload, pad, canIncludeEcdh, step) }
+                Message = ConstructMessage(payload, pad, canIncludeEcdh, step)
             };
         }
 
@@ -751,8 +743,6 @@ namespace MicroRatchet
 
         private static bool IsEncryptedMessage(byte b) => (b & 0b1000_0000) == 0;
 
-        private static bool IsMultipartMessage(byte b) => (b & 0b1100_0000) == 0b1100_0000;
-
         private static bool IsInitializationMessage(byte b) => (b & 0b1100_0000) == 0b1000_0000;
 
         private static bool HasEcdh(byte b) => (b & 0b0100_0000) != 0;
@@ -781,69 +771,34 @@ namespace MicroRatchet
             State state = LoadState();
             var isInitialized = state?.IsInitialized ?? false;
             var isEncrypted = IsEncryptedMessage(data[0]);
-            var isMultipart = IsMultipartMessage(data[0]);
 
             if (!isInitialized || !isEncrypted)
             {
-                if (isEncrypted || !isMultipart)
+                if (state == null)
                 {
-                    if (state == null)
-                    {
-                        state = InitializeState();
-                    }
-                    MessageInfo toSendBack = ProcessInitialization(state, data);
+                    state = InitializeState();
+                }
+                MessageInfo toSendBack = ProcessInitialization(state, data);
 
-                    return new ReceiveResult
-                    {
-                        Payload = null,
-                        ReceivedDataType = ReceivedDataType.InitializationWithResponse,
-                        ToSendBack = toSendBack
-                    };
-                }
-                else if (!isEncrypted && isMultipart)
+                return new ReceiveResult
                 {
-                    (var payload, var num, var total) = DeconstructUnencryptedMultipartMessagePart(data);
-                    var output = _multipart.Ingest(payload, 0, num, total); //seq = 0 is for initialization
-                    if (output != null)
-                    {
-                        ReceiveResult r2 = Receive(output);
-                        return new ReceiveResult
-                        {
-                            MessageNumber = num,
-                            MultipartSequence = 0,
-                            TotalMessages = total,
-                            Payload = r2.Payload,
-                            ReceivedDataType = r2.ReceivedDataType,
-                            ToSendBack = r2.ToSendBack
-                        };
-                    }
-                    else
-                    {
-                        return new ReceiveResult
-                        {
-                            MultipartSequence = 0,
-                            MessageNumber = num,
-                            TotalMessages = total,
-                            Payload = payload,
-                            ReceivedDataType = ReceivedDataType.Partial,
-                            ToSendBack = null
-                        };
-                    }
-                }
-                else
-                {
-                    throw new InvalidOperationException("Unexpected message");
-                }
+                    Payload = null,
+                    ReceivedDataType = ReceivedDataType.InitializationWithResponse,
+                    ToSendBack = toSendBack
+                };
             }
-            else
+            else if (isEncrypted)
             {
-                _multipart.Tick();
                 return new ReceiveResult
                 {
                     Payload = DeconstructMessage(state, data),
                     ToSendBack = null,
                     ReceivedDataType = ReceivedDataType.Normal
                 };
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected Message");
             }
         }
 

@@ -422,29 +422,16 @@ namespace MicroRatchet.Performance
 
             var packet = client.InitiateInitialization();
 
-            while (!client.IsInitialized || !server.IsInitialized)
+            while (packet != null && !client.IsInitialized || !server.IsInitialized)
             {
-                foreach (var m in packet.Messages)
-                {
-                    var newPacket = server.Receive(m).ToSendBack;
-                    if (newPacket != null)
-                    {
-                        packet = newPacket;
-                    }
-                }
-
+                packet = server.Receive(packet.Message).ToSendBack;
                 if (packet != null)
                 {
-                    foreach (var m in packet.Messages)
-                    {
-                        var newPacket = client.Receive(m).ToSendBack;
-                        if (newPacket != null)
-                        {
-                            packet = newPacket;
-                        }
-                    }
+                    packet = client.Receive(packet.Message).ToSendBack;
                 }
             }
+
+            if (!client.IsInitialized || !server.IsInitialized) throw new InvalidOperationException("Initialization failed");
 
             client.SaveState();
             server.SaveState();
