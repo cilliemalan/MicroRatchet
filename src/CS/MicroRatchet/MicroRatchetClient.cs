@@ -82,7 +82,7 @@ namespace MicroRatchet
         private byte[] SendInitializationRequest(State state)
         {
             // message format:
-            // nonce(16), pubkey(32), ecdh(32), signature(64)
+            // nonce(16), pubkey(32), ecdh(32), signature(64), mac(12)
 
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send init request.");
 
@@ -105,12 +105,25 @@ namespace MicroRatchet
             // nonce(16), pubkey(32), ecdh(32), signature(64)
             var initializationMessageSize = InitializationNonceSize + EcPntSize * 2;
             var initializationMessageSizeWithSignature = initializationMessageSize + EcPntSize * 2;
-            var message = new byte[initializationMessageSizeWithSignature];
+            var initializationMessageSizeWithSignatureAndMac = initializationMessageSize + EcPntSize * 2 + MacSize;
+            var message = new byte[initializationMessageSizeWithSignatureAndMac];
             Array.Copy(clientState.InitializationNonce, 0, message, 0, InitializationNonceSize);
             Array.Copy(pubkey, 0, message, InitializationNonceSize, EcPntSize);
             Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, EcPntSize);
             var digest = Digest.ComputeDigest(message, 0, initializationMessageSize);
             Array.Copy(Signature.Sign(digest), 0, message, InitializationNonceSize + EcPntSize * 2, SignatureSize);
+
+            // encrypt the message with the application key
+            var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), clientState.InitializationNonce);
+            var encryptedPayload = cipher.Process(message, InitializationNonceSize, initializationMessageSizeWithSignature - InitializationNonceSize);
+            Array.Copy(encryptedPayload, 0, message, InitializationNonceSize, initializationMessageSizeWithSignature - InitializationNonceSize);
+
+            // calculate mac
+            var Mac = new Poly(AesFactory);
+            Mac.Init(Configuration.ApplicationKey, clientState.InitializationNonce, MacSize * 8);
+            Mac.Process(message, 0, initializationMessageSizeWithSignature);
+            var mac = Mac.Compute();
+            Array.Copy(mac, 0, message, initializationMessageSizeWithSignature, MacSize);
             return message;
         }
 
@@ -207,7 +220,7 @@ namespace MicroRatchet
             var digest = Digest.ComputeDigest(message, encryptedPayloadOffset, encryptedPayloadSize - SignatureSize);
             Array.Copy(Signature.Sign(digest), 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 3, SignatureSize);
 
-            // encrypte the message
+            // encrypt the message
             var cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), serverNonce);
             var encryptedPayload = cipher.Process(message, encryptedPayloadOffset, encryptedPayloadSize);
             Array.Copy(encryptedPayload, 0, message, encryptedPayloadOffset, encryptedPayloadSize);
