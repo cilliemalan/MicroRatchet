@@ -6,9 +6,9 @@ namespace MicroRatchet
 {
     public class MicroRatchetConfiguration
     {
-
         public int Mtu { get; set; } = 1000;
         public bool IsClient { get; set; } = true;
         public int NumberOfRatchetsToKeep { get; set; } = 7;
+        public byte[] ApplicationKey { get; set; } = new byte[32];
     }
 }
