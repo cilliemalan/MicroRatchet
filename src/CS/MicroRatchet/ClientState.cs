@@ -27,7 +27,7 @@ namespace MicroRatchet
         // used twice
         public IKeyAgreement LocalEcdhForInit;
 
-        private long StoreInternal(IStorageProvider storage, int numberOfRatchetsToStore, int numLostKeysToStore)
+        private long StoreInternal(IStorageProvider storage, int numberOfRatchetsToStore)
         {
             using (var memory = storage.LockCold())
             {
@@ -56,7 +56,7 @@ namespace MicroRatchet
 
                 if (hasRatchet)
                 {
-                    WriteRatchet(memory, numberOfRatchetsToStore, numLostKeysToStore);
+                    WriteRatchet(memory, numberOfRatchetsToStore);
                 }
 
                 Log.Verbose($"Wrote {memory.Position} bytes of client state");
@@ -64,9 +64,9 @@ namespace MicroRatchet
             }
         }
 
-        public override void Store(IStorageProvider storage, int numberOfRatchetsToStore, int numLostKeysToStore)
+        public override void Store(IStorageProvider storage, int numberOfRatchetsToStore)
         {
-            StoreInternal(storage, numberOfRatchetsToStore, numLostKeysToStore);
+            StoreInternal(storage, numberOfRatchetsToStore);
         }
 
         private long LoadInternal(IStorageProvider storage, IKeyAgreementFactory kexFac)

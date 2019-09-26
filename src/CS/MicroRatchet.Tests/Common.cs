@@ -33,16 +33,12 @@ namespace MicroRatchet.Tests
             var clientConfig = new MicroRatchetConfiguration
             {
                 IsClient = true,
-                Mtu = mtu,
-                MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
-                PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu
+                Mtu = mtu
             };
             var serverConfig = new MicroRatchetConfiguration
             {
                 IsClient = false,
-                Mtu = mtu,
-                MaximumBufferedPartialMessageSize = maximumBufferedPartialMessageSize,
-                PartialMessageTimeout = maximumBufferedPartialMessageSize / mtu
+                Mtu = mtu
             };
             return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
         }

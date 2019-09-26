@@ -26,7 +26,7 @@ namespace MicroRatchet
         // used a few times
         public byte[] NextInitializationNonce;
 
-        public override void Store(IStorageProvider storage, int numberOfRatchetsToStore, int numLostKeysToStore)
+        public override void Store(IStorageProvider storage, int numberOfRatchetsToStore)
         {
             using (var memory = storage.LockCold())
             {
@@ -67,7 +67,7 @@ namespace MicroRatchet
                 }
                 if (hasRatchet)
                 {
-                    WriteRatchet(memory, numberOfRatchetsToStore, numLostKeysToStore);
+                    WriteRatchet(memory, numberOfRatchetsToStore);
                 }
                 Log.Verbose($"Wrote {memory.Position} bytes of server state");
             }

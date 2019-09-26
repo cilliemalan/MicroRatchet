@@ -36,7 +36,7 @@ namespace MicroRatchet
             }
         }
 
-        public abstract void Store(IStorageProvider storage, int numberOfRatchetsToStore, int numLostKeysToStore);
+        public abstract void Store(IStorageProvider storage, int numberOfRatchetsToStore);
 
         protected void ReadRatchet(Stream stream, IKeyAgreementFactory kexFac)
         {
@@ -139,7 +139,7 @@ namespace MicroRatchet
             foreach (var step in Enumerable.Reverse(steps)) Ratchets.Add(step);
         }
 
-        protected void WriteRatchet(Stream stream, int numberOfRatchetsToStore, int numLostKeysToStore)
+        protected void WriteRatchet(Stream stream, int numberOfRatchetsToStore)
         {
             bool last = true;
             bool secondToLast = false;

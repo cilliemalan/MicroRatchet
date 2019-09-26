@@ -833,7 +833,7 @@ namespace MicroRatchet
         {
             if (_state != null)
             {
-                _state.Store(Storage, Configuration.NumberOfRatchetsToKeep, Configuration.MaxLostKeys);
+                _state.Store(Storage, Configuration.NumberOfRatchetsToKeep);
             }
             else
             {
