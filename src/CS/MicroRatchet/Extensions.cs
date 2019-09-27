@@ -54,7 +54,10 @@ namespace MicroRatchet
             return true;
         }
 
-        public static bool Matches(this ArraySegment<byte> bytes, byte[] other)
+        public static bool Matches(this byte[] bytes, byte[] other, int offset, int length) =>
+            Matches(bytes, new ArraySegment<byte>(other, offset, length));
+
+            public static bool Matches(this ArraySegment<byte> bytes, byte[] other)
         {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (other == null) throw new ArgumentNullException(nameof(other));
@@ -73,6 +76,9 @@ namespace MicroRatchet
             for (int i = 0; i < bytes.Count; i++) if (bytes.Array[bytes.Offset + i] != other.Array[other.Offset + i]) return false;
             return true;
         }
+
+        public static bool Matches(this ArraySegment<byte> bytes, byte[] other, int offset, int length) =>
+            Matches(bytes, new ArraySegment<byte>(other, offset, length));
 
         public static void Generate(this IRandomNumberGenerator rng, byte[] data) =>
             rng.Generate(new ArraySegment<byte>(data));
