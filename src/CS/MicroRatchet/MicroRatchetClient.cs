@@ -197,9 +197,6 @@ namespace MicroRatchet
 
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
-            // set the first bit and clear the second: v1 initialization message
-            //serverNonce[0] &= 0b0011_1111;
-            //serverNonce[0] |= 0b1000_0000;
             serverState.NextInitializationNonce = serverNonce;
             IKeyAgreement rootPreEcdh = KeyAgreementFactory.GenerateNew();
             var rootPreEcdhPubkey = rootPreEcdh.GetPublicKey();
@@ -407,11 +404,11 @@ namespace MicroRatchet
             (var payloadKey, var messageNumber) = step.SendingChain.RatchetForSending(KeyDerivation);
             var nonce = BigEndianBitConverter.GetBytes(messageNumber);
 
-            // make sure the first two bits of the nonce are clear
-            // this indicates an initialization message
-            if ((nonce[0] & 0b1100_0000) != 0)
+            // make sure the first bit is not set as we use that bit to indicate
+            // the presence of new ECDH parameters
+            if ((nonce[0] & 0b1000_0000) != 0)
             {
-                throw new InvalidOperationException($"The message number is too big. Cannot encrypt more than {(1 << 30) - 1} messages without exchanging keys");
+                throw new InvalidOperationException($"The message number is too big. Cannot encrypt more than {((uint)1 << 31) - 1} messages without exchanging keys");
             }
 
             // calculate some sizes
@@ -450,7 +447,12 @@ namespace MicroRatchet
                 Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
 
                 // set the has ecdh bit
-                header[0] |= 0b0100_0000;
+                header[0] |= 0b1000_0000;
+            }
+            else
+            {
+                // clear the has ecdh bit
+                header[0] &= 0b0111_1111;
             }
 
             // encrypt the header using the header key and using the
@@ -458,9 +460,6 @@ namespace MicroRatchet
             var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - HeaderIVSize, HeaderIVSize);
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendHeaderKey), headerEncryptionNonce);
             var encryptedHeader = hcipher.Process(header);
-
-            // clear the first bit of the message indicating that it is a normal message
-            encryptedHeader[0] = (byte)(encryptedHeader[0] & 0b0111_1111);
 
             // mac the message: <header>, <payload>, mac(12)
             // the mac uses the header encryption derived key (all 32 bytes)
@@ -580,10 +579,9 @@ namespace MicroRatchet
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), headerEncryptionNonce);
             var decryptedNonce = hcipher.Process(encryptedNonce);
 
-            // clear the first bit again and get the ecdh bit
-            decryptedNonce[0] = (byte)(decryptedNonce[0] & 0b0111_1111);
-            var hasEcdh = HasEcdh(decryptedNonce[0]);
-            decryptedNonce[0] &= 0b0011_1111;
+            // get the ecdh bit
+            var hasEcdh = (decryptedNonce[0] & 0b1000_0000) != 0;
+            decryptedNonce[0] &= 0b0111_1111;
 
             // extract ecdh if needed
             var step = BigEndianBitConverter.ToInt32(decryptedNonce);
@@ -766,8 +764,6 @@ namespace MicroRatchet
             _state = State.Initialize(Configuration.IsClient, 32);
             return _state;
         }
-
-        private static bool HasEcdh(byte b) => (b & 0b0100_0000) != 0;
 
         public MessageInfo InitiateInitialization(bool forceReinitialization = false)
         {
