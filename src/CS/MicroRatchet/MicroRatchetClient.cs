@@ -89,6 +89,12 @@ namespace MicroRatchet
             // 16 bytes nonce
             clientState.InitializationNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
 
+            // The first byte contains version information.
+            // The first bit being set indicates this is not an encrypted message
+            // The second bit being cleared indicates this is the first version
+            clientState.InitializationNonce[0] &= 0b0011_1111;
+            clientState.InitializationNonce[0] |= 0b1000_0000;
+
             // get the public key
             var pubkey = Signature.PublicKey;
 
@@ -104,6 +110,8 @@ namespace MicroRatchet
             Array.Copy(clientState.InitializationNonce, 0, message, 0, InitializationNonceSize);
             Array.Copy(pubkey, 0, message, InitializationNonceSize, EcPntSize);
             Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, EcPntSize);
+
+            // sign the message
             var digest = Digest.ComputeDigest(message, 0, initializationMessageSize);
             Array.Copy(Signature.Sign(digest), 0, message, InitializationNonceSize + EcPntSize * 2, SignatureSize);
 
@@ -191,8 +199,8 @@ namespace MicroRatchet
             // generate a nonce and new ecdh parms
             var serverNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
             // set the first bit and clear the second: v1 initialization message
-            serverNonce[0] &= 0b0011_1111;
-            serverNonce[0] |= 0b1000_0000;
+            //serverNonce[0] &= 0b0011_1111;
+            //serverNonce[0] |= 0b1000_0000;
             serverState.NextInitializationNonce = serverNonce;
             IKeyAgreement rootPreEcdh = KeyAgreementFactory.GenerateNew();
             var rootPreEcdhPubkey = rootPreEcdh.GetPublicKey();
@@ -213,7 +221,9 @@ namespace MicroRatchet
             IKeyAgreement serverEcdhRatchet1 = KeyAgreementFactory.GenerateNew();
             serverState.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
 
-            var entireMessageSize = InitializationNonceSize * 2 + EcPntSize * 4 + SignatureSize + MacSize;
+            var entireMessageWithoutMacOrSignatureSize = InitializationNonceSize * 2 + EcPntSize * 4;
+            var entireMessageWithSignatureSize = entireMessageWithoutMacOrSignatureSize + SignatureSize;
+            var entireMessageSize = entireMessageWithSignatureSize + MacSize;
             var encryptedPayloadSize = InitializationNonceSize + EcPntSize * 3 + SignatureSize;
             var encryptedPayloadOffset = InitializationNonceSize + EcPntSize;
             var macOffset = entireMessageSize - MacSize;
@@ -230,17 +240,22 @@ namespace MicroRatchet
             Array.Copy(serverEcdhRatchet1.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 2, EcPntSize);
 
             // sign the message
-            var digest = Digest.ComputeDigest(message, encryptedPayloadOffset, encryptedPayloadSize - SignatureSize);
-            Array.Copy(Signature.Sign(digest), 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 3, SignatureSize);
+            var digest = Digest.ComputeDigest(message, 0, entireMessageWithoutMacOrSignatureSize);
+            Array.Copy(Signature.Sign(digest), 0, message, entireMessageWithoutMacOrSignatureSize, SignatureSize);
 
             // encrypt the message
             var cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), serverNonce);
             var encryptedPayload = cipher.Process(message, encryptedPayloadOffset, encryptedPayloadSize);
             Array.Copy(encryptedPayload, 0, message, encryptedPayloadOffset, encryptedPayloadSize);
 
+            // encrypt the header
+            cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), encryptedPayload, encryptedPayloadSize - InitializationNonceSize, InitializationNonceSize);
+            var encryptedHeader = cipher.Process(message, 0, encryptedPayloadOffset);
+            Array.Copy(encryptedHeader, 0, message, 0, encryptedPayloadOffset);
+
             // calculate mac
             var Mac = new Poly(AesFactory);
-            Mac.Init(rootPreKey, serverNonce, MacSize * 8);
+            Mac.Init(Configuration.ApplicationKey, encryptedHeader, 0, InitializationNonceSize, MacSize * 8);
             Mac.Process(message, 0, macOffset);
             var mac = Mac.Compute();
             Array.Copy(mac, 0, message, macOffset, MacSize);
@@ -252,46 +267,56 @@ namespace MicroRatchet
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive an init response.");
 
+            var macOffset = data.Length - MacSize;
+            var headerIvOffset = macOffset - InitializationNonceSize;
+            var headerSize = InitializationNonceSize + EcPntSize;
+            var payloadSize = InitializationNonceSize + EcPntSize * 3 + SignatureSize;
+
+            // check mac
+            var Mac = new Poly(AesFactory);
+            Mac.Init(Configuration.ApplicationKey, data, 0, InitializationNonceSize, MacSize * 8);
+            Mac.Process(data, 0, macOffset);
+            var mac = Mac.Compute();
+            if (!mac.Matches(data, macOffset, MacSize))
+            {
+                throw new InvalidOperationException("The MAC did not match");
+            }
+
+            // decrypt header
+            var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), data, headerIvOffset, InitializationNonceSize);
+            var decryptedHeader = cipher.Process(data, 0, headerSize);
+            Array.Copy(decryptedHeader, 0, data, 0, headerSize);
+
             // new nonce(16), ecdh pubkey(32), <nonce(4), server pubkey(32), 
             // new ecdh pubkey(32) x2, signature(64)>, mac(12)
             var nonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
             var rootEcdhKey = new ArraySegment<byte>(data, InitializationNonceSize, EcPntSize);
-            var encryptedPayload = new ArraySegment<byte>(data,
-                        EcPntSize + InitializationNonceSize,
-                        data.Length - EcPntSize - InitializationNonceSize - MacSize);
-            var payloadToMac = new ArraySegment<byte>(data, 0, data.Length - MacSize);
-            var mac = new ArraySegment<byte>(data, data.Length - MacSize, MacSize);
+            var encryptedPayload = new ArraySegment<byte>(data, headerSize, payloadSize);
 
-            // decrypt
+            // decrypt payload
             IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
             var rootPreKey = rootEcdh.DeriveKey(rootEcdhKey);
             rootPreKey = Digest.ComputeDigest(rootPreKey);
-            var cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), nonce);
-            var payload = cipher.Process(encryptedPayload);
+            cipher = new AesCtrMode(AesFactory.GetAes(true, rootPreKey), nonce);
+            var decryptedPayload = cipher.Process(encryptedPayload);
+            Array.Copy(decryptedPayload, 0, data, headerSize, payloadSize);
 
-            // check mac
-            var Mac = new Poly(AesFactory);
-            Mac.Init(rootPreKey, nonce, MacSize * 8);
-            Mac.Process(payloadToMac);
-            var checkMac = Mac.Compute();
+            // extract some goodies
+            var oldNonce = new ArraySegment<byte>(data, headerSize, InitializationNonceSize);
+            var serverPubKey = new ArraySegment<byte>(data, headerSize + InitializationNonceSize, EcPntSize);
+            var remoteRatchetEcdh0 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcPntSize, EcPntSize);
+            var remoteRatchetEcdh1 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcPntSize * 2, EcPntSize);
 
-            if (!mac.Matches(checkMac))
-            {
-                throw new InvalidOperationException("Could not decript payload");
-            }
-
-            var oldNonce = new ArraySegment<byte>(payload, 0, InitializationNonceSize);
-            var serverPubKey = new ArraySegment<byte>(payload, InitializationNonceSize, EcPntSize);
-            var remoteRatchetEcdh0 = new ArraySegment<byte>(payload, InitializationNonceSize + EcPntSize, EcPntSize);
-            var remoteRatchetEcdh1 = new ArraySegment<byte>(payload, InitializationNonceSize + EcPntSize * 2, EcPntSize);
-
+            // make sure the nonce sent back by the server (which is encrypted and signed)
+            // matches the nonce we sent previously
             if (!oldNonce.Matches(clientState.InitializationNonce))
             {
                 throw new InvalidOperationException("Nonce did not match");
             }
 
+            // verify that the signature matches
             IVerifier verifier = VerifierFactory.Create(serverPubKey);
-            if (!verifier.VerifySignedMessage(Digest, new ArraySegment<byte>(payload)))
+            if (!verifier.VerifySignedMessage(Digest, new ArraySegment<byte>(data, 0, payloadSize + headerSize)))
             {
                 throw new InvalidOperationException("The signature was invalid");
             }
@@ -316,8 +341,6 @@ namespace MicroRatchet
                 localStep1EcdhRatchet));
 
             clientState.LocalEcdhForInit = null;
-
-
         }
 
         private byte[] SendFirstClientMessage(State state)
