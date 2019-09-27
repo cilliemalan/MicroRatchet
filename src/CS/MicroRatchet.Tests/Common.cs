@@ -33,12 +33,12 @@ namespace MicroRatchet.Tests
             var clientConfig = new MicroRatchetConfiguration
             {
                 IsClient = true,
-                Mtu = mtu
+                MaximumMessageSize = mtu
             };
             var serverConfig = new MicroRatchetConfiguration
             {
                 IsClient = false,
-                Mtu = mtu
+                MaximumMessageSize = mtu
             };
             return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
         }

@@ -437,8 +437,8 @@ namespace MicroRatchet.Performance
             server.SaveState();
 
             return (
-                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, Mtu = mtu ?? 80 }),
-                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, Mtu = mtu ?? 80 }));
+                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }),
+                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }));
         }
     }
 }

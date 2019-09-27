@@ -15,11 +15,11 @@ namespace MicroRatchet
             return b;
         }
 
-        public static MessageInfo Send(this MicroRatchetClient mrc, byte[] payload, bool pad = false) =>
-            mrc.Send(new ArraySegment<byte>(payload), pad);
+        public static MessageInfo Send(this MicroRatchetClient mrc, byte[] payload) =>
+            mrc.Send(new ArraySegment<byte>(payload));
 
-        public static MessageInfo Send(this MicroRatchetClient mrc, byte[] payload, int offset, int length, bool pad = false) =>
-            mrc.Send(new ArraySegment<byte>(payload, offset, length), pad);
+        public static MessageInfo Send(this MicroRatchetClient mrc, byte[] payload, int offset, int length) =>
+            mrc.Send(new ArraySegment<byte>(payload, offset, length));
 
         public static byte[] ComputeDigest(this IDigest digest, ArraySegment<byte> data)
         {

@@ -9,11 +9,12 @@ namespace MicroRatchet
         public const int NonceSize = 4;
         public const int MacSize = 12;
         public const int EcPntSize = 32;
-        public const int SignatureSize = 64;
-        public const int MinimumMessageSize = 16;
+        public const int SignatureSize = EcPntSize * 2;
+        public const int MinimumPayloadSize = InitializationNonceSize;
         public const int MinimumOverhead = NonceSize + MacSize; // 16
         public const int OverheadWithEcdh = MinimumOverhead + EcPntSize; // 48
-        public const int EncryptedMultipartHeaderOverhead = 6;
+        public const int MinimumMessageSize = MinimumPayloadSize + MinimumOverhead;
+        public const int MinimumMaximumMessageSize = OverheadWithEcdh + MinimumPayloadSize;
         public const int HeaderIVSize = 16;
 
         private IDigest Digest => Services.Digest;
@@ -32,9 +33,7 @@ namespace MicroRatchet
         public MicroRatchetConfiguration Configuration { get; }
 
         public bool IsInitialized => LoadState().IsInitialized;
-        public int MaximumMessageSize => Configuration.Mtu - MinimumOverhead;
-        public int MaximumMessageSizeWithEcdh => Configuration.Mtu - OverheadWithEcdh;
-        public int MultipartMessageSize => Configuration.Mtu - MinimumOverhead - EncryptedMultipartHeaderOverhead;
+        public int MaximumMessageSize => Configuration.MaximumMessageSize - MinimumOverhead;
 
         public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
         {
@@ -46,14 +45,24 @@ namespace MicroRatchet
             CheckMtu();
         }
 
-        public MicroRatchetClient(IServices services, bool isClient, int? Mtu = null)
+        public MicroRatchetClient(IServices services, bool isClient, int? MaximumMessageSize = null, int? MinimumMessageSize = null)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = new MicroRatchetConfiguration
             {
                 IsClient = isClient
             };
-            if (Mtu.HasValue) Configuration.Mtu = Mtu.Value;
+
+            if (MaximumMessageSize.HasValue)
+            {
+                Configuration.MaximumMessageSize = MaximumMessageSize.Value;
+            }
+
+            if (MinimumMessageSize.HasValue)
+            {
+                Configuration.MinimumMessageSize = MinimumMessageSize.Value;
+            }
+
             KeyDerivation = new AesKdf(Services.AesFactory);
 
             CheckMtu();
@@ -61,10 +70,13 @@ namespace MicroRatchet
 
         private void CheckMtu()
         {
-            var mtu = Configuration.Mtu;
+            var maxtu = Configuration.MaximumMessageSize;
+            var mintu = Configuration.MinimumMessageSize;
 
             // minimum mtu is 64 bytes
-            if (mtu < OverheadWithEcdh + MinimumMessageSize) throw new InvalidOperationException("The MTU is not big enough to facilitate key exchange");
+            if (maxtu < MinimumMaximumMessageSize) throw new InvalidOperationException("The Maxiumum Message Size is not big enough to facilitate key exchange");
+            if (mintu < MinimumMessageSize) throw new InvalidOperationException("The Minimum Message Size is not big enough for header and authentication code.");
+            if (mintu > maxtu) throw new InvalidOperationException("The Minimum Message Size cannot be greater than the Maxiumum Message Size.");
         }
 
         private IAes GetHeaderKeyCipher(byte[] key)
@@ -80,7 +92,7 @@ namespace MicroRatchet
             return cipher;
         }
 
-        private byte[] SendInitializationRequest(State state, bool pad = true)
+        private byte[] SendInitializationRequest(State state)
         {
             // message format:
             // nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -99,7 +111,7 @@ namespace MicroRatchet
 
             // nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
             var initializationMessageSize = InitializationNonceSize + EcPntSize * 4 + MacSize;
-            var messageSize = pad ? Configuration.Mtu : initializationMessageSize;
+            var messageSize = Math.Max(Configuration.MinimumMessageSize, initializationMessageSize);
             var initializationMessageSizeWithSignature = messageSize - MacSize;
             var initializationMessageSizeWithoutSignature = messageSize - MacSize - SignatureSize;
             var signatureOffset = messageSize - MacSize - SignatureSize;
@@ -186,7 +198,7 @@ namespace MicroRatchet
             return (initializationNonce, remoteEcdhForInit);
         }
 
-        private byte[] SendInitializationResponse(State state, ArraySegment<byte> initializationNonce, ArraySegment<byte> remoteEcdhForInit, bool pad = true)
+        private byte[] SendInitializationResponse(State state, ArraySegment<byte> initializationNonce, ArraySegment<byte> remoteEcdhForInit)
         {
             // message format:
             // new nonce(16), ecdh pubkey(32),
@@ -217,7 +229,8 @@ namespace MicroRatchet
             IKeyAgreement serverEcdhRatchet1 = KeyAgreementFactory.GenerateNew();
             serverState.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
 
-            var entireMessageSize = pad ? Configuration.Mtu : InitializationNonceSize * 2 + EcPntSize * 6 + MacSize;
+            var minimumMessageSize = InitializationNonceSize * 2 + EcPntSize * 6 + MacSize;
+            var entireMessageSize = Math.Max(Configuration.MinimumMessageSize, minimumMessageSize);
             var entireMessageWithoutMacSize = entireMessageSize - MacSize;
             var entireMessageWithoutMacOrSignatureSize = entireMessageWithoutMacSize - SignatureSize;
             var encryptedPayloadOffset = InitializationNonceSize + EcPntSize;
@@ -234,8 +247,8 @@ namespace MicroRatchet
             var rre1 = serverEcdhRatchet1.GetPublicKey();
             Array.Copy(initializationNonce.Array, initializationNonce.Offset, message, encryptedPayloadOffset, InitializationNonceSize);
             Array.Copy(Signature.PublicKey, 0, message, encryptedPayloadOffset + InitializationNonceSize, EcPntSize);
-            Array.Copy(serverEcdhRatchet0.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize, EcPntSize);
-            Array.Copy(serverEcdhRatchet1.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 2, EcPntSize);
+            Array.Copy(rre0, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize, EcPntSize);
+            Array.Copy(rre1, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 2, EcPntSize);
 
             // sign the message
             var digest = Digest.ComputeDigest(message, 0, entireMessageWithoutMacOrSignatureSize);
@@ -346,7 +359,7 @@ namespace MicroRatchet
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send the first client message.");
 
-            return ConstructMessage(new ArraySegment<byte>(clientState.InitializationNonce), true, true, clientState.Ratchets.SecondToLast);
+            return ConstructMessage(new ArraySegment<byte>(clientState.InitializationNonce), true, clientState.Ratchets.SecondToLast);
         }
 
         private void ReceiveFirstMessage(State state, byte[] payload, EcdhRatchetStep ecdhRatchetStep)
@@ -372,7 +385,7 @@ namespace MicroRatchet
 
             var payload = serverState.NextInitializationNonce;
             serverState.NextInitializationNonce = null;
-            return ConstructMessage(new ArraySegment<byte>(payload), true, false, serverState.Ratchets.Last);
+            return ConstructMessage(new ArraySegment<byte>(payload), false, serverState.Ratchets.Last);
         }
 
         private void ReceiveFirstResponse(State state, byte[] data, byte[] headerKey, EcdhRatchetStep ecdhRatchetStep)
@@ -380,7 +393,7 @@ namespace MicroRatchet
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive the first response.");
 
             var contents = DeconstructMessage(state, data, headerKey, ecdhRatchetStep, false);
-            if (contents == null || contents.Length < 32)
+            if (contents == null || contents.Length < InitializationNonceSize)
             {
                 throw new InvalidOperationException("The first response from the server was not valid");
             }
@@ -394,7 +407,7 @@ namespace MicroRatchet
             clientState.InitializationNonce = null;
         }
 
-        private byte[] ConstructMessage(ArraySegment<byte> message, bool pad, bool includeEcdh, EcdhRatchetStep step)
+        private byte[] ConstructMessage(ArraySegment<byte> message, bool includeEcdh, EcdhRatchetStep step)
         {
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
@@ -412,17 +425,17 @@ namespace MicroRatchet
             }
 
             // calculate some sizes
-            var mtu = Configuration.Mtu;
             var headerSize = NonceSize + (includeEcdh ? EcPntSize : 0);
             var overhead = headerSize + MacSize;
             var messageSize = message.Count;
-            var maxMessageSize = mtu - overhead;
+            var maxMessageSize = Configuration.MaximumMessageSize - overhead;
+            var minPayloadSize = Configuration.MinimumMessageSize - overhead;
 
             // build the payload: <payload, padding>
             ArraySegment<byte> payload;
-            if (pad && messageSize < maxMessageSize)
+            if (messageSize < minPayloadSize)
             {
-                payload = new ArraySegment<byte>(new byte[mtu - overhead]);
+                payload = new ArraySegment<byte>(new byte[minPayloadSize]);
                 Array.Copy(message.Array, message.Offset, payload.Array, 0, message.Count);
             }
             else if (messageSize > maxMessageSize)
@@ -702,7 +715,7 @@ namespace MicroRatchet
 
             if (sendback != null)
             {
-                if (sendback.Length > Configuration.Mtu)
+                if (sendback.Length > Configuration.MaximumMessageSize)
                 {
                     throw new InvalidOperationException("The MTU is too small");
                 }
@@ -717,9 +730,9 @@ namespace MicroRatchet
             }
         }
 
-        private MessageInfo SendSingle(State state, ArraySegment<byte> payload, bool pad)
+        private MessageInfo SendSingle(State state, ArraySegment<byte> payload)
         {
-            var canIncludeEcdh = payload.Count <= Configuration.Mtu - 48;
+            var canIncludeEcdh = payload.Count <= Configuration.MaximumMessageSize - 48;
             EcdhRatchetStep step;
             if (canIncludeEcdh)
             {
@@ -732,15 +745,15 @@ namespace MicroRatchet
 
             return new MessageInfo
             {
-                Message = ConstructMessage(payload, pad, canIncludeEcdh, step)
+                Message = ConstructMessage(payload, canIncludeEcdh, step)
             };
         }
 
-        private MessageInfo SendInternal(ArraySegment<byte> payload, State state, bool pad)
+        private MessageInfo SendInternal(ArraySegment<byte> payload, State state)
         {
             if (payload.Count <= MaximumMessageSize)
             {
-                return SendSingle(state, payload, pad);
+                return SendSingle(state, payload);
             }
             else
             {
@@ -830,7 +843,7 @@ namespace MicroRatchet
             return result;
         }
 
-        public MessageInfo Send(ArraySegment<byte> payload, bool pad = false)
+        public MessageInfo Send(ArraySegment<byte> payload)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             State state = LoadState();
@@ -839,12 +852,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            if (pad == false && payload.Count < MinimumMessageSize)
-            {
-                throw new InvalidOperationException("The payload is too small for an unpadded message");
-            }
-
-            MessageInfo response = SendInternal(payload, state, pad);
+            MessageInfo response = SendInternal(payload, state);
             Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             return response;
         }
