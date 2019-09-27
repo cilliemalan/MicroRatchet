@@ -145,18 +145,7 @@ namespace MicroRatchet
             // nonce(16), pubkey(32), ecdh(32), pading(...), signature(64), mac(12)
             var messageSize = data.Length;
             var macOffset = messageSize - MacSize;
-            var signatureOffset = macOffset - SignatureSize;
             var initializationNonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
-            var mac = new ArraySegment<byte>(data, macOffset, MacSize);
-
-            // verify the mac
-            var Mac = new Poly(AesFactory);
-            Mac.Init(Configuration.ApplicationKey, initializationNonce, MacSize * 8);
-            Mac.Process(data, 0, macOffset);
-            if (!Mac.Compute().Matches(mac))
-            {
-                throw new InvalidOperationException("The initialization mac does not match");
-            }
 
             // decrypt the message
             var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), initializationNonce);
@@ -283,16 +272,6 @@ namespace MicroRatchet
             var headerIvOffset = macOffset - HeaderIVSize;
             var headerSize = InitializationNonceSize + EcPntSize;
             var payloadSize = messageSize - headerSize - MacSize;
-
-            // check mac
-            var Mac = new Poly(AesFactory);
-            Mac.Init(Configuration.ApplicationKey, data, 0, InitializationNonceSize, MacSize * 8);
-            Mac.Process(data, 0, macOffset);
-            var mac = Mac.Compute();
-            if (!mac.Matches(data, macOffset, MacSize))
-            {
-                throw new InvalidOperationException("The MAC did not match");
-            }
 
             // decrypt header
             var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), data, headerIvOffset, HeaderIVSize);
