@@ -148,5 +148,10 @@ namespace MicroRatchet
         public static void Process(this IMac mac, byte[] data, int offset, int length) =>
             mac.Process(new ArraySegment<byte>(data, offset, length));
 
+        public static IAes GetAes(this IAesFactory aes, bool forEncryption, byte[] key) =>
+            aes.GetAes(forEncryption, new ArraySegment<byte>(key));
+
+        public static void Initialize(this IAes aes, bool forEncryption, byte[] key) =>
+            aes.Initialize(forEncryption, new ArraySegment<byte>(key));
     }
 }

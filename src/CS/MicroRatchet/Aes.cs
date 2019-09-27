@@ -10,10 +10,10 @@ namespace MicroRatchet
     {
         private AesEngine _aes;
 
-        public void Initialize(bool encryption, byte[] key)
+        public void Initialize(bool encryption, ArraySegment<byte> key)
         {
             _aes = new AesEngine();
-            _aes.Init(encryption, new KeyParameter(key));
+            _aes.Init(encryption, new KeyParameter(key.Array, key.Offset, key.Count));
         }
 
         public void Process(ArraySegment<byte> input, ArraySegment<byte> output)

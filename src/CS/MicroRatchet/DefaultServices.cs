@@ -36,7 +36,7 @@ namespace MicroRatchet
             public IVerifier Create(ArraySegment<byte> publicKey) => new Verifier(publicKey);
             public IKeyAgreement GenerateNew() => new KeyAgreement(KeyGeneration.GeneratePrivateKey(),default);
             public IKeyAgreement Deserialize(Stream stream) => KeyAgreement.Deserialize(stream);
-            public IAes GetAes(bool forEncryption, byte[] key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
+            public IAes GetAes(bool forEncryption, ArraySegment<byte> key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
         }
 
         private class InMemoryStorage : IStorageProvider
