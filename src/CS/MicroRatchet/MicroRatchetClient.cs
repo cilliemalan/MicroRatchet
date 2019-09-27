@@ -14,6 +14,7 @@ namespace MicroRatchet
         public const int MinimumOverhead = NonceSize + MacSize; // 16
         public const int OverheadWithEcdh = MinimumOverhead + EcPntSize; // 48
         public const int EncryptedMultipartHeaderOverhead = 6;
+        public const int HeaderIVSize = 16;
 
         private IDigest Digest => Services.Digest;
         private ISignature Signature => Services.Signature;
@@ -249,7 +250,7 @@ namespace MicroRatchet
             Array.Copy(encryptedPayload, 0, message, encryptedPayloadOffset, encryptedPayloadSize);
 
             // encrypt the header
-            cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), encryptedPayload, encryptedPayloadSize - InitializationNonceSize, InitializationNonceSize);
+            cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), encryptedPayload, encryptedPayloadSize - HeaderIVSize, HeaderIVSize);
             var encryptedHeader = cipher.Process(message, 0, encryptedPayloadOffset);
             Array.Copy(encryptedHeader, 0, message, 0, encryptedPayloadOffset);
 
@@ -268,7 +269,7 @@ namespace MicroRatchet
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive an init response.");
 
             var macOffset = data.Length - MacSize;
-            var headerIvOffset = macOffset - InitializationNonceSize;
+            var headerIvOffset = macOffset - HeaderIVSize;
             var headerSize = InitializationNonceSize + EcPntSize;
             var payloadSize = InitializationNonceSize + EcPntSize * 3 + SignatureSize;
 
@@ -283,7 +284,7 @@ namespace MicroRatchet
             }
 
             // decrypt header
-            var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), data, headerIvOffset, InitializationNonceSize);
+            var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), data, headerIvOffset, HeaderIVSize);
             var decryptedHeader = cipher.Process(data, 0, headerSize);
             Array.Copy(decryptedHeader, 0, data, 0, headerSize);
 
@@ -449,7 +450,7 @@ namespace MicroRatchet
 
             // encrypt the header using the header key and using the
             // last MinMessageSize bytes of the message as the nonce.
-            var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - MinimumMessageSize, MinimumMessageSize);
+            var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - HeaderIVSize, HeaderIVSize);
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendHeaderKey), headerEncryptionNonce);
             var encryptedHeader = hcipher.Process(header);
 
@@ -548,7 +549,7 @@ namespace MicroRatchet
 
 
             // decrypt the nonce
-            var headerEncryptionNonce = new ArraySegment<byte>(payload, payload.Length - MacSize - MinimumMessageSize, MinimumMessageSize);
+            var headerEncryptionNonce = new ArraySegment<byte>(payload, payload.Length - MacSize - HeaderIVSize, HeaderIVSize);
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), headerEncryptionNonce);
             var decryptedNonce = hcipher.Process(encryptedNonce);
 
