@@ -86,14 +86,8 @@ namespace MicroRatchet
 
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can send init request.");
 
-            // 4 bytes nonce
+            // 16 bytes nonce
             clientState.InitializationNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
-            
-            // The first byte contains version information.
-            // The first bit being set indicates this is not an encrypted message
-            // The second bit being cleared indicates this is the first version
-            clientState.InitializationNonce[0] &= 0b0011_1111;
-            clientState.InitializationNonce[0] |= 0b1000_0000;
 
             // get the public key
             var pubkey = Signature.PublicKey;
@@ -102,7 +96,7 @@ namespace MicroRatchet
             IKeyAgreement clientEcdh = KeyAgreementFactory.GenerateNew();
             clientState.LocalEcdhForInit = clientEcdh;
 
-            // nonce(16), pubkey(32), ecdh(32), signature(64)
+            // nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
             var initializationMessageSize = InitializationNonceSize + EcPntSize * 2;
             var initializationMessageSizeWithSignature = initializationMessageSize + EcPntSize * 2;
             var initializationMessageSizeWithSignatureAndMac = initializationMessageSize + EcPntSize * 2 + MacSize;
@@ -131,10 +125,30 @@ namespace MicroRatchet
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive an init request.");
 
-            // nonce(16), pubkey(32), ecdh(32), signature(64)
+            // nonce(16), pubkey(32), ecdh(32), signature(64), mac(12)
+            var macOffset = InitializationNonceSize + EcPntSize * 4;
             var initializationNonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
-            var clientPublicKey = new ArraySegment<byte>(data, InitializationNonceSize, EcPntSize);
-            var remoteEcdhForInit = new ArraySegment<byte>(data, InitializationNonceSize + EcPntSize, EcPntSize);
+            var mac = new ArraySegment<byte>(data, macOffset, MacSize);
+
+            // verify the mac
+            var Mac = new Poly(AesFactory);
+            Mac.Init(Configuration.ApplicationKey, initializationNonce, MacSize * 8);
+            Mac.Process(data, 0, macOffset);
+            if (!Mac.Compute().Matches(mac))
+            {
+                throw new InvalidOperationException("The initialization mac does not match");
+            }
+
+            // decrypt the message
+            var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), initializationNonce);
+            var decryptedPayload = cipher.Process(data, InitializationNonceSize, macOffset - InitializationNonceSize);
+            Array.Copy(decryptedPayload, 0, data, InitializationNonceSize, decryptedPayload.Length);
+
+            var clientPublicKeyOffset = InitializationNonceSize;
+            var remoteEcdhOffset = InitializationNonceSize + EcPntSize;
+            var clientPublicKey = new ArraySegment<byte>(data, clientPublicKeyOffset, EcPntSize);
+            var remoteEcdhForInit = new ArraySegment<byte>(data, remoteEcdhOffset, EcPntSize);
+            var signedMessage = new ArraySegment<byte>(data, 0, macOffset);
 
             if (serverState.ClientPublicKey != null)
             {
@@ -157,13 +171,12 @@ namespace MicroRatchet
             serverState.ClientPublicKey = clientPublicKey.ToArray();
             IVerifier verifier = VerifierFactory.Create(clientPublicKey);
 
-            if (!verifier.VerifySignedMessage(Digest, data))
+            if (!verifier.VerifySignedMessage(Digest, signedMessage))
             {
                 throw new InvalidOperationException("The signature was invalid");
             }
 
             return (initializationNonce, remoteEcdhForInit);
-
         }
 
         private byte[] SendInitializationResponse(State state, ArraySegment<byte> initializationNonce, ArraySegment<byte> remoteEcdhForInit)
