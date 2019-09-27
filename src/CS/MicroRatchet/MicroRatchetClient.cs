@@ -90,12 +90,6 @@ namespace MicroRatchet
             // 16 bytes nonce
             clientState.InitializationNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
 
-            // The first byte contains version information.
-            // The first bit being set indicates this is not an encrypted message
-            // The second bit being cleared indicates this is the first version
-            clientState.InitializationNonce[0] &= 0b0011_1111;
-            clientState.InitializationNonce[0] |= 0b1000_0000;
-
             // get the public key
             var pubkey = Signature.PublicKey;
 
@@ -113,7 +107,6 @@ namespace MicroRatchet
             Array.Copy(clientState.InitializationNonce, 0, message, 0, InitializationNonceSize);
             Array.Copy(pubkey, 0, message, InitializationNonceSize, EcPntSize);
             Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, EcPntSize);
-
 
             // sign the message
             var digest = Digest.ComputeDigest(message, 0, initializationMessageSizeWithoutSignature);
@@ -359,11 +352,15 @@ namespace MicroRatchet
             return ConstructMessage(new ArraySegment<byte>(clientState.InitializationNonce), true, true, clientState.Ratchets.SecondToLast);
         }
 
-        private void ReceiveFirstMessage(State state, byte[] payload)
+        private void ReceiveFirstMessage(State state, byte[] payload, EcdhRatchetStep ecdhRatchetStep)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
 
-            DeconstructMessage(state, payload, serverState.FirstReceiveHeaderKey);
+            var data = DeconstructMessage(state, payload, serverState.FirstReceiveHeaderKey, ecdhRatchetStep, false);
+            if (data.Length < InitializationNonceSize || !serverState.NextInitializationNonce.Matches(data, 0, InitializationNonceSize))
+            {
+                throw new InvalidOperationException("The first received message did not contain the correct payload");
+            }
 
             serverState.FirstSendHeaderKey = null;
             serverState.FirstReceiveHeaderKey = null;
@@ -381,11 +378,11 @@ namespace MicroRatchet
             return ConstructMessage(new ArraySegment<byte>(payload), true, false, serverState.Ratchets.Last);
         }
 
-        private void ReceiveFirstResponse(State state, byte[] data)
+        private void ReceiveFirstResponse(State state, byte[] data, byte[] headerKey, EcdhRatchetStep ecdhRatchetStep)
         {
             if (!(state is ClientState clientState)) throw new InvalidOperationException("Only the client can receive the first response.");
 
-            var contents = DeconstructMessage(state, data);
+            var contents = DeconstructMessage(state, data, headerKey, ecdhRatchetStep, false);
             if (contents == null || contents.Length < 32)
             {
                 throw new InvalidOperationException("The first response from the server was not valid");
@@ -493,11 +490,10 @@ namespace MicroRatchet
             return result;
         }
 
-        private byte[] DeconstructMessage(State state, byte[] payload, byte[] overrideHeaderKey = null)
+        private (byte[] headerKeyUsed, EcdhRatchetStep ratchetUsed, bool usedNextHeaderKey, bool usedApplicationKey) InterpretMessageMAC(State state, byte[] payload, byte[] overrideHeaderKey = null)
         {
             // get some basic parts
             var messageSize = payload.Length;
-            var encryptedNonce = new ArraySegment<byte>(payload, 0, NonceSize);
             var payloadExceptMac = new ArraySegment<byte>(payload, 0, messageSize - MacSize);
             var mac = new ArraySegment<byte>(payload, messageSize - MacSize, MacSize);
 
@@ -506,6 +502,7 @@ namespace MicroRatchet
             Array.Copy(payload, maciv, 16);
             var Mac = new Poly(AesFactory);
             var usedNextHeaderKey = false;
+            var usedApplicationHeaderKey = false;
             byte[] headerKey = null;
             EcdhRatchetStep ratchetUsed = null;
             if (overrideHeaderKey != null)
@@ -521,40 +518,62 @@ namespace MicroRatchet
             }
             else
             {
-                var cnt = 0;
-                foreach (EcdhRatchetStep ratchet in state.Ratchets.Enumerate())
+                // if we are initialized check the mac using ratchet receive header keys.
+                if (state.Ratchets != null && !state.Ratchets.IsEmpty)
                 {
-                    cnt++;
-                    headerKey = ratchet.ReceiveHeaderKey;
-                    Mac.Init(headerKey, maciv, MacSize * 8);
-                    Mac.Process(payloadExceptMac);
-                    var compareMac = Mac.Compute();
-                    if (mac.Matches(compareMac))
+                    foreach (EcdhRatchetStep ratchet in state.Ratchets.Enumerate())
                     {
-                        ratchetUsed = ratchet;
-                        break;
-                    }
-                    else if (ratchet.NextReceiveHeaderKey != null)
-                    {
-                        headerKey = ratchet.NextReceiveHeaderKey;
+                        headerKey = ratchet.ReceiveHeaderKey;
                         Mac.Init(headerKey, maciv, MacSize * 8);
                         Mac.Process(payloadExceptMac);
-                        compareMac = Mac.Compute();
+                        var compareMac = Mac.Compute();
                         if (mac.Matches(compareMac))
                         {
-                            usedNextHeaderKey = true;
                             ratchetUsed = ratchet;
                             break;
+                        }
+                        else if (ratchet.NextReceiveHeaderKey != null)
+                        {
+                            headerKey = ratchet.NextReceiveHeaderKey;
+                            Mac.Init(headerKey, maciv, MacSize * 8);
+                            Mac.Process(payloadExceptMac);
+                            compareMac = Mac.Compute();
+                            if (mac.Matches(compareMac))
+                            {
+                                usedNextHeaderKey = true;
+                                ratchetUsed = ratchet;
+                                break;
+                            }
                         }
                     }
                 }
 
                 if (ratchetUsed == null)
                 {
-                    throw new InvalidOperationException("Could not decrypt the incoming message");
+                    // we're either not initialized or this is an initialization message.
+                    // To determine that we mac using the application key
+                    headerKey = Configuration.ApplicationKey;
+                    Mac.Init(headerKey, maciv, MacSize * 8);
+                    Mac.Process(payloadExceptMac);
+                    var compareMac = Mac.Compute();
+                    if (mac.Matches(compareMac))
+                    {
+                        usedApplicationHeaderKey = true;
+                    }
+                    else
+                    {
+                        headerKey = null;
+                    }
                 }
             }
 
+            return (headerKey, ratchetUsed, usedNextHeaderKey, usedApplicationHeaderKey);
+        }
+
+        private byte[] DeconstructMessage(State state, byte[] payload, byte[] headerKey, EcdhRatchetStep ratchetUsed, bool usedNextHeaderKey)
+        {
+            var messageSize = payload.Length;
+            var encryptedNonce = new ArraySegment<byte>(payload, 0, NonceSize);
 
             // decrypt the nonce
             var headerEncryptionNonce = new ArraySegment<byte>(payload, payload.Length - MacSize - HeaderIVSize, HeaderIVSize);
@@ -618,44 +637,7 @@ namespace MicroRatchet
             return decryptedInnerPayload;
         }
 
-        private byte[][] ConstructUnencryptedMultipartMessage(byte[] allData)
-        {
-            // unencrypted multipart message:
-            // 11 (2 bits), num (3 bits), total (3 bits), data (until MTU)
-
-            var chunkSize = Configuration.Mtu - 1;
-            var numChunks = allData.Length / chunkSize;
-            if (allData.Length % Configuration.Mtu != 0) numChunks++;
-
-            if (numChunks > 8) throw new InvalidOperationException("Cannot create an unencrypted multipart message with more than 4 parts");
-
-            var amt = 0;
-            var chunks = new byte[numChunks][];
-            for (var i = 0; i < numChunks; i++)
-            {
-                var firstByte = (byte)(0b1100_0000 | (i << 3) | (numChunks - 1));
-
-                var left = allData.Length - amt;
-                var thisChunkSize = left > chunkSize ? chunkSize : left;
-                chunks[i] = new byte[thisChunkSize + 1];
-                chunks[i][0] = firstByte;
-                Array.Copy(allData, amt, chunks[i], 1, thisChunkSize);
-                amt += thisChunkSize;
-            }
-
-            return chunks;
-        }
-
-        private (byte[] payload, int num, int total) DeconstructUnencryptedMultipartMessagePart(byte[] data)
-        {
-            var num = (data[0] & 0b0011_1000) >> 3;
-            var tot = (data[0] & 0b0000_0111) + 1;
-            var payload = new byte[data.Length - 1];
-            Array.Copy(data, 1, payload, 0, payload.Length);
-            return (payload, num, tot);
-        }
-
-        private byte[] ProcessInitializationInternal(State state, byte[] dataReceived)
+        private byte[] ProcessInitializationInternal(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
         {
             byte[] sendback;
             if (Configuration.IsClient)
@@ -670,20 +652,13 @@ namespace MicroRatchet
                 }
                 else
                 {
-                    if (!IsEncryptedMessage(dataReceived[0]))
+                    if (usedApplicationHeaderKey)
                     {
                         if (clientState.Ratchets.Count == 0)
                         {
-                            if (IsInitializationMessage(dataReceived[0]))
-                            {
-                                // step 2: init response from server
-                                ReceiveInitializationResponse(clientState, dataReceived);
-                                sendback = SendFirstClientMessage(clientState);
-                            }
-                            else
-                            {
-                                throw new InvalidOperationException("Expected an initialization response but got something else.");
-                            }
+                            // step 2: init response from server
+                            ReceiveInitializationResponse(clientState, dataReceived);
+                            sendback = SendFirstClientMessage(clientState);
                         }
                         else
                         {
@@ -693,7 +668,7 @@ namespace MicroRatchet
                     else
                     {
                         // step 3: receive first message from server
-                        ReceiveFirstResponse(clientState, dataReceived);
+                        ReceiveFirstResponse(clientState, dataReceived, headerKeyUsed, ecdhRatchetStep);
                         // initialization completed successfully.
                         sendback = null;
                     }
@@ -706,23 +681,16 @@ namespace MicroRatchet
 
                 if (dataReceived == null) throw new InvalidOperationException("Only the client can send initialization without having received a response first");
 
-                if (!IsEncryptedMessage(dataReceived[0]))
+                if (usedApplicationHeaderKey)
                 {
-                    if (IsInitializationMessage(dataReceived[0]))
-                    {
-                        // step 1: client init request
-                        (ArraySegment<byte> initializationNonce, ArraySegment<byte> remoteEcdhForInit) = ReceiveInitializationRequest(serverState, dataReceived);
-                        sendback = SendInitializationResponse(serverState, initializationNonce, remoteEcdhForInit);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("Unexpected message received during server initialization");
-                    }
+                    // step 1: client init request
+                    (ArraySegment<byte> initializationNonce, ArraySegment<byte> remoteEcdhForInit) = ReceiveInitializationRequest(serverState, dataReceived);
+                    sendback = SendInitializationResponse(serverState, initializationNonce, remoteEcdhForInit);
                 }
                 else
                 {
                     // step 2: first message from client
-                    ReceiveFirstMessage(serverState, dataReceived);
+                    ReceiveFirstMessage(serverState, dataReceived, ecdhRatchetStep);
                     sendback = SendFirstResponse(serverState);
                 }
             }
@@ -730,9 +698,9 @@ namespace MicroRatchet
             return sendback;
         }
 
-        private MessageInfo ProcessInitialization(State state, byte[] dataReceived)
+        private MessageInfo ProcessInitialization(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
         {
-            var sendback = ProcessInitializationInternal(state, dataReceived);
+            var sendback = ProcessInitializationInternal(state, dataReceived, headerKeyUsed, ecdhRatchetStep, usedApplicationHeaderKey);
 
             if (sendback != null)
             {
@@ -799,10 +767,6 @@ namespace MicroRatchet
             return _state;
         }
 
-        private static bool IsEncryptedMessage(byte b) => (b & 0b1000_0000) == 0;
-
-        private static bool IsInitializationMessage(byte b) => (b & 0b1100_0000) == 0b1000_0000;
-
         private static bool HasEcdh(byte b) => (b & 0b0100_0000) != 0;
 
         public MessageInfo InitiateInitialization(bool forceReinitialization = false)
@@ -821,42 +785,44 @@ namespace MicroRatchet
 
             state = InitializeState();
 
-            return ProcessInitialization(state, null);
+            return ProcessInitialization(state, null, null, null, false);
         }
 
         private ReceiveResult ReceiveInternal(byte[] data)
         {
             State state = LoadState();
-            var isInitialized = state?.IsInitialized ?? false;
-            var isEncrypted = IsEncryptedMessage(data[0]);
 
-            if (!isInitialized || !isEncrypted)
+            // check the MAC and get info regarding the message header
+            var (headerKeyUsed, ratchetUsed, usedNextHeaderKey, usedApplicationKey) = InterpretMessageMAC(state, data);
+
+            // if the application key was used this is an initialization message
+            if (usedApplicationKey || !IsInitialized)
             {
                 if (state == null)
                 {
                     state = InitializeState();
                 }
-                MessageInfo toSendBack = ProcessInitialization(state, data);
 
+                MessageInfo toSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey);
                 return new ReceiveResult
                 {
-                    Payload = null,
-                    ReceivedDataType = ReceivedDataType.InitializationWithResponse,
-                    ToSendBack = toSendBack
-                };
-            }
-            else if (isEncrypted)
-            {
-                return new ReceiveResult
-                {
-                    Payload = DeconstructMessage(state, data),
-                    ToSendBack = null,
-                    ReceivedDataType = ReceivedDataType.Normal
+                    ToSendBack = toSendBack,
+                    ReceivedDataType = ReceivedDataType.InitializationWithResponse
                 };
             }
             else
             {
-                throw new InvalidOperationException("Unexpected Message");
+                if (ratchetUsed == null)
+                {
+                    throw new InvalidOperationException("Could not decrypt incoming message");
+                }
+
+                return new ReceiveResult
+                {
+                    Payload = DeconstructMessage(state, data, headerKeyUsed, ratchetUsed, usedNextHeaderKey),
+                    ToSendBack = null,
+                    ReceivedDataType = ReceivedDataType.Normal
+                };
             }
         }
 
