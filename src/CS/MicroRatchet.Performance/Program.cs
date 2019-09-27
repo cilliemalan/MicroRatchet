@@ -14,6 +14,7 @@ namespace MicroRatchet.Performance
             int messageCount = 1000000;
             double clientDropChance = 0.0;
             double serverDropChance = 0.0;
+            var defaultServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
 
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
@@ -26,6 +27,25 @@ namespace MicroRatchet.Performance
             rng.Generate(keys);
             rng.Generate(blocks);
 
+            Thread.Sleep(1000);
+            {
+                var poly = new Poly(defaultServices.AesFactory);
+                poly.Init(new ArraySegment<byte>(keys, 0, 32), new ArraySegment<byte>(blocks, 0, 16), 128);
+                poly.Init(new ArraySegment<byte>(keys, 1000, 32), new ArraySegment<byte>(blocks, 1000, 16), 128);
+                Console.WriteLine("Doing Pol1305 MACs");
+                sw.Reset();
+                sw.Start();
+                for (int i = 0; i < keys.Length; i += 32)
+                {
+                    poly.Process(blocks, i, 16);
+                    poly.Process(blocks, i, 16);
+                    poly.Process(blocks, i, 16);
+                    poly.Process(blocks, i, 16);
+                    poly.Compute(new ArraySegment<byte>(output, i, 16));
+                }
+                sw.Stop();
+                Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({(keys.Length / 32) / sw.Elapsed.TotalSeconds:F0}/s)");
+            }
             Thread.Sleep(1000);
             {
                 var sha = System.Security.Cryptography.SHA256.Create();
