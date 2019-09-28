@@ -3,9 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
-    internal class RandomNumberGenerator : IRandomNumberGenerator
+    public class RandomNumberGenerator : IRandomNumberGenerator
     {
         private SecureRandom sr = new SecureRandom();
 

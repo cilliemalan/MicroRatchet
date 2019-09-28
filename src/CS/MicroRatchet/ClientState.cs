@@ -90,7 +90,8 @@ namespace MicroRatchet
 
                 if (hasEcdh)
                 {
-                    LocalEcdhForInit = KeyAgreement.Deserialize(memory);
+                    
+                    LocalEcdhForInit = kexFac.Deserialize(memory);
                 }
 
                 if (hasRatchet)

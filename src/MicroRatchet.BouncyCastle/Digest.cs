@@ -4,12 +4,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
     /// SHA256 Digest.
     /// </summary>
-    internal class Digest : IDisposable, IDigest
+    public class Digest : IDisposable, IDigest
     {
         Sha256Digest _sha = new Sha256Digest();
 

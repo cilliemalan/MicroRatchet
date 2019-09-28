@@ -15,9 +15,9 @@ using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 using System.Diagnostics;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
-    internal class Signature : ISignature
+    public class Signature : ISignature
     {
         protected static readonly ECDomainParameters domainParms;
 

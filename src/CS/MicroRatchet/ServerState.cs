@@ -101,8 +101,8 @@ namespace MicroRatchet
 
                 if (hasEcdh)
                 {
-                    LocalEcdhRatchetStep0 = KeyAgreement.Deserialize(memory);
-                    LocalEcdhRatchetStep1 = KeyAgreement.Deserialize(memory);
+                    LocalEcdhRatchetStep0 = kexFac.Deserialize(memory);
+                    LocalEcdhRatchetStep1 = kexFac.Deserialize(memory);
                 }
 
                 if (hasClientPublicKey)

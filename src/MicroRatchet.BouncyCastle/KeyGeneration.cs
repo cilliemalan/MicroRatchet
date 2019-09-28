@@ -14,12 +14,12 @@ using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
     /// Functions for generating a ECDSA key pairs.
     /// </summary>
-    internal static class KeyGeneration
+    public static class KeyGeneration
     {
         private static readonly ECDomainParameters domainParms;
 

@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
-    internal class Verifier : IVerifier
+    public class Verifier : IVerifier
     {
         protected static readonly ECDomainParameters domainParms;
 

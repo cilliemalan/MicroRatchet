@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
     /// A default implementation of the services needed by <see cref="MicroRatchetClient" />.

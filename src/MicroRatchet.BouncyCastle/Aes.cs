@@ -4,9 +4,9 @@ using System.Text;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Parameters;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
-    internal class Aes : IAes
+    public class Aes : IAes
     {
         private AesEngine _aes;
 

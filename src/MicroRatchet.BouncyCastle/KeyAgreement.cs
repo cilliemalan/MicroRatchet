@@ -14,12 +14,12 @@ using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 
-namespace MicroRatchet
+namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
     /// ECDH key agreement using secp256r1/NIST P-256
     /// </summary>
-    internal class KeyAgreement : IDisposable, IKeyAgreement
+    public class KeyAgreement : IDisposable, IKeyAgreement
     {
         private static readonly ECDomainParameters domainParms;
         private static readonly Func<int, BigInteger, ECPoint> _decompress;
