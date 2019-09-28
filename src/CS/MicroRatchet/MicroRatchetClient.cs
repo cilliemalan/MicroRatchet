@@ -17,6 +17,13 @@ namespace MicroRatchet
         public const int MinimumMaximumMessageSize = OverheadWithEcdh + MinimumPayloadSize;
         public const int HeaderIVSize = 16;
 
+        public static readonly int[] ExpectedBlockCipherKeySizes = new[] { 16, 32 };
+        public const int ExpectedBlockSize = 16;
+        public const int ExpectedDigestSize = 32;
+        public const int ExpectedPublicKeySize = 32;
+        public const int ExpectedPrivateKeySize = 32;
+        public const int ExpectedSignatureSize = 64;
+
         private IDigest Digest => Services.Digest;
         private ISignature Signature => Services.Signature;
         private IRandomNumberGenerator RandomNumberGenerator => Services.RandomNumberGenerator;
@@ -42,6 +49,7 @@ namespace MicroRatchet
 
             KeyDerivation = new AesKdf(Services.AesFactory);
 
+            VerifyServices();
             CheckMtu();
         }
 
@@ -77,6 +85,42 @@ namespace MicroRatchet
             if (maxtu < MinimumMaximumMessageSize) throw new InvalidOperationException("The Maxiumum Message Size is not big enough to facilitate key exchange");
             if (mintu < MinimumMessageSize) throw new InvalidOperationException("The Minimum Message Size is not big enough for header and authentication code.");
             if (mintu > maxtu) throw new InvalidOperationException("The Minimum Message Size cannot be greater than the Maxiumum Message Size.");
+        }
+
+        private void VerifyServices()
+        {
+            // check that the block cipher supports all the key sizes we need
+            bool hasAcceptedKeySizes = Services.AesFactory.AcceptedKeySizes.Length >= ExpectedBlockCipherKeySizes.Length;
+            if (hasAcceptedKeySizes)
+            {
+                for (int i = 0; i < ExpectedBlockCipherKeySizes.Length; i++)
+                {
+                    var keysize = ExpectedBlockCipherKeySizes[i];
+                    bool found = false;
+                    for (int j = 0; j < Services.AesFactory.AcceptedKeySizes.Length; j++)
+                    {
+                        if (Services.AesFactory.AcceptedKeySizes[j] == keysize)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        hasAcceptedKeySizes = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasAcceptedKeySizes) throw new InvalidOperationException($"The block cipher factory does not support the required key sizes of {string.Join(" and ", ExpectedBlockCipherKeySizes)} bytes");
+            if (Services.AesFactory.BlockSize != ExpectedBlockSize) throw new InvalidOperationException($"The block cipher block size did not match the expected {ExpectedBlockSize} bytes");
+            if (Services.Digest.DigestSize != ExpectedDigestSize) throw new InvalidOperationException($"The digest size differs from the expected size of {ExpectedDigestSize} bytes");
+            if (Services.KeyAgreementFactory.PublicKeySize != ExpectedPublicKeySize) throw new InvalidOperationException($"The key agreement public key size differs from the expected size of {ExpectedPublicKeySize} bytes");
+            if (Services.Signature.PublicKeySize != ExpectedPublicKeySize) throw new InvalidOperationException($"The signature public key size differs from the expected size of {ExpectedPublicKeySize} bytes");
+            if (Services.Signature.SignatureSize != ExpectedSignatureSize) throw new InvalidOperationException($"The signature size differs from the expected size of {ExpectedSignatureSize} bytes");
+            if (Services.VerifierFactory.SignatureSize != ExpectedSignatureSize) throw new InvalidOperationException($"The verifier signature size differs from the expected size of {ExpectedSignatureSize} bytes");
         }
 
         private IAes GetHeaderKeyCipher(byte[] key)
@@ -131,7 +175,7 @@ namespace MicroRatchet
 
             // calculate mac
             var Mac = new Poly(AesFactory);
-            Mac.Init(Configuration.ApplicationKey, clientState.InitializationNonce, MacSize * 8);
+            Mac.Init(Configuration.ApplicationKey, clientState.InitializationNonce, MacSize);
             Mac.Process(message, 0, initializationMessageSizeWithSignature);
             var mac = Mac.Compute();
             Array.Copy(mac, 0, message, initializationMessageSizeWithSignature, MacSize);
@@ -255,7 +299,7 @@ namespace MicroRatchet
 
             // calculate mac
             var Mac = new Poly(AesFactory);
-            Mac.Init(Configuration.ApplicationKey, encryptedHeader, 0, InitializationNonceSize, MacSize * 8);
+            Mac.Init(Configuration.ApplicationKey, encryptedHeader, 0, InitializationNonceSize, MacSize);
             Mac.Process(message, 0, macOffset);
             var mac = Mac.Compute();
             Array.Copy(mac, 0, message, macOffset, MacSize);
@@ -468,7 +512,7 @@ namespace MicroRatchet
             {
                 Array.Copy(encryptedHeader, maciv, maciv.Length);
             }
-            Mac.Init(step.SendHeaderKey, maciv, MacSize * 8);
+            Mac.Init(step.SendHeaderKey, maciv, MacSize);
             Mac.Process(encryptedHeader);
             Mac.Process(encryptedPayload);
             var mac = Mac.Compute();
@@ -499,7 +543,7 @@ namespace MicroRatchet
             if (overrideHeaderKey != null)
             {
                 headerKey = overrideHeaderKey;
-                Mac.Init(headerKey, maciv, MacSize * 8);
+                Mac.Init(headerKey, maciv, MacSize);
                 Mac.Process(payloadExceptMac);
                 var compareMac = Mac.Compute();
                 if (!mac.Matches(compareMac))
@@ -515,7 +559,7 @@ namespace MicroRatchet
                     foreach (EcdhRatchetStep ratchet in state.Ratchets.Enumerate())
                     {
                         headerKey = ratchet.ReceiveHeaderKey;
-                        Mac.Init(headerKey, maciv, MacSize * 8);
+                        Mac.Init(headerKey, maciv, MacSize);
                         Mac.Process(payloadExceptMac);
                         var compareMac = Mac.Compute();
                         if (mac.Matches(compareMac))
@@ -526,7 +570,7 @@ namespace MicroRatchet
                         else if (ratchet.NextReceiveHeaderKey != null)
                         {
                             headerKey = ratchet.NextReceiveHeaderKey;
-                            Mac.Init(headerKey, maciv, MacSize * 8);
+                            Mac.Init(headerKey, maciv, MacSize);
                             Mac.Process(payloadExceptMac);
                             compareMac = Mac.Compute();
                             if (mac.Matches(compareMac))
@@ -544,7 +588,7 @@ namespace MicroRatchet
                     // we're either not initialized or this is an initialization message.
                     // To determine that we mac using the application key
                     headerKey = Configuration.ApplicationKey;
-                    Mac.Init(headerKey, maciv, MacSize * 8);
+                    Mac.Init(headerKey, maciv, MacSize);
                     Mac.Process(payloadExceptMac);
                     var compareMac = Mac.Compute();
                     if (mac.Matches(compareMac))

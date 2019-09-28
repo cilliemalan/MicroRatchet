@@ -33,7 +33,9 @@ namespace MicroRatchet.BouncyCastle
 
         public byte[] PublicKey { get; }
 
-        public int SignatureSize => throw new NotImplementedException();
+        public int SignatureSize => 64;
+
+        public int PublicKeySize => 32;
 
         public Signature(ArraySegment<byte> key)
         {

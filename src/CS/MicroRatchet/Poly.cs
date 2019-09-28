@@ -30,7 +30,7 @@ namespace MicroRatchet
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             if (iv == null) throw new ArgumentNullException(nameof(iv));
-            if (macSize != 96 && macSize != 112 && macSize != 128)
+            if (macSize != 12 && macSize != 14 && macSize != 16)
             {
                 throw new InvalidOperationException("The Poly1305 MAC must be 96, 112, or 128 bits");
             }
@@ -39,7 +39,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The Poly1305 key must be 256 bits (32 bytes).");
             }
 
-            _macSize = macSize / 8;
+            _macSize = macSize;
             if (iv.Count != 16)
             {
                 byte[] newIv = new byte[16];

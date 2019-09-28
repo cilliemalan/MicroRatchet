@@ -13,7 +13,7 @@ namespace MicroRatchet.BouncyCastle
     {
         Sha256Digest _sha = new Sha256Digest();
 
-        public int DigestSize => 256;
+        public int DigestSize => 32;
 
         public void Reset()
         {

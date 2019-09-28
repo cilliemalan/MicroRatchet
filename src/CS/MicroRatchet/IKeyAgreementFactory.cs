@@ -7,6 +7,7 @@ namespace MicroRatchet
 {
     public interface IKeyAgreementFactory
     {
+        int PublicKeySize { get; }
         IKeyAgreement GenerateNew();
         IKeyAgreement Deserialize(Stream stream);
     }

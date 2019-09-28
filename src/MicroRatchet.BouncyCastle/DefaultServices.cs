@@ -33,6 +33,11 @@ namespace MicroRatchet.BouncyCastle
 
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory
         {
+            int IKeyAgreementFactory.PublicKeySize => 32;
+            int IVerifierFactory.SignatureSize => 64;
+            int[] IAesFactory.AcceptedKeySizes { get; } = new int[] { 16, 32 };
+            int IAesFactory.BlockSize => 16;
+
             public IVerifier Create(ArraySegment<byte> publicKey) => new Verifier(publicKey);
             public IKeyAgreement GenerateNew() => new KeyAgreement(KeyGeneration.GeneratePrivateKey(),default);
             public IKeyAgreement Deserialize(Stream stream) => KeyAgreement.Deserialize(stream);
