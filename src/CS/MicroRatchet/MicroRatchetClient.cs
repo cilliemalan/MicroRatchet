@@ -887,5 +887,59 @@ namespace MicroRatchet
                 storage.Write(bytes, 0, bytes.Length);
             }
         }
+
+        private static int MatchMessageWithMac(ArraySegment<byte> message, IAesFactory aesFactory, params byte[][] keys)
+        {
+            var messageSize = message.Count;
+            var mac = new ArraySegment<byte>(message.Array, message.Offset + messageSize - MacSize, MacSize);
+            var maciv = new ArraySegment<byte>(message.Array, message.Offset, 16);
+            var payloadExceptMac = new ArraySegment<byte>(message.Array, message.Offset, messageSize - MacSize);
+            if (messageSize < MinimumMessageSize) return -1;
+
+            for (int i = 0; i < keys.Length; i++)
+            {
+                var key = keys[i];
+                if (key.Length != 32) throw new ArgumentException("Each key must be 32 bytes", nameof(keys));
+
+                var Mac = new Poly(aesFactory);
+                Mac.Init(key, maciv, MacSize);
+                Mac.Process(payloadExceptMac);
+                var compareMac = Mac.Compute();
+                if (mac.Matches(compareMac))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public static bool MatchMessageToApplicationKey(ArraySegment<byte> message, IAesFactory aesfac, byte[] applicationKey)
+        {
+            return MatchMessageWithMac(message, aesfac, applicationKey) >= 0;
+        }
+
+        public static bool MatchMessageToSession(ArraySegment<byte> message, IAesFactory aesfac, IKeyAgreementFactory kexfac, IStorageProvider storage)
+        {
+            var s = ClientState.Load(storage, kexfac, 32);
+            if (s == null || s.Ratchets == null || s.Ratchets.IsEmpty)
+            {
+                return false;
+            }
+            else
+            {
+                byte[][] keys = new byte[s.Ratchets.Count + 1][];
+                for (int i = 0; i < s.Ratchets.Count; i++)
+                {
+                    keys[i] = s.Ratchets[i].ReceiveHeaderKey;
+                    if (i == s.Ratchets.Count - 1)
+                    {
+                        keys[i + 1] = s.Ratchets[i].NextReceiveHeaderKey;
+                    }
+                }
+
+                return MatchMessageWithMac(message, aesfac, keys) >= 0;
+            }
+        }
     }
 }
