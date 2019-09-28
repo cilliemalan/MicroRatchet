@@ -7,7 +7,6 @@ namespace MicroRatchet
 {
     public interface IStorageProvider
     {
-        Stream LockHot();
-        Stream LockCold();
+        Stream Lock();
     }
 }

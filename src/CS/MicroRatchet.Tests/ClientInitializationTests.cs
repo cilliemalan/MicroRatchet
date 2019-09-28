@@ -181,7 +181,7 @@ namespace MicroRatchet.Tests
             }
 
             // oh noes! Client fail! reinitialize
-            clientServices.Storage = new InMemoryStorage(1024, 8192);
+            clientServices.Storage = new InMemoryStorage(8192);
             client = new MicroRatchetClient(clientServices, true, 1000);
             server = new MicroRatchetClient(serverServices, false, 1000);
             {
@@ -223,17 +223,14 @@ namespace MicroRatchet.Tests
 
         private class InMemoryStorage : IStorageProvider
         {
-            private byte[] hot;
-            private byte[] cold;
+            private byte[] memory;
 
-            public InMemoryStorage(int hotSpace, int coldSpace)
+            public InMemoryStorage(int space)
             {
-                hot = new byte[hotSpace];
-                cold = new byte[coldSpace];
+                memory = new byte[space];
             }
 
-            public Stream LockHot() => new MemoryStream(hot);
-            public Stream LockCold() => new MemoryStream(cold);
+            public Stream Lock() => new MemoryStream(memory);
         }
     }
 }

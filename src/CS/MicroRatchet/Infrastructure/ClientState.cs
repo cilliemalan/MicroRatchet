@@ -29,7 +29,7 @@ namespace MicroRatchet
 
         private long StoreInternal(IStorageProvider storage, int numberOfRatchetsToStore)
         {
-            using (var memory = storage.LockCold())
+            using (var memory = storage.Lock())
             {
                 byte versionByte = (byte)Version;
 
@@ -71,7 +71,7 @@ namespace MicroRatchet
 
         private long LoadInternal(IStorageProvider storage, IKeyAgreementFactory kexFac)
         {
-            using (var memory = storage.LockCold())
+            using (var memory = storage.Lock())
             {
                 var versionInt = memory.ReadByte();
                 if (versionInt < 0) throw new EndOfStreamException();

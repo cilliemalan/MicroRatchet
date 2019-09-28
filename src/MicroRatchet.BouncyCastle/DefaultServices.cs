@@ -11,7 +11,7 @@ namespace MicroRatchet.BouncyCastle
     /// </summary>
     public class DefaultServices : IServices
     {
-        public DefaultServices(byte[] privateKey, int hotSpace = 1024, int coldSpace = 8192)
+        public DefaultServices(byte[] privateKey, int memory = 8192)
         {
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;
@@ -19,7 +19,7 @@ namespace MicroRatchet.BouncyCastle
             AesFactory = fac;
 
             Signature = new Signature(new ArraySegment<byte>(privateKey));
-            var storage = new InMemoryStorage(hotSpace, coldSpace);
+            var storage = new InMemoryStorage(memory);
             Storage = storage;
         }
 
@@ -46,17 +46,14 @@ namespace MicroRatchet.BouncyCastle
 
         private class InMemoryStorage : IStorageProvider
         {
-            private byte[] hot;
-            private byte[] cold;
+            private byte[] memory;
 
-            public InMemoryStorage(int hotSpace, int coldSpace)
+            public InMemoryStorage(int space)
             {
-                hot = new byte[hotSpace];
-                cold = new byte[coldSpace];
+                memory = new byte[space];
             }
 
-            public Stream LockHot() => new MemoryStream(hot);
-            public Stream LockCold() => new MemoryStream(cold);
+            public Stream Lock() => new MemoryStream(memory);
         }
     }
 }

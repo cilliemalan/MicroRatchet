@@ -882,7 +882,7 @@ namespace MicroRatchet
             }
             else
             {
-                System.IO.Stream storage = Storage.LockCold();
+                System.IO.Stream storage = Storage.Lock();
                 var bytes = new byte[storage.Length];
                 storage.Write(bytes, 0, bytes.Length);
             }
