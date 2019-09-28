@@ -189,12 +189,12 @@ namespace MicroRatchet.Performance
                 var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(16)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
-                var m1 = client.Send(new byte[16]).Message;
-                var m2 = client.Send(new byte[16]).Message;
-                var m3 = client.Send(new byte[16]).Message;
+                var m1 = client.Send(new byte[16]);
+                var m2 = client.Send(new byte[16]);
+                var m3 = client.Send(new byte[16]);
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]));
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
                 Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
@@ -219,12 +219,12 @@ namespace MicroRatchet.Performance
                 var (client, server) = CreateAndInitialize();
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(64)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
-                var m1 = client.Send(new byte[16]).Message;
-                var m2 = client.Send(new byte[16]).Message;
-                var m3 = client.Send(new byte[16]).Message;
+                var m1 = client.Send(new byte[16]);
+                var m2 = client.Send(new byte[16]);
+                var m3 = client.Send(new byte[16]);
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]));
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
                 Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
@@ -250,12 +250,12 @@ namespace MicroRatchet.Performance
                 var (client, server) = CreateAndInitialize(1350);
                 var messagesToSend = Enumerable.Range(0, messageCount).Select(_ => rng.Generate(1300)).ToArray();
                 var messagesSent = new List<byte[]>(messageCount);
-                var m1 = client.Send(new byte[16]).Message;
-                var m2 = client.Send(new byte[16]).Message;
-                var m3 = client.Send(new byte[16]).Message;
+                var m1 = client.Send(new byte[16]);
+                var m2 = client.Send(new byte[16]);
+                var m3 = client.Send(new byte[16]);
                 sw.Reset();
                 sw.Start();
-                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]).Message);
+                for (int i = 0; i < messageCount; i++) messagesSent.Add(client.Send(messagesToSend[i]));
                 sw.Stop();
                 Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:F2}s ({messageCount / sw.Elapsed.TotalSeconds:F0}/s)");
                 Console.WriteLine($"Bandwidth: { messagesToSend.Sum(x => x.Length * 8) / sw.Elapsed.TotalSeconds / (1024 * 1024):F0} Mbps");
@@ -279,15 +279,15 @@ namespace MicroRatchet.Performance
                 Console.WriteLine("Testing ECDHratchet speed...");
                 var (client, server) = CreateAndInitialize(1350);
                 var messagesToSend = Enumerable.Range(0, messageCount / 4000).Select(_ => rng.Generate(32)).ToArray();
-                server.Receive(client.Send(new byte[32]).Message);
-                client.Receive(server.Send(new byte[32]).Message);
+                server.Receive(client.Send(new byte[32]));
+                client.Receive(server.Send(new byte[32]));
                 sw.Reset();
                 sw.Start();
                 for (int i = 0; i < messageCount / 4000; i++)
                 {
-                    var m1 = client.Send(messagesToSend[i]).Message;
+                    var m1 = client.Send(messagesToSend[i]);
                     server.Receive(m1);
-                    var m2 = server.Send(messagesToSend[i]).Message;
+                    var m2 = server.Send(messagesToSend[i]);
                     client.Receive(m2);
                 }
                 sw.Stop();
@@ -363,7 +363,7 @@ namespace MicroRatchet.Performance
                                 if (payload != null)
                                 {
                                     payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                                    var message = client.Send(payload).Message;
+                                    var message = client.Send(payload);
                                     if (r.NextDouble() > clientDropChance)
                                     {
                                         clientSent++;
@@ -384,7 +384,7 @@ namespace MicroRatchet.Performance
                                 if (payload != null)
                                 {
                                     payload = r.Next(10) > 7 ? DoubleInSize(payload) : payload;
-                                    var message = server.Send(payload).Message;
+                                    var message = server.Send(payload);
                                     if (r.NextDouble() > serverDropChance)
                                     {
                                         serverSent++;
@@ -445,10 +445,10 @@ namespace MicroRatchet.Performance
 
             while (packet != null && !client.IsInitialized || !server.IsInitialized)
             {
-                packet = server.Receive(packet.Message).ToSendBack;
+                packet = server.Receive(packet).ToSendBack;
                 if (packet != null)
                 {
-                    packet = client.Receive(packet.Message).ToSendBack;
+                    packet = client.Receive(packet).ToSendBack;
                 }
             }
 

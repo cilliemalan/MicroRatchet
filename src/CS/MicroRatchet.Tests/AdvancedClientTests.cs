@@ -169,7 +169,7 @@ namespace MicroRatchet.Tests
                         
                         if (r.NextDouble() > clientDropChance)
                         {
-                            messagesSentFromClient.Add(message.Message);
+                            messagesSentFromClient.Add(message);
                         }
                         else
                         {
@@ -194,7 +194,7 @@ namespace MicroRatchet.Tests
                         
                         if (r.NextDouble() > serverDropChance)
                         {
-                            messagesSentFromServer.Add(message.Message);
+                            messagesSentFromServer.Add(message);
                         }
                         else
                         {
@@ -214,7 +214,7 @@ namespace MicroRatchet.Tests
                     if (message != null)
                     {
                         var received = client.Receive(message);
-                        if (received.ReceivedDataType == ReceivedDataType.Normal)
+                        if (received.Payload != null)
                         {
                             messagesReceivedByClient.Add(received.Payload);
                         }
@@ -227,7 +227,7 @@ namespace MicroRatchet.Tests
                     if (message != null)
                     {
                         var received = server.Receive(message);
-                        if (received.ReceivedDataType == ReceivedDataType.Normal)
+                        if (received.Payload != null)
                         {
                             messagesReceivedByServer.Add(received.Payload);
                         }

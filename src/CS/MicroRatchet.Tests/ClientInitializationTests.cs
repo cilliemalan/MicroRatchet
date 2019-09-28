@@ -37,7 +37,7 @@ namespace MicroRatchet.Tests
             var server = new MicroRatchetClient(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
@@ -54,8 +54,8 @@ namespace MicroRatchet.Tests
             var server = new MicroRatchetClient(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
-            var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
@@ -75,9 +75,9 @@ namespace MicroRatchet.Tests
             var server = new MicroRatchetClient(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
-            var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
-            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
@@ -98,10 +98,10 @@ namespace MicroRatchet.Tests
             var server = new MicroRatchetClient(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
-            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
-            var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
-            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
-            var lastResult = client.Receive(firstResponse.Message).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
             server.SaveState();
             ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
@@ -120,16 +120,16 @@ namespace MicroRatchet.Tests
             var clientInitPacket = client.InitiateInitialization();
             client.SaveState();
             var server = new MicroRatchetClient(serverServices, false);
-            var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
             client.SaveState();
             server = new MicroRatchetClient(serverServices, false);
-            var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
             server.SaveState();
             client = new MicroRatchetClient(clientServices, true);
-            var lastResult = client.Receive(firstResponse.Message).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
             client.SaveState();
 
             Assert.Null(lastResult);
@@ -147,10 +147,10 @@ namespace MicroRatchet.Tests
             // initialize
             {
                 var clientInitPacket = client.InitiateInitialization();
-                var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
-                var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
-                var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
-                var lastResult = client.Receive(firstResponse.Message).ToSendBack;
+                var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+                var firstPacket = client.Receive(responsePacket).ToSendBack;
+                var firstResponse = server.Receive(firstPacket).ToSendBack;
+                var lastResult = client.Receive(firstResponse).ToSendBack;
                 client.SaveState();
                 server.SaveState();
             }
@@ -164,9 +164,9 @@ namespace MicroRatchet.Tests
                 byte[] message2 = rng.Generate(32);
                 byte[] message3 = rng.Generate(32);
 
-                var pl1 = client.Send(message1).Message;
-                var pl2 = client.Send(message2).Message;
-                var pl3 = client.Send(message3).Message;
+                var pl1 = client.Send(message1);
+                var pl2 = client.Send(message2);
+                var pl3 = client.Send(message3);
 
                 var r1 = server.Receive(pl1).Payload;
                 var r2 = server.Receive(pl2).Payload;
@@ -186,10 +186,10 @@ namespace MicroRatchet.Tests
             server = new MicroRatchetClient(serverServices, false, 1000);
             {
                 var clientInitPacket = client.InitiateInitialization();
-                var responsePacket = server.Receive(clientInitPacket.Message).ToSendBack;
-                var firstPacket = client.Receive(responsePacket.Message).ToSendBack;
-                var firstResponse = server.Receive(firstPacket.Message).ToSendBack;
-                var lastResult = client.Receive(firstResponse.Message).ToSendBack;
+                var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+                var firstPacket = client.Receive(responsePacket).ToSendBack;
+                var firstResponse = server.Receive(firstPacket).ToSendBack;
+                var lastResult = client.Receive(firstResponse).ToSendBack;
                 client.SaveState();
                 server.SaveState();
             }
@@ -203,9 +203,9 @@ namespace MicroRatchet.Tests
                 byte[] message2 = rng.Generate(32);
                 byte[] message3 = rng.Generate(32);
 
-                var pl1 = client.Send(message1).Message;
-                var pl2 = client.Send(message2).Message;
-                var pl3 = client.Send(message3).Message;
+                var pl1 = client.Send(message1);
+                var pl2 = client.Send(message2);
+                var pl3 = client.Send(message3);
 
                 var r1 = server.Receive(pl1).Payload;
                 var r2 = server.Receive(pl2).Payload;

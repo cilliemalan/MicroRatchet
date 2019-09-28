@@ -21,10 +21,10 @@ namespace MicroRatchet.Tests
 
             while (!client.IsInitialized || !server.IsInitialized)
             {
-                packet = server.Receive(packet.Message).ToSendBack;
+                packet = server.Receive(packet).ToSendBack;
                 if (packet != null)
                 {
-                    packet = client.Receive(packet.Message).ToSendBack;
+                    packet = client.Receive(packet).ToSendBack;
                 }
             }
 

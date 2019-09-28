@@ -688,7 +688,7 @@ namespace MicroRatchet
             return sendback;
         }
 
-        private MessageInfo ProcessInitialization(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
+        private byte[] ProcessInitialization(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
         {
             var sendback = ProcessInitializationInternal(state, dataReceived, headerKeyUsed, ecdhRatchetStep, usedApplicationHeaderKey);
 
@@ -700,7 +700,7 @@ namespace MicroRatchet
                 }
                 else
                 {
-                    return new MessageInfo { Message = sendback };
+                    return sendback;
                 }
             }
             else
@@ -709,7 +709,7 @@ namespace MicroRatchet
             }
         }
 
-        private MessageInfo SendSingle(State state, ArraySegment<byte> payload)
+        private byte[] SendSingle(State state, ArraySegment<byte> payload)
         {
             var canIncludeEcdh = payload.Count <= Configuration.MaximumMessageSize - 48;
             EcdhRatchetStep step;
@@ -722,13 +722,10 @@ namespace MicroRatchet
                 step = state.Ratchets.SecondToLast;
             }
 
-            return new MessageInfo
-            {
-                Message = ConstructMessage(payload, canIncludeEcdh, step)
-            };
+            return ConstructMessage(payload, canIncludeEcdh, step);
         }
 
-        private MessageInfo SendInternal(ArraySegment<byte> payload, State state)
+        private byte[] SendInternal(ArraySegment<byte> payload, State state)
         {
             if (payload.Count <= MaximumMessageSize)
             {
@@ -757,7 +754,7 @@ namespace MicroRatchet
             return _state;
         }
 
-        public MessageInfo InitiateInitialization(bool forceReinitialization = false)
+        public byte[] InitiateInitialization(bool forceReinitialization = false)
         {
             State state = LoadState();
 
@@ -791,11 +788,10 @@ namespace MicroRatchet
                     state = InitializeState();
                 }
 
-                MessageInfo toSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey);
+                var toSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey);
                 return new ReceiveResult
                 {
-                    ToSendBack = toSendBack,
-                    ReceivedDataType = ReceivedDataType.InitializationWithResponse
+                    ToSendBack = toSendBack
                 };
             }
             else
@@ -807,9 +803,7 @@ namespace MicroRatchet
 
                 return new ReceiveResult
                 {
-                    Payload = DeconstructMessage(state, data, headerKeyUsed, ratchetUsed, usedNextHeaderKey),
-                    ToSendBack = null,
-                    ReceivedDataType = ReceivedDataType.Normal
+                    Payload = DeconstructMessage(state, data, headerKeyUsed, ratchetUsed, usedNextHeaderKey)
                 };
             }
         }
@@ -822,7 +816,7 @@ namespace MicroRatchet
             return result;
         }
 
-        public MessageInfo Send(ArraySegment<byte> payload)
+        public byte[] Send(ArraySegment<byte> payload)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             State state = LoadState();
@@ -831,7 +825,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            MessageInfo response = SendInternal(payload, state);
+            var response = SendInternal(payload, state);
             Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
             return response;
         }
