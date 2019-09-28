@@ -2,7 +2,7 @@
 
 namespace MicroRatchet
 {
-    public interface IKeyDerivation
+    internal interface IKeyDerivation
     {
         byte[] GenerateBytes(byte[] key, byte[] info, int howManyBytes);
     }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MicroRatchet
 {
-    public interface IMac
+    internal interface IMac
     {
         void Init(byte[] key, ArraySegment<byte> iv, int macSize);
         void Process(ArraySegment<byte> data);
