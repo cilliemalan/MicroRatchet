@@ -107,3 +107,58 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.sendingchain.chainkey, KEY_SIZE);
 	EXPECT_EQ(0, ratchet2.sendingchain.generation);
 }
+
+TEST(EcdhRatchet, InitialChainSymmetryTest1) {
+	uint8_t rk[32];
+	uint8_t rhk[32];
+	uint8_t shk[32];
+	uint8_t spub1[32];
+	uint8_t spub2[32];
+	uint8_t cpub1[32];
+	uint8_t cpub2[32];
+
+	auto mr_ctx = mrclient_create(&_cfg);
+	auto rng = mr_rng_create(mr_ctx);
+	auto skey1 = mr_ecdh_create(mr_ctx);
+	auto skey2 = mr_ecdh_create(mr_ctx);
+	auto ckey1 = mr_ecdh_create(mr_ctx);
+	auto ckey2 = mr_ecdh_create(mr_ctx);
+
+	mr_rng_generate(rng, rk, SIZEOF(rk));
+	mr_rng_generate(rng, rhk, SIZEOF(rhk));
+	mr_rng_generate(rng, shk, SIZEOF(shk));
+	mr_ecdh_generate(skey1, spub1, SIZEOF(spub1));
+	mr_ecdh_generate(skey2, spub2, SIZEOF(spub2));
+	mr_ecdh_generate(ckey1, cpub1, SIZEOF(cpub1));
+	mr_ecdh_generate(ckey2, cpub2, SIZEOF(cpub2));
+
+	_mr_ratchet_state sratchet;
+	_mr_ratchet_state cratchet1;
+	_mr_ratchet_state cratchet2;
+
+	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet,
+		skey1,
+		rk, SIZEOF(rk),
+		cpub1, SIZEOF(cpub1),
+		skey2,
+		rhk, SIZEOF(rhk),
+		shk, SIZEOF(shk)));
+
+	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(
+		mr_ctx, &cratchet1, &cratchet2,
+		rk, SIZEOF(rk),
+		spub1, SIZEOF(spub1),
+		spub2, SIZEOF(spub2),
+		ckey1,
+		shk, SIZEOF(shk),
+		rhk, SIZEOF(rhk),
+		ckey2));
+
+	uint8_t ckey[MSG_KEY_SIZE];
+	uint32_t cgen;
+	uint8_t skey[MSG_KEY_SIZE];
+	EXPECT_EQ(E_SUCCESS, chain_ratchetforsending(mr_ctx, &cratchet1.sendingchain, ckey, SIZEOF(ckey), &cgen));
+	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet.receivingchain, cgen, skey, SIZEOF(skey)));
+
+	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
+}
