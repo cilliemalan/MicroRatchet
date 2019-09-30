@@ -5,7 +5,7 @@
 
 #include <array>
 
-static mr_config _cfg{ 1000, 1 };
+static mr_config _cfg{ 64, 256, 1 };
 
 static mr_ctx ctx;
 static mr_rng_ctx rng;

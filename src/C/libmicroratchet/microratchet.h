@@ -105,8 +105,8 @@ extern "C" {
 
 	// main configuration
 	typedef struct t_mr_config {
-		uint32_t maximum_message_size;
 		uint32_t minimum_message_size;
+		uint32_t maximum_message_size;
 		bool is_client;
 	} mr_config;
 
