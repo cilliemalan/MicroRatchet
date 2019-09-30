@@ -190,6 +190,7 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 	memset(ratchet2, 0, sizeof(_mr_ratchet_state));
 	ratchet1->ecdhkey = keypair;
 	ratchet1->num = 1;
+	memcpy(ratchet1->sendheaderkey, sendheaderkey, KEY_SIZE);
 
 	uint8_t tmp[KEY_SIZE * 3];
 
