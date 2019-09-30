@@ -13,7 +13,7 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitialization1MessageTest()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
 
@@ -30,8 +30,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitialization2ProcessTest()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -47,8 +47,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitialization3ProcessResponseTest()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -68,8 +68,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitialization4ProcessFirstPacketSendTest()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -91,8 +91,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitialization5ProcessComplete()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -113,8 +113,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitializationClientReinstantiation()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var clientInitPacket = client.InitiateInitialization();
@@ -138,8 +138,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void HotReinitialization()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true, 1000);
             var server = new MicroRatchetClient(serverServices, false, 1000);
@@ -218,19 +218,6 @@ namespace MicroRatchet.Tests
                 client.SaveState();
                 server.SaveState();
             }
-        }
-
-
-        private class InMemoryStorage : IStorageProvider
-        {
-            private byte[] memory;
-
-            public InMemoryStorage(int space)
-            {
-                memory = new byte[space];
-            }
-
-            public Stream Lock() => new MemoryStream(memory);
         }
     }
 }

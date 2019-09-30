@@ -11,16 +11,14 @@ namespace MicroRatchet.BouncyCastle
     /// </summary>
     public class DefaultServices : IServices
     {
-        public DefaultServices(byte[] privateKey, int memory = 8192)
+        public DefaultServices(byte[] privateKey, IStorageProvider storage)
         {
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;
             VerifierFactory = fac;
             AesFactory = fac;
-
-            Signature = new Signature(new ArraySegment<byte>(privateKey));
-            var storage = new InMemoryStorage(memory);
             Storage = storage;
+            Signature = new Signature(new ArraySegment<byte>(privateKey));
         }
 
         public IDigest Digest { get; set; } = new Digest();
@@ -42,18 +40,6 @@ namespace MicroRatchet.BouncyCastle
             public IKeyAgreement GenerateNew() => new KeyAgreement(KeyGeneration.GeneratePrivateKey(),default);
             public IKeyAgreement Deserialize(Stream stream) => KeyAgreement.Deserialize(stream);
             public IAes GetAes(bool forEncryption, ArraySegment<byte> key) { var a = new Aes(); a.Initialize(forEncryption, key); return a; }
-        }
-
-        private class InMemoryStorage : IStorageProvider
-        {
-            private byte[] memory;
-
-            public InMemoryStorage(int space)
-            {
-                memory = new byte[space];
-            }
-
-            public Stream Lock() => new MemoryStream(memory);
         }
     }
 }

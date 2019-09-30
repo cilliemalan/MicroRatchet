@@ -15,7 +15,7 @@ namespace MicroRatchet.Performance
             int messageCount = 1000000;
             double clientDropChance = 0.0;
             double serverDropChance = 0.0;
-            var defaultServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            var defaultServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
@@ -435,8 +435,8 @@ namespace MicroRatchet.Performance
 
         private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int? mtu = null)
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey());
+            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -460,6 +460,13 @@ namespace MicroRatchet.Performance
             return (
                 new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }),
                 new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }));
+        }
+
+        private class InMemoryStorage : IStorageProvider
+        {
+            private byte[] memory;
+            public InMemoryStorage(int space = 8192) => memory = new byte[space];
+            public System.IO.Stream Lock() => new System.IO.MemoryStream(memory);
         }
     }
 }
