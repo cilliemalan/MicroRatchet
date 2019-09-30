@@ -20,38 +20,28 @@ static struct __ {
 } __;
 
 TEST(SymmetricRatchet, Initialize) {
-	unsigned char hk[32];
 	unsigned char ck[32];
-	unsigned char nhk[32];
-	genrnd<32>(hk);
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain;
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char zeroes[KEY_SIZE]{};
 	EXPECT_EQ(0, chain.generation);
-	EXPECT_BUFFEREQ(hk, sizeof(hk), chain.headerkey, sizeof(chain.headerkey));
 	EXPECT_BUFFEREQ(ck, sizeof(ck), chain.chainkey, sizeof(chain.chainkey));
-	EXPECT_BUFFEREQ(nhk, sizeof(nhk), chain.nextheaderkey, sizeof(chain.nextheaderkey));
 	EXPECT_EQ(0, chain.oldgeneration);
 	EXPECT_BUFFEREQ(zeroes, sizeof(zeroes), chain.oldchainkey, sizeof(chain.oldchainkey));
 }
 
 TEST(SymmetricRatchet, BasicSend) {
-	unsigned char hk[KEY_SIZE];
 	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
@@ -65,16 +55,12 @@ TEST(SymmetricRatchet, BasicSend) {
 }
 
 TEST(SymmetricRatchet, ChainKeyModulation) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
@@ -86,16 +72,12 @@ TEST(SymmetricRatchet, ChainKeyModulation) {
 }
 
 TEST(SymmetricRatchet, MultiSend) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
@@ -116,16 +98,12 @@ TEST(SymmetricRatchet, MultiSend) {
 }
 
 TEST(SymmetricRatchet, BasicReceive) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
@@ -143,16 +121,12 @@ TEST(SymmetricRatchet, BasicReceive) {
 }
 
 TEST(SymmetricRatchet, MultiReceive) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
@@ -175,16 +149,12 @@ TEST(SymmetricRatchet, MultiReceive) {
 }
 
 TEST(SymmetricRatchet, SkipReceive) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
@@ -204,16 +174,12 @@ TEST(SymmetricRatchet, SkipReceive) {
 }
 
 TEST(SymmetricRatchet, OooReceive) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
@@ -240,19 +206,15 @@ TEST(SymmetricRatchet, OooReceive) {
 }
 
 TEST(SymmetricRatchet, BasicSymmetry) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
-
-	auto r = chain_initialize(ctx, &chaina, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	
+	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
-	r = chain_initialize(ctx, &chainb, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
 
 	unsigned char keya[MSG_KEY_SIZE]{};
@@ -269,19 +231,15 @@ TEST(SymmetricRatchet, BasicSymmetry) {
 }
 
 TEST(SymmetricRatchet, MultiSymmetry) {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
 
-	auto r = chain_initialize(ctx, &chaina, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
-	r = chain_initialize(ctx, &chainb, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
 
 	unsigned int gen1;
@@ -308,21 +266,17 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	EXPECT_NE(gen1, gen2);
 }
 
-void deepsymmetrytest(int depth)
+void deepsymmetrytest(int depth) 
 {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
 
-	auto r = chain_initialize(ctx, &chaina, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
-	r = chain_initialize(ctx, &chainb, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
 	ASSERT_EQ(E_SUCCESS, r);
 
 	unsigned int gen = 0;
@@ -349,16 +303,12 @@ TEST(SymmetricRatchet, DeepSymmetry10000) { deepsymmetrytest(10000); }
 
 void receivetest(int depth)
 {
-	unsigned char hk[KEY_SIZE];
-	unsigned char ck[KEY_SIZE];
-	unsigned char nhk[KEY_SIZE];
-	genrnd<32>(hk);
+	unsigned char ck[32];
 	genrnd<32>(ck);
-	genrnd<32>(nhk);
 
 	_mr_chain_state chain{};
 
-	auto r = chain_initialize(ctx, &chain, hk, sizeof(hk), ck, sizeof(ck), nhk, sizeof(nhk));
+	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
@@ -385,8 +335,8 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	const unsigned char expectedkey[], size_t expectedkeysize)
 {
 	_mr_chain_state chain{};
-
-	auto r = chain_initialize(ctx, &chain, 0, 0, chainkey, (unsigned int)chainkeysize, 0, 0);
+	
+	auto r = chain_initialize(ctx, &chain, chainkey, chainkeysize);
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};

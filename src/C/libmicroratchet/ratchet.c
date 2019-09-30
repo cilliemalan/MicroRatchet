@@ -130,6 +130,7 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	if (rootkeysize != KEY_SIZE || remotepubickeysize != KEY_SIZE) return E_INVALIDSIZE;
 	if (receiveheaderkey && receiveheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
 	if (sendheaderkey && sendheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	memset(ratchet, 0, sizeof(_mr_ratchet_state));
 	ratchet->ecdhkey = keypair;
@@ -139,16 +140,25 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 
 	// receiving chain
 	_C(mr_ecdh_derivekey(previouskeypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
+	mr_sha_init(ctx->sha_ctx);
+	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
+	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
-	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, receiveheaderkey, receiveheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;
+	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, tmp + KEY_SIZE, KEY_SIZE));
+	memcpy(ratchet->nextreceiveheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
 
 	// sending chain
 	_C(mr_ecdh_derivekey(keypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
+	mr_sha_init(ctx->sha_ctx);
+	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
+	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
-	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, sendheaderkey, sendheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;
+	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
+	memcpy(ratchet->nextsendheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
 
+	// next root key
 	memcpy(ratchet->nextrootkey, rootkey, KEY_SIZE);
 
 	return E_SUCCESS;
@@ -170,6 +180,7 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 	if (!receiveheaderkey || !sendheaderkey) return E_INVALIDARGUMENT;
 	if (rootkeysize != KEY_SIZE || remotepubickey0size != KEY_SIZE || remotepubickey1size != KEY_SIZE) return E_INVALIDSIZE;
 	if (receiveheaderkeysize != KEY_SIZE || sendheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	memset(ratchet1, 0, sizeof(_mr_ratchet_state));
 	memset(ratchet2, 0, sizeof(_mr_ratchet_state));
@@ -180,21 +191,21 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 
 	// sending chain
 	_C(mr_ecdh_derivekey(keypair, remotepubickey0, remotepubickey0size, tmp, KEY_SIZE));
+	mr_sha_init(ctx->sha_ctx);
+	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
+	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
 	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
-	_C(chain_initialize(mr_ctx, &ratchet1->sendingchain, sendheaderkey, sendheaderkeysize, tmp + KEY_SIZE, KEY_SIZE, tmp + KEY_SIZE * 2, KEY_SIZE));
 	rootkey = tmp;
-
-	memcpy(tmp, ratchet1->sendingchain.nextheaderkey, KEY_SIZE);
-	memset(ratchet1->sendingchain.nextheaderkey, 0, KEY_SIZE);
+	_C(chain_initialize(mr_ctx, &ratchet1->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
 
 	_C(ratchet_initialize_server(mr_ctx,
-		ratchet1,
+		ratchet2,
 		keypair,
 		rootkey, rootkeysize,
 		remotepubickey1, remotepubickey1size,
 		nextkeypair,
 		receiveheaderkey, receiveheaderkeysize,
-		tmp, KEY_SIZE));
+		tmp + KEY_SIZE * 2, KEY_SIZE));
 	ratchet1->num = 2;
 
 	return E_SUCCESS;
@@ -228,15 +239,18 @@ mr_result_t ratchet_initialize(
 	ratchet->ecdhkey = ecdhkey;
 	if (nextrootkey) memcpy(ratchet->nextrootkey, nextrootkey, KEY_SIZE);
 	else memset(ratchet->nextrootkey, 0, KEY_SIZE);
-	_C(chain_initialize(mr_ctx, &ratchet->receivingchain,
-		receivingheaderkey, receivingheaderkeysize,
-		receivingchainkey, receivingchainkeysize,
-		receivingnextheaderkey, receivingnextheaderkeysize));
+	if (receivingheaderkey) memcpy(ratchet->receiveheaderkey, receivingheaderkey, KEY_SIZE);
+	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
+	if (receivingnextheaderkey) memcpy(ratchet->nextreceiveheaderkey, receivingnextheaderkey, KEY_SIZE);
+	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
+	if (sendingheaderkey) memcpy(ratchet->sendheaderkey, sendingheaderkey, KEY_SIZE);
+	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
+	if (sendingnextheaderkey) memcpy(ratchet->nextsendheaderkey, sendingnextheaderkey, KEY_SIZE);
+	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
+
+	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, receivingchainkey, receivingchainkeysize));
 	ratchet->receivingchain.generation = receivinggeneration;
-	_C(chain_initialize(mr_ctx, &ratchet->sendingchain,
-		sendingheaderkey, sendingheaderkeysize,
-		sendingchainkey, sendingchainkeysize,
-		sendingnextheaderkey, sendingnextheaderkeysize));
+	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, sendingchainkey, sendingchainkeysize));
 
 	return E_SUCCESS;
 }
@@ -251,31 +265,25 @@ mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratc
 		ratchet->nextrootkey, KEY_SIZE,
 		remotepublickey, remotepublickeysize,
 		keypair,
-		ratchet->receivingchain.nextheaderkey, KEY_SIZE,
-		ratchet->sendingchain.nextheaderkey, KEY_SIZE));
+		ratchet->nextreceiveheaderkey, KEY_SIZE,
+		ratchet->nextsendheaderkey, KEY_SIZE));
 
 	nextratchet->num = ratchet->num + 1;
 	ratchet->ecdhkey = 0;
 	memset(ratchet->nextrootkey, 0, KEY_SIZE);
-	memset(ratchet->receivingchain.nextheaderkey, 0, KEY_SIZE);
-	memset(ratchet->sendingchain.nextheaderkey, 0, KEY_SIZE);
+	memset(ratchet->nextreceiveheaderkey, 0, KEY_SIZE);
+	memset(ratchet->nextsendheaderkey, 0, KEY_SIZE);
 
 	return E_SUCCESS;
 }
 
-mr_result_t chain_initialize(mr_ctx mr_ctx, _mr_chain_state * chain_state, const uint8_t* headerkey, uint32_t headerkeysize, const uint8_t* chainkey, uint32_t chainkeysize, const uint8_t* nextheaderkey, uint32_t nextheaderkeysize)
+mr_result_t chain_initialize(mr_ctx mr_ctx, _mr_chain_state * chain_state, const uint8_t* chainkey, uint32_t chainkeysize)
 {
 	if (!chain_state) return E_INVALIDARGUMENT;
-	if (headerkey && headerkeysize != KEY_SIZE) return E_INVALIDSIZE;
 	if (chainkey && chainkeysize != KEY_SIZE) return E_INVALIDSIZE;
-	if (nextheaderkey && nextheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
 
-	if (headerkey) memcpy(chain_state->headerkey, headerkey, KEY_SIZE);
-	else memset(chain_state->headerkey, 0, KEY_SIZE);
 	if (chainkey) memcpy(chain_state->chainkey, chainkey, KEY_SIZE);
 	else memset(chain_state->chainkey, 0, KEY_SIZE);
-	if (nextheaderkey) memcpy(chain_state->nextheaderkey, nextheaderkey, KEY_SIZE);
-	else memset(chain_state->nextheaderkey, 0, KEY_SIZE);
 
 	chain_state->generation = 0;
 	chain_state->oldgeneration = 0;

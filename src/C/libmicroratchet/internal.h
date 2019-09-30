@@ -17,23 +17,10 @@ extern "C" {
 #define SIGNATURE_SIZE (ECNUM_SIZE+ECNUM_SIZE)
 #define NUM_RATCHETS 5
 #define MIN_MSG_SIZE 16
-#define MIN_MSG_SIZE 16
 #define MIN_OVERHEAD (NONCE_SIZE + MAC_SIZE)
 #define OVERHEAD_WITH_ECDH (MIN_OVERHEAD + ECNUM_SIZE)
 #define INIT_REQ_MSG_SIZE (NONCE_SIZE + ECNUM_SIZE*2 + SIGNATURE_SIZE)
 #define INIT_RES_MSG_SIZE (NONCE_SIZE*2 + ECNUM_SIZE*4 + SIGNATURE_SIZE + MAC_SIZE)
-
-#define MSG_TYPE_NORMAL 0
-#define MSG_TYPE_NORMAL_WITH_ECDH 1
-// 2 = reserved
-#define MSG_TYPE_MULTIPART 3
-#define MSG_TYPE_INIT_REQ 4
-#define MSG_TYPE_INIT_WITHOUT_ECDH 4
-#define MSG_TYPE_INIT_RES 5
-#define MSG_TYPE_INIT_WITH_ECDH 5
-// 6 = reserved
-// 7 = reserved
-
 
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
 #define _N(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { ctx->next(__r, ctx, mr_ctx); return; } }
@@ -59,10 +46,7 @@ extern "C" {
 
 	typedef struct _mr_chain_state {
 		uint32_t generation;
-		uint8_t nextheaderkey[KEY_SIZE];
-		uint8_t headerkey[KEY_SIZE];
 		uint8_t chainkey[KEY_SIZE];
-
 		uint32_t oldgeneration;
 		uint8_t oldchainkey[KEY_SIZE];
 	} _mr_chain_state;
@@ -71,6 +55,10 @@ extern "C" {
 		uint32_t num;
 		mr_ecdh_ctx ecdhkey;
 		uint8_t nextrootkey[KEY_SIZE];
+		uint8_t sendheaderkey[KEY_SIZE];
+		uint8_t nextsendheaderkey[KEY_SIZE];
+		uint8_t receiveheaderkey[KEY_SIZE];
+		uint8_t nextreceiveheaderkey[KEY_SIZE];
 		_mr_chain_state sendingchain;
 		_mr_chain_state receivingchain;
 	} _mr_ratchet_state;
@@ -92,8 +80,8 @@ extern "C" {
 	int kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t spaceavail);
 
 	// AES CTR
-	int aesctr_init(_mr_aesctr_ctx * ctx, mr_aes_ctx aes, const uint8_t* iv, uint32_t ivsize);
-	int aesctr_process(_mr_aesctr_ctx * ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
+	int aesctr_init(_mr_aesctr_ctx* ctx, mr_aes_ctx aes, const uint8_t* iv, uint32_t ivsize);
+	int aesctr_process(_mr_aesctr_ctx* ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
 
 	// some bit movings
 	void be_pack64(long long value, uint8_t* target);
@@ -147,7 +135,7 @@ extern "C" {
 		uint8_t* sendingnextheaderkey, uint32_t sendingnextheaderkeysize,
 		uint8_t* sendingchainkey, uint32_t sendingchainkeysize);
 	int ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair);
-	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* headerkey, uint32_t headerkeysize, const uint8_t* chainkey, uint32_t chainkeysize, const uint8_t* nextheaderkey, uint32_t nextheaderkeysize);
+	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* chainkey, uint32_t chainkeysize);
 	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
 	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
