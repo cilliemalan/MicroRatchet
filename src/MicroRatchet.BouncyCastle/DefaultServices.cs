@@ -9,9 +9,9 @@ namespace MicroRatchet.BouncyCastle
     /// <summary>
     /// A default implementation of the services needed by <see cref="MicroRatchetClient" />.
     /// </summary>
-    public class DefaultServices : IServices
+    public class BouncyCastleServices : IServices
     {
-        public DefaultServices(byte[] privateKey, IStorageProvider storage)
+        public BouncyCastleServices(byte[] privateKey, IStorageProvider storage)
         {
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;

@@ -14,7 +14,7 @@ namespace MicroRatchet.Tests
         private AesKdf kdf = new AesKdf(Common.AesFactory);
         private Digest digest = new Digest();
         private RandomNumberGenerator rng = new RandomNumberGenerator();
-        private IKeyAgreementFactory kaf = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage()).KeyAgreementFactory;
+        private IKeyAgreementFactory kaf = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage()).KeyAgreementFactory;
 
         [Fact]
         public void ServerInitializeTest()

@@ -12,8 +12,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientMessagesReinstantiation()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);

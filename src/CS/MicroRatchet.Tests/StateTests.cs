@@ -25,8 +25,8 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientInitStateTest()
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
             var cstorage = new InMemoryStorage();
             var sstorage = new InMemoryStorage();
             clientServices.Storage = cstorage;

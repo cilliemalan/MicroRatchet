@@ -15,7 +15,7 @@ namespace MicroRatchet.Performance
             int messageCount = 1000000;
             double clientDropChance = 0.0;
             double serverDropChance = 0.0;
-            var defaultServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            var defaultServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
@@ -435,8 +435,8 @@ namespace MicroRatchet.Performance
 
         private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int? mtu = null)
         {
-            DefaultServices clientServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            DefaultServices serverServices = new DefaultServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
