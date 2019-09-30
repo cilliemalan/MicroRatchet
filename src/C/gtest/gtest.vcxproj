@@ -47,7 +47,6 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_VARIADIC_MAX=10;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>
@@ -55,7 +54,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\thirdparty\googletest\googletest\include;..\..\..\thirdparty\googletest\googletest;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;26495</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812;26495;6387;6011;26444</DisableSpecificWarnings>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
@@ -70,7 +69,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\thirdparty\googletest\googletest\include;..\..\..\thirdparty\googletest\googletest;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;26495</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812;26495;6387;6011;26444</DisableSpecificWarnings>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
@@ -83,7 +82,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\thirdparty\googletest\googletest\include;..\..\..\thirdparty\googletest\googletest;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;26495</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812;26495;6387;6011;26444</DisableSpecificWarnings>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
@@ -96,7 +95,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>..\..\..\thirdparty\googletest\googletest\include;..\..\..\thirdparty\googletest\googletest;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <DisableSpecificWarnings>26812;26495</DisableSpecificWarnings>
+      <DisableSpecificWarnings>26812;26495;6387;6011;26444</DisableSpecificWarnings>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
