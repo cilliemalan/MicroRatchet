@@ -2,7 +2,7 @@
 #include "microratchet.h"
 #include "internal.h"
 
-int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int outputlen)
+mr_result_t kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t outputlen)
 {
 	if (!mr_ctx || !key || !output) return E_INVALIDARGUMENT;
 	if (keylen != 16 && keylen != 24 && keylen != 32) return E_INVALIDSIZE;
@@ -16,14 +16,14 @@ int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, co
 	if (r != E_SUCCESS) goto exit;
 
 	// initialization phase. Pass all the bytes of info into AES in kind-of CBC mode.
-	unsigned char ctr[16];
+	uint8_t ctr[16];
 	memset(ctr, 0, sizeof(ctr));
 	int info_offset = 0;
 	if (info && infolen)
 	{
 		while ((int)infolen - info_offset > 0)
 		{
-			for (unsigned int i = 0; i < 16 && i + info_offset < infolen; i++)
+			for (uint32_t i = 0; i < 16 && i + info_offset < infolen; i++)
 			{
 				ctr[i] ^= info[i + info_offset];
 			}
@@ -37,7 +37,7 @@ int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, co
 
 	// processing phase - AES ctr mode using processed init as nonce, returning
 	// the cipher stream as output.
-	unsigned int output_offset = 0;
+	uint32_t output_offset = 0;
 	while (output_offset < outputlen)
 	{
 		for (int z = sizeof(ctr) - 1; z >= 0 && ++ctr[z] == 0; z--);

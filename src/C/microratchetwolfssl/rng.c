@@ -18,7 +18,7 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_rng_generate(mr_rng_ctx _ctx, unsigned char* output, unsigned int outputsize)
+mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 {
 	_mr_rng_ctx* ctx = _ctx;
 	if (outputsize < 1) return E_INVALIDSIZE;

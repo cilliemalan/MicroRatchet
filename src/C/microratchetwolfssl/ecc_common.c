@@ -6,7 +6,7 @@
 
 int mp_sqrtmod_prime(mp_int* n, mp_int* prime, mp_int* ret);
 
-int ecc_import_public(const unsigned char* otherpublickey, unsigned int otherpublickeysize, ecc_point *pub)
+mr_result_t ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublickeysize, ecc_point *pub)
 {
 	const ecc_set_type* dp = &ecc_sets[wc_ecc_get_curve_idx(ECC_SECP256R1)];
 
@@ -69,7 +69,7 @@ int ecc_import_public(const unsigned char* otherpublickey, unsigned int otherpub
 }
 
 
-int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeyspaceavail)
+mr_result_t ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
 	if (!publickey || !key) return E_INVALIDARGUMENT;
@@ -77,7 +77,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 	WC_RNG rng;
 	int result = wc_InitRng(&rng);
 	if (result != 0) return E_INVALIDOP;
-	unsigned int pubkeylen = 0;
+	uint32_t pubkeylen = 0;
 	for (;;)
 	{
 		result = wc_ecc_make_key_ex(&rng, 32, key, ECC_SECP256R1);
@@ -87,7 +87,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 		if (mp_iseven(key->pubkey.y))
 		{
 			// try until the public key x component is under or at 256 bits.
-			pubkeylen = (unsigned int)mp_unsigned_bin_size(key->pubkey.x);
+			pubkeylen = (uint32_t)mp_unsigned_bin_size(key->pubkey.x);
 			if (pubkeylen <= 32)
 			{
 				break;
@@ -102,7 +102,7 @@ int ecc_generate(ecc_key* key, unsigned char* publickey, unsigned int publickeys
 	return E_SUCCESS;
 }
 
-int ecc_load(ecc_key* key, const unsigned char* data, unsigned int spaceavail)
+mr_result_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 {
 	memset(key, 0, sizeof(ecc_key));
 
@@ -112,24 +112,24 @@ int ecc_load(ecc_key* key, const unsigned char* data, unsigned int spaceavail)
 	return E_SUCCESS;
 }
 
-int ecc_store_size_needed(const mp_int* key)
+mr_result_t ecc_store_size_needed(const mp_int* key)
 {
 	return mp_unsigned_bin_size((mp_int*)key);
 }
 
-int ecc_store(const ecc_key* key, unsigned char* data, unsigned int spaceavail)
+mr_result_t ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 {
 	if (!key || !data) return E_INVALIDARG;
 	if (spaceavail < 32) return E_INVALIDSIZE;
 
 	int len = mp_unsigned_bin_size((mp_int*)&key->k);
-	if (len < 0 || (unsigned int)len > 32) return E_INVALIDSIZE;
+	if (len < 0 || (uint32_t)len > 32) return E_INVALIDSIZE;
 	int r = mp_to_unsigned_bin((mp_int*)&key->k, data);
 	if (r != 0) return E_INVALIDOP;
 	return E_SUCCESS;
 }
 
-int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int digestsize, unsigned char* signature, unsigned int signaturespaceavail)
+mr_result_t ecc_sign(const ecc_key *key, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail)
 {
 	if (!key || !digest || !signature) return E_INVALIDARG;
 	if (signaturespaceavail < 64) return E_INVALIDSIZE;
@@ -143,7 +143,7 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	if (result != 0) return E_INVALIDOP;
 	result = wc_ecc_sign_hash_ex(digest, digestsize, &rng, (ecc_key*)key, &r, &s);
 	if (result != 0) return E_INVALIDOP;
-	unsigned int l = (unsigned int)mp_unsigned_bin_size(&r);
+	uint32_t l = (uint32_t)mp_unsigned_bin_size(&r);
 	if (l > 32) return E_INVALIDOP;
 	result = mp_to_unsigned_bin(&r, signature + (32 - l));
 	if (l < 32) memset(signature, 0, 32 - l);
@@ -157,7 +157,7 @@ int ecc_sign(const ecc_key *key, const unsigned char* digest, unsigned int diges
 	return E_SUCCESS;
 }
 
-int ecc_verify(const ecc_key *key, const unsigned char* signature, unsigned int signaturesize, const unsigned char* digest, unsigned int digestsize, unsigned int* result)
+mr_result_t ecc_verify(const ecc_key *key, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result)
 {
 	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
 	if (signaturesize != 64) return E_INVALIDSIZE;

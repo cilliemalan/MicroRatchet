@@ -18,7 +18,7 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize)
+mr_result_t mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 {
 	_mr_aes_ctx* ctx = _ctx;
 	if (keysize != 16 && keysize != 24 && keysize != 32) return E_INVALIDSIZE;
@@ -30,7 +30,7 @@ int mr_aes_init(mr_aes_ctx _ctx, const unsigned char* key, unsigned int keysize)
 	return E_SUCCESS;
 }	
 
-int mr_aes_process(mr_aes_ctx _ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail)
+mr_result_t mr_aes_process(mr_aes_ctx _ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
 {
 	_mr_aes_ctx* ctx = _ctx;
 	if (amount > spaceavail) return E_INVALIDSIZE;

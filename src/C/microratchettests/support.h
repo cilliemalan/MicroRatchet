@@ -1,16 +1,18 @@
 #pragma once
 
+#define SIZEOF(x) static_cast<uint32_t>(sizeof(x))
+
 template<class... Args>
 static int call_and_wait(int(*call)(Args...), mr_ctx ctx, Args... args)
 {
 	return call(args...);
 }
 
-inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, volatile char* ob)
+inline void buffer_to_string(const uint8_t* b, uint32_t l, char* ob)
 {
-	for (unsigned int i = 0; i < l; i++)
+	for (uint32_t i = 0; i < l; i++)
 	{
-		unsigned char c = b[i];
+		uint8_t c = b[i];
 		ob[i * 2 + 0] = "0123456789ABCDEF"[(c >> 4) & 0x0F];
 		ob[i * 2 + 1] = "0123456789ABCDEF"[c & 0x0F];
 	}
@@ -18,10 +20,10 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 }
 
 #define ASSERT_BUFFEREQ(b1, l1, b2, l2) { \
-	unsigned int __l1 = static_cast<unsigned int>(l1); \
-	unsigned int __l2 = static_cast<unsigned int>(l2); \
-	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
-	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
+	uint32_t __l1 = static_cast<uint32_t>(l1); \
+	uint32_t __l2 = static_cast<uint32_t>(l2); \
+	const uint8_t* __b1 = static_cast<const uint8_t*>(b1); \
+	const uint8_t* __b2 = static_cast<const uint8_t*>(b2); \
 	ASSERT_EQ(__l1, __l2); \
 	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
 	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
@@ -32,10 +34,10 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 }
 
 #define ASSERT_BUFFERNE(b1, l1, b2, l2) { \
-	unsigned int __l1 = static_cast<unsigned int>(l1); \
-	unsigned int __l2 = static_cast<unsigned int>(l2); \
-	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
-	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
+	uint32_t __l1 = static_cast<uint32_t>(l1); \
+	uint32_t __l2 = static_cast<uint32_t>(l2); \
+	const uint8_t* __b1 = static_cast<const uint8_t*>(b1); \
+	const uint8_t* __b2 = static_cast<const uint8_t*>(b2); \
 	ASSERT_EQ(__l1, __l2); \
 	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
 	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
@@ -47,10 +49,10 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 
 
 #define EXPECT_BUFFEREQ(b1, l1, b2, l2) { \
-	unsigned int __l1 = static_cast<unsigned int>(l1); \
-	unsigned int __l2 = static_cast<unsigned int>(l2); \
-	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
-	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
+	uint32_t __l1 = static_cast<uint32_t>(l1); \
+	uint32_t __l2 = static_cast<uint32_t>(l2); \
+	const uint8_t* __b1 = static_cast<const uint8_t*>(b1); \
+	const uint8_t* __b2 = static_cast<const uint8_t*>(b2); \
 	EXPECT_EQ(__l1, __l2); \
 	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
 	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \
@@ -61,10 +63,10 @@ inline void buffer_to_string(volatile const unsigned char* b, unsigned int l, vo
 }
 
 #define EXPECT_BUFFERNE(b1, l1, b2, l2) { \
-	unsigned int __l1 = static_cast<unsigned int>(l1); \
-	unsigned int __l2 = static_cast<unsigned int>(l2); \
-	const unsigned char* __b1 = static_cast<const unsigned char*>(b1); \
-	const unsigned char* __b2 = static_cast<const unsigned char*>(b2); \
+	uint32_t __l1 = static_cast<uint32_t>(l1); \
+	uint32_t __l2 = static_cast<uint32_t>(l2); \
+	const uint8_t* __b1 = static_cast<const uint8_t*>(b1); \
+	const uint8_t* __b2 = static_cast<const uint8_t*>(b2); \
 	EXPECT_EQ(__l1, __l2); \
 	char *sbuffer1 = new char[static_cast<size_t>(__l1)*2+1]; \
 	char *sbuffer2 = new char[static_cast<size_t>(__l2)*2+1]; \

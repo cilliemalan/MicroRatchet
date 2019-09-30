@@ -22,14 +22,14 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_poly_init(mr_poly_ctx _ctx, const unsigned char* key, unsigned int keysize, const unsigned char* iv, unsigned int ivsize)
+mr_result_t mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	if (keysize != 32) return E_INVALIDSIZE;
 	if (ivsize != 16) return E_INVALIDSIZE;
 	if (!key || !_ctx || !iv) return E_INVALIDARGUMENT;
 
-	unsigned char tkey[32];
+	uint8_t tkey[32];
 	memcpy(tkey, key, 16);
 	Aes aes;
 	int r = wc_AesSetKeyDirect(&aes, key + 16, 16, 0, AES_ENCRYPTION);
@@ -41,7 +41,7 @@ int mr_poly_init(mr_poly_ctx _ctx, const unsigned char* key, unsigned int keysiz
 	return E_SUCCESS;
 }
 
-int mr_poly_process(mr_poly_ctx _ctx, const unsigned char* data, unsigned int amount)
+mr_result_t mr_poly_process(mr_poly_ctx _ctx, const uint8_t* data, uint32_t amount)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	if (!amount) return E_INVALIDSIZE;
@@ -52,7 +52,7 @@ int mr_poly_process(mr_poly_ctx _ctx, const unsigned char* data, unsigned int am
 	return E_SUCCESS;
 }
 
-int mr_poly_compute(mr_poly_ctx _ctx, unsigned char* output, unsigned int spaceavail)
+mr_result_t mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	if (!spaceavail) return E_INVALIDSIZE;
@@ -60,7 +60,7 @@ int mr_poly_compute(mr_poly_ctx _ctx, unsigned char* output, unsigned int spacea
 
 	if (spaceavail < 16)
 	{
-		unsigned char tmp[16];
+		uint8_t tmp[16];
 		int r = wc_Poly1305Final(&ctx->wc_poly, tmp);
 		if (r != 0) return E_INVALIDOP;
 		memcpy(output, tmp, spaceavail);

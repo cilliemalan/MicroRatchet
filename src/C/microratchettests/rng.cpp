@@ -14,12 +14,12 @@ TEST(Rng, Create) {
 }
 
 TEST(Rng, Generate) {
-	unsigned char data[32];
+	uint8_t data[32];
 	memset(data, 0xCC, sizeof(data));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng, data, (unsigned int)sizeof(data));
+	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;
@@ -34,16 +34,16 @@ TEST(Rng, Generate) {
 }
 
 TEST(Rng, GenerateTwice) {
-	unsigned char data1[32];
-	unsigned char data2[32];
+	uint8_t data1[32];
+	uint8_t data2[32];
 	memset(data1, 0xCC, sizeof(data1));
 	memset(data2, 0xCC, sizeof(data2));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng, data1, (unsigned int)sizeof(data1));
+	int result = mr_rng_generate(rng, data1, SIZEOF(data1));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_rng_generate, mr_ctx, rng, data2, (unsigned int)sizeof(data2));
+	result = mr_rng_generate(rng, data2, SIZEOF(data2));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;
@@ -62,17 +62,17 @@ TEST(Rng, GenerateTwice) {
 }
 
 TEST(Rng, GenerateTwiceReinit) {
-	unsigned char data1[32];
-	unsigned char data2[32];
+	uint8_t data1[32];
+	uint8_t data2[32];
 	memset(data1, 0xCC, sizeof(data1));
 	memset(data2, 0xCC, sizeof(data2));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng1 = mr_rng_create(mr_ctx);
 	auto rng2 = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng1, data1, (unsigned int)sizeof(data1));
+	int result = mr_rng_generate(rng1, data1, SIZEOF(data1));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_rng_generate, mr_ctx, rng2, data2, (unsigned int)sizeof(data2));
+	result = mr_rng_generate(rng2, data2, SIZEOF(data2));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;
@@ -92,12 +92,12 @@ TEST(Rng, GenerateTwiceReinit) {
 }
 
 TEST(Rng, GenerateTiny) {
-	unsigned char data[1];
+	uint8_t data[1];
 	memset(data, 0xCC, sizeof(data));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng, data, (unsigned int)sizeof(data));
+	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_rng_destroy(rng);
@@ -105,12 +105,12 @@ TEST(Rng, GenerateTiny) {
 }
 
 TEST(Rng, GenerateSmall) {
-	unsigned char data[4];
+	uint8_t data[4];
 	memset(data, 0xCC, sizeof(data));
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng, data, (unsigned int)sizeof(data));
+	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;
@@ -126,13 +126,13 @@ TEST(Rng, GenerateSmall) {
 }
 
 TEST(Rng, GenerateHuge) {
-	constexpr unsigned int size = 1024 * 1024;
-	unsigned char *data = new unsigned char[size];
+	constexpr uint32_t size = 1024 * 1024;
+	uint8_t *data = new uint8_t[size];
 	memset(data, 0xCC, size);
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
-	int result = call_and_wait(mr_rng_generate, mr_ctx, rng, data, (unsigned int)sizeof(data));
+	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;

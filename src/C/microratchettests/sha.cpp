@@ -16,7 +16,7 @@ TEST(Sha, Create) {
 TEST(Sha, Init) {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
+	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
@@ -24,30 +24,30 @@ TEST(Sha, Init) {
 }
 
 TEST(Sha, Process) {
-	const unsigned char data[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+	const uint8_t data[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
-	result = call_and_wait(mr_sha_process, mr_ctx, sha, data, (unsigned int)sizeof(data));
+	int result = mr_sha_init(sha);
+	result = mr_sha_process(sha, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
 	mrclient_destroy(mr_ctx);
 }
 
-template<unsigned int L1, unsigned int L2>
-void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_output)[L2])
+template<uint32_t L1, uint32_t L2>
+void testsha(const uint8_t (&data)[L1], const uint8_t(&expected_output)[L2])
 {
-	unsigned char output[32];
+	uint8_t output[32];
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
+	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
-	if(data && sizeof(data) > 0) result = call_and_wait(mr_sha_process, mr_ctx, sha, data, (unsigned int)sizeof(data));
+	if(data && sizeof(data) > 0) result = mr_sha_process(sha, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
+	result = mr_sha_compute(sha, output, SIZEOF(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 
@@ -56,8 +56,8 @@ void testsha(const unsigned char (&data)[L1], const unsigned char(&expected_outp
 }
 
 TEST(Sha, ReferenceTestEmpty) {
-	unsigned char output[32];
-	unsigned char expected[32]{
+	uint8_t output[32];
+	uint8_t expected[32]{
 		0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14,
 		0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24,
 		0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c,
@@ -66,9 +66,9 @@ TEST(Sha, ReferenceTestEmpty) {
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
+	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
+	result = mr_sha_compute(sha, output, SIZEOF(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 
@@ -77,8 +77,8 @@ TEST(Sha, ReferenceTestEmpty) {
 }
 
 TEST(Sha, ReferenceTestShort1) {
-	const unsigned char input[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
-	const unsigned char output[32]{
+	const uint8_t input[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+	const uint8_t output[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
 		0x3C, 0x31, 0xDD, 0x0A, 0xD3, 0x2F, 0x7F, 0x3A,
 		0x36, 0x6A, 0x80, 0xE8, 0x13, 0x69, 0x79, 0xD8,
@@ -89,8 +89,8 @@ TEST(Sha, ReferenceTestShort1) {
 }
 
 TEST(Sha, ReferenceTestShort2) {
-	const unsigned char input[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
-	const unsigned char output[32]{
+	const uint8_t input[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
+	const uint8_t output[32]{
 		0xAE, 0xB6, 0xB8, 0xE3, 0xE2, 0xF5, 0x96, 0x04,
 		0xA3, 0xDD, 0x7F, 0xCC, 0xD7, 0x9A, 0x77, 0x19,
 		0x81, 0x89, 0xC5, 0xCF, 0x44, 0x8C, 0x8A, 0x62,
@@ -101,7 +101,7 @@ TEST(Sha, ReferenceTestShort2) {
 }
 
 TEST(Sha, ReferenceTestLong) {
-	const unsigned char input[]{
+	const uint8_t input[]{
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
 		0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
@@ -121,7 +121,7 @@ TEST(Sha, ReferenceTestLong) {
 		0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
 		0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88,
 	};
-	const unsigned char output[32]{
+	const uint8_t output[32]{
 		0x3B, 0x7F, 0xFF, 0xD4, 0xFC, 0x0D, 0xCB, 0xD5,
 		0x2D, 0xAD, 0xB0, 0xCC, 0xC6, 0xFF, 0xC3, 0x40,
 		0x69, 0x67, 0x6A, 0x4A, 0x1D, 0xFD, 0x44, 0x64,
@@ -132,34 +132,34 @@ TEST(Sha, ReferenceTestLong) {
 }
 
 TEST(Sha, ReferenceTestTwice) {
-	const unsigned char input1[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
-	const unsigned char expected1[32]{
+	const uint8_t input1[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+	const uint8_t expected1[32]{
 		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
 		0x3C, 0x31, 0xDD, 0x0A, 0xD3, 0x2F, 0x7F, 0x3A,
 		0x36, 0x6A, 0x80, 0xE8, 0x13, 0x69, 0x79, 0xD8,
 		0xF5, 0xA1, 0x01, 0xD3, 0xD2, 0x9D, 0x6F, 0x72
 	};
-	const unsigned char input2[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
-	unsigned char expected2[32]{
+	const uint8_t input2[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
+	uint8_t expected2[32]{
 		0xAE, 0xB6, 0xB8, 0xE3, 0xE2, 0xF5, 0x96, 0x04,
 		0xA3, 0xDD, 0x7F, 0xCC, 0xD7, 0x9A, 0x77, 0x19,
 		0x81, 0x89, 0xC5, 0xCF, 0x44, 0x8C, 0x8A, 0x62,
 		0x7D, 0xF8, 0x42, 0x86, 0x60, 0x4F, 0x8F, 0x7A
 	};
-	unsigned char output[32];
+	uint8_t output[32];
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = call_and_wait(mr_sha_init, mr_ctx, sha);
+	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_process, mr_ctx, sha, input1, (unsigned int)sizeof(input1));
+	result = mr_sha_process(sha, input1, SIZEOF(input1));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
+	result = mr_sha_compute(sha, output, SIZEOF(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected1, sizeof(expected1), output, sizeof(output));
-	result = call_and_wait(mr_sha_process, mr_ctx, sha, input2, (unsigned int)sizeof(input2));
+	result = mr_sha_process(sha, input2, SIZEOF(input2));
 	EXPECT_EQ(E_SUCCESS, result);
-	result = call_and_wait(mr_sha_compute, mr_ctx, sha, output, (unsigned int)sizeof(output));
+	result = mr_sha_compute(sha, output, SIZEOF(output));
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
 

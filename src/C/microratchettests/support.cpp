@@ -6,7 +6,7 @@
 
 // allocation functions for mr
 
-int mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
+mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 {
 	if (pointer != nullptr)
 	{

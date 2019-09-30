@@ -20,7 +20,7 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-int mr_ecdh_generate(mr_ecdh_ctx _ctx, unsigned char* publickey, unsigned int publickeyspaceavail)
+mr_result_t mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
@@ -31,7 +31,7 @@ int mr_ecdh_generate(mr_ecdh_ctx _ctx, unsigned char* publickey, unsigned int pu
 	return E_SUCCESS;
 }
 
-int mr_ecdh_load(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail)
+mr_result_t mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
@@ -40,7 +40,7 @@ int mr_ecdh_load(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail)
 	return E_SUCCESS;
 }
 
-int mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const unsigned char* otherpublickey, unsigned int otherpublickeysize, unsigned char* derivedkey, unsigned int derivedkeyspaceavail)
+mr_result_t mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	if (!ctx || !otherpublickey || !derivedkey) return E_INVALIDARG;
@@ -57,17 +57,17 @@ int mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const unsigned char* otherpublickey, uns
 	return E_SUCCESS;
 }
 
-unsigned int mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
+uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	return ecc_store_size_needed(&ctx->key.k);
 }
 
-int mr_ecdh_store(mr_ecdh_ctx _ctx, unsigned char* data, unsigned int spaceavail)
+mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key.k);
-	if (len < 0 || (unsigned int)len > spaceavail) return E_INVALIDSIZE;
+	if (len < 0 || (uint32_t)len > spaceavail) return E_INVALIDSIZE;
 	int result = ecc_store(&ctx->key, data, spaceavail);
 	return E_SUCCESS;
 }

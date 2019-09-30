@@ -42,35 +42,35 @@ extern "C" {
 	typedef struct _mr_initialization_state {
 		union {
 			struct server {
-				unsigned char nextinitializationnonce[NONCE_SIZE];
-				unsigned char rootkey[KEY_SIZE];
-				unsigned char firstsendheaderkey[KEY_SIZE];
-				unsigned char firstreceiveheaderkey[KEY_SIZE];
+				uint8_t nextinitializationnonce[NONCE_SIZE];
+				uint8_t rootkey[KEY_SIZE];
+				uint8_t firstsendheaderkey[KEY_SIZE];
+				uint8_t firstreceiveheaderkey[KEY_SIZE];
 				mr_ecdh_ctx localratchetstep0;
 				mr_ecdh_ctx localratchetstep1;
-				unsigned char clientpublickey[ECNUM_SIZE];
+				uint8_t clientpublickey[ECNUM_SIZE];
 			} server;
 			struct client {
-				unsigned char initializationnonce[NONCE_SIZE];
+				uint8_t initializationnonce[NONCE_SIZE];
 				mr_ecdh_ctx localecdhforinit;
 			} client;
 		};
 	} _mr_initialization_state;
 
 	typedef struct _mr_chain_state {
-		unsigned int generation;
-		unsigned char nextheaderkey[KEY_SIZE];
-		unsigned char headerkey[KEY_SIZE];
-		unsigned char chainkey[KEY_SIZE];
+		uint32_t generation;
+		uint8_t nextheaderkey[KEY_SIZE];
+		uint8_t headerkey[KEY_SIZE];
+		uint8_t chainkey[KEY_SIZE];
 
-		unsigned int oldgeneration;
-		unsigned char oldchainkey[KEY_SIZE];
+		uint32_t oldgeneration;
+		uint8_t oldchainkey[KEY_SIZE];
 	} _mr_chain_state;
 
 	typedef struct _mr_ratchet_state {
-		unsigned int num;
+		uint32_t num;
 		mr_ecdh_ctx ecdhkey;
-		unsigned char nextrootkey[KEY_SIZE];
+		uint8_t nextrootkey[KEY_SIZE];
 		_mr_chain_state sendingchain;
 		_mr_chain_state receivingchain;
 	} _mr_ratchet_state;
@@ -84,72 +84,72 @@ extern "C" {
 
 	typedef struct _mr_aesctr_ctx {
 		mr_aes_ctx aes_ctx;
-		unsigned char ctr[16];
+		uint8_t ctr[16];
 	} _mr_aesctr_ctx;
 
 
 	// AES KDF
-	int kdf_compute(mr_ctx mr_ctx, const unsigned char* key, unsigned int keylen, const unsigned char* info, unsigned int infolen, unsigned char* output, unsigned int spaceavail);
+	int kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t spaceavail);
 
 	// AES CTR
-	int aesctr_init(_mr_aesctr_ctx * ctx, mr_aes_ctx aes, const unsigned char* iv, unsigned int ivsize);
-	int aesctr_process(_mr_aesctr_ctx * ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail);
+	int aesctr_init(_mr_aesctr_ctx * ctx, mr_aes_ctx aes, const uint8_t* iv, uint32_t ivsize);
+	int aesctr_process(_mr_aesctr_ctx * ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
 
 	// some bit movings
-	void be_pack64(long long value, unsigned char* target);
-	void be_pack32(int value, unsigned char* target);
-	void be_pack16(short value, unsigned char* target);
-	void le_pack64(long long value, unsigned char* target);
-	void le_pack32(int value, unsigned char* target);
-	void le_pack16(short value, unsigned char* target);
-	long long be_unpack64(const unsigned char* d);
-	int be_unpack32(const unsigned char* d);
-	short be_unpack16(const unsigned char* d);
-	long long le_unpack64(const unsigned char* d);
-	int le_unpack32(const unsigned char* d);
-	short le_unpack16(const unsigned char* d);
+	void be_pack64(long long value, uint8_t* target);
+	void be_pack32(int value, uint8_t* target);
+	void be_pack16(short value, uint8_t* target);
+	void le_pack64(long long value, uint8_t* target);
+	void le_pack32(int value, uint8_t* target);
+	void le_pack16(short value, uint8_t* target);
+	long long be_unpack64(const uint8_t* d);
+	int be_unpack32(const uint8_t* d);
+	short be_unpack16(const uint8_t* d);
+	long long le_unpack64(const uint8_t* d);
+	int le_unpack32(const uint8_t* d);
+	short le_unpack16(const uint8_t* d);
 
 	// ratchetings
-	int ratchet_getorder(mr_ctx mr_ctx, int* indexes, unsigned int numindexes);
+	int ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes);
 	int ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	int ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	int ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	int ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		mr_ecdh_ctx previouskeypair,
-		unsigned char* rootkey, unsigned int rootkeysize,
-		unsigned char* remotepubickey, unsigned int remotepubickeysize,
+		uint8_t* rootkey, uint32_t rootkeysize,
+		uint8_t* remotepubickey, uint32_t remotepubickeysize,
 		mr_ecdh_ctx keypair,
-		unsigned char* receiveheaderkey, unsigned int receiveheaderkeysize,
-		unsigned char* sendheaderkey, unsigned int sendheaderkeysize);
+		uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
+		uint8_t* sendheaderkey, uint32_t sendheaderkeysize);
 	int ratchet_initialize_client(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet1,
 		_mr_ratchet_state* ratchet2,
-		unsigned char* rootkey, unsigned int rootkeysize,
-		unsigned char* remotepubickey0, unsigned int remotepubickey0size,
-		unsigned char* remotepubickey1, unsigned int remotepubickey1size,
+		uint8_t* rootkey, uint32_t rootkeysize,
+		uint8_t* remotepubickey0, uint32_t remotepubickey0size,
+		uint8_t* remotepubickey1, uint32_t remotepubickey1size,
 		mr_ecdh_ctx keypair,
-		unsigned char* receiveheaderkey, unsigned int receiveheaderkeysize,
-		unsigned char* sendheaderkey, unsigned int sendheaderkeysize,
+		uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
+		uint8_t* sendheaderkey, uint32_t sendheaderkeysize,
 		mr_ecdh_ctx nextkeypair);
 	int ratchet_initialize(
 		mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
-		unsigned int num,
+		uint32_t num,
 		mr_ecdh_ctx ecdhkey,
-		unsigned char* nextrootkey, unsigned int nextrootkeysize,
-		unsigned int receivinggeneration,
-		unsigned char* receivingheaderkey, unsigned int receivingheaderkeysize,
-		unsigned char* receivingnextheaderkey, unsigned int receivingnextheaderkeysize,
-		unsigned char* receivingchainkey, unsigned int receivingchainkeysize,
-		unsigned int sendinggeneration,
-		unsigned char* sendingheaderkey, unsigned int sendingheaderkeysize,
-		unsigned char* sendingnextheaderkey, unsigned int sendingnextheaderkeysize,
-		unsigned char* sendingchainkey, unsigned int sendingchainkeysize);
-	int ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, unsigned char* remotepublickey, unsigned int remotepublickeysize, mr_ecdh_ctx keypair);
-	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const unsigned char* headerkey, unsigned int headerkeysize, const unsigned char* chainkey, unsigned int chainkeysize, const unsigned char* nextheaderkey, unsigned int nextheaderkeysize);
-	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, unsigned char* key, unsigned int keysize, unsigned int* generation);
-	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, unsigned int generation, unsigned char* key, unsigned int keysize);
+		uint8_t* nextrootkey, uint32_t nextrootkeysize,
+		uint32_t receivinggeneration,
+		uint8_t* receivingheaderkey, uint32_t receivingheaderkeysize,
+		uint8_t* receivingnextheaderkey, uint32_t receivingnextheaderkeysize,
+		uint8_t* receivingchainkey, uint32_t receivingchainkeysize,
+		uint32_t sendinggeneration,
+		uint8_t* sendingheaderkey, uint32_t sendingheaderkeysize,
+		uint8_t* sendingnextheaderkey, uint32_t sendingnextheaderkeysize,
+		uint8_t* sendingchainkey, uint32_t sendingchainkeysize);
+	int ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair);
+	int chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* headerkey, uint32_t headerkeysize, const uint8_t* chainkey, uint32_t chainkeysize, const uint8_t* nextheaderkey, uint32_t nextheaderkeysize);
+	int chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
+	int chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
 #ifdef __cplusplus
 }

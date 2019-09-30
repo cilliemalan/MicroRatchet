@@ -3,7 +3,7 @@
 #include "internal.h"
 
 
-int aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const unsigned char *iv, unsigned int ivsize)
+mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, uint32_t ivsize)
 {
 	if (!iv || !ctx || !aes) return E_INVALIDARGUMENT;
 
@@ -17,16 +17,16 @@ int aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const unsigned char *iv, un
 	return E_SUCCESS;
 }
 
-int aesctr_process(_mr_aesctr_ctx *ctx, const unsigned char* data, unsigned int amount, unsigned char* output, unsigned int spaceavail)
+mr_result_t aesctr_process(_mr_aesctr_ctx *ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
 {
 	if (!data || !ctx || !output) return E_INVALIDARGUMENT;
 	if (amount == 0) return E_SUCCESS;
 	if (spaceavail < amount) return E_INVALIDARGUMENT;
 
-	unsigned char *ctr = ctx->ctr;
-	unsigned char ctrout[16];
+	uint8_t *ctr = ctx->ctr;
+	uint8_t ctrout[16];
 
-	unsigned int i = 0;
+	uint32_t i = 0;
 	while (i < amount)
 	{
 		_C(mr_aes_process(ctx->aes_ctx, ctr, 16, ctrout, 16));
