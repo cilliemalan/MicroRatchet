@@ -64,6 +64,7 @@ namespace MicroRatchet.Tests
             Assert.Null(ecdhsteps[0].NextRootKey);
             Assert.Null(ecdhsteps[0].ReceiveHeaderKey);
             Assert.Null(ecdhsteps[0].ReceivingChain.ChainKey);
+            Assert.NotNull(ecdhsteps[0].SendHeaderKey);
             Assert.NotNull(ecdhsteps[0].SendingChain.ChainKey);
             Assert.Equal(0, ecdhsteps[0].SendingChain.Generation);
 
