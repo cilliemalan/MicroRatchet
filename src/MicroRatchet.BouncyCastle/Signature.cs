@@ -27,7 +27,7 @@ namespace MicroRatchet.BouncyCastle
             domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
         }
 
-
+        private readonly SecureRandom _random;
         private BigInteger _key;
         private IVerifier _verifier;
 
@@ -37,17 +37,27 @@ namespace MicroRatchet.BouncyCastle
 
         public int PublicKeySize => 32;
 
-        public Signature(ArraySegment<byte> key)
+        public Signature(ArraySegment<byte> key) : this(key, null) { }
+
+        public Signature(ArraySegment<byte> key, SecureRandom random)
         {
             PublicKey = KeyGeneration.GetPublicKeyFromPrivateKey(key);
             _verifier = new Verifier(new ArraySegment<byte>(PublicKey));
             _key = new BigInteger(key.Array, key.Offset, key.Count);
+            _random = random;
         }
 
         public byte[] Sign(ArraySegment<byte> data)
         {
             ECDsaSigner signer = new ECDsaSigner();
-            signer.Init(true, new ECPrivateKeyParameters(_key, domainParms));
+            if (_random == null)
+            {
+                signer.Init(true, new ECPrivateKeyParameters(_key, domainParms));
+            }
+            else
+            {
+                signer.Init(true, new ParametersWithRandom(new ECPrivateKeyParameters(_key, domainParms), _random));
+            }
             byte[] hash = data.ToArray();
             var sig = signer.GenerateSignature(hash);
             var r = sig[0];
