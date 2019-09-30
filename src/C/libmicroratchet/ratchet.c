@@ -135,25 +135,29 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	memset(ratchet, 0, sizeof(_mr_ratchet_state));
 	ratchet->ecdhkey = keypair;
 	ratchet->num = 1;
+	if (receiveheaderkey) memcpy(ratchet->receiveheaderkey, receiveheaderkey, KEY_SIZE);
+	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
+	if (sendheaderkey) memcpy(ratchet->sendheaderkey, sendheaderkey, KEY_SIZE);
+	else memset(ratchet->sendheaderkey, 0, KEY_SIZE);
 
 	uint8_t tmp[KEY_SIZE * 3];
 
 	// receiving chain
 	_C(mr_ecdh_derivekey(previouskeypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
-	mr_sha_init(ctx->sha_ctx);
-	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
-	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
-	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
+	_C(mr_sha_init(ctx->sha_ctx));
+	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
+	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
 	rootkey = tmp;
 	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, tmp + KEY_SIZE, KEY_SIZE));
 	memcpy(ratchet->nextreceiveheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
 
 	// sending chain
 	_C(mr_ecdh_derivekey(keypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
-	mr_sha_init(ctx->sha_ctx);
-	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
-	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
-	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
+	_C(mr_sha_init(ctx->sha_ctx));
+	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
+	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
 	rootkey = tmp;
 	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
 	memcpy(ratchet->nextsendheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
@@ -191,10 +195,10 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 
 	// sending chain
 	_C(mr_ecdh_derivekey(keypair, remotepubickey0, remotepubickey0size, tmp, KEY_SIZE));
-	mr_sha_init(ctx->sha_ctx);
-	mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE);
-	mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp));
-	_C(kdf_compute(mr_ctx, tmp, sizeof(tmp), rootkey, rootkeysize, tmp, sizeof(tmp)));
+	_C(mr_sha_init(ctx->sha_ctx));
+	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
+	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
 	rootkey = tmp;
 	_C(chain_initialize(mr_ctx, &ratchet1->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
 
