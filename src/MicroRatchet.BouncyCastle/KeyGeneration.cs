@@ -29,16 +29,17 @@ namespace MicroRatchet.BouncyCastle
             domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
         }
 
-        public static byte[] GeneratePrivateKey()
+        public static byte[] GeneratePrivateKey(SecureRandom random = null)
         {
+            if (random == null) random = new SecureRandom();
+
             // generates a private key that will always
-            // have 32 bits of info and have an even
+            // have 32 bits of info and have a a positive
             // public key Y coordinate
 
             BigInteger n = domainParms.N;
             BigInteger d;
             int minWeight = n.BitLength / 4;
-            var random = new SecureRandom();
 
             for (; ; )
             {
@@ -72,6 +73,7 @@ namespace MicroRatchet.BouncyCastle
             if (priv == null) throw new ObjectDisposedException(nameof(KeyAgreement));
             ECPoint q = new FixedPointCombMultiplier().Multiply(domainParms.G, priv.D).Normalize();
             var bytes = q.GetEncoded(true);
+            System.Diagnostics.Debug.Assert(bytes[0] == 2, "All EC points must be even");
             var trimmed = new byte[32];
             Array.Copy(bytes, 1, trimmed, 0, 32);
             return trimmed;
