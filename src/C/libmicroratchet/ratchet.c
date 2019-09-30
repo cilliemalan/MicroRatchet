@@ -211,7 +211,7 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 		nextkeypair,
 		receiveheaderkey, receiveheaderkeysize,
 		tmp + KEY_SIZE * 2, KEY_SIZE));
-	ratchet1->num = 2;
+	ratchet2->num = 2;
 
 	return E_SUCCESS;
 }
