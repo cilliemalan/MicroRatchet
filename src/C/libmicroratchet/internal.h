@@ -150,6 +150,20 @@ extern "C" {
 	mr_result_t chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
 	mr_result_t chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
+
+
+
+
+
+#ifdef DEBUG
+	void _mrlog(const char* msg, const uint8_t* data, uint32_t amt);
+#define LOG(msg, data, amt) _mrlog(msg, data, amt)
+#else
+#define LOG(msg, data, amt)
+#endif
+
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -44,5 +44,8 @@
     <ClCompile Include="ratchet.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="internal.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

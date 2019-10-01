@@ -286,6 +286,7 @@
     <ClCompile Include="aesctr.c" />
     <ClCompile Include="bitconverter.c" />
     <ClCompile Include="client.c" />
+    <ClCompile Include="internal.c" />
     <ClCompile Include="kdf.c" />
     <ClCompile Include="pch.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
