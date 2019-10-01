@@ -19,7 +19,7 @@ TEST(Ecdh, Generate) {
 
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
-	int result = mr_ecdh_generate(ecdh, pubkey, SIZEOF(pubkey));
+	auto result = mr_ecdh_generate(ecdh, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	bool allcc = true;
@@ -149,7 +149,7 @@ void  TestReference(const uint8_t* privatekey, uint32_t privatekeysize, const ui
 {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
-	int r = mr_ecdsa_setprivatekey(ecdh, privatekey, privatekeysize);
+	int r = mr_ecdh_setprivatekey(ecdh, privatekey, privatekeysize);
 	EXPECT_EQ(E_SUCCESS, r);
 
 	uint8_t derived[32];

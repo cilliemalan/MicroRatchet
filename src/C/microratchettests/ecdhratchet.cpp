@@ -368,8 +368,8 @@ void _ServerInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(skey1, _skey1, KEY_SIZE);
-	mr_ecdsa_setprivatekey(skey2, _skey2, KEY_SIZE);
+	mr_ecdh_setprivatekey(skey1, _skey1, KEY_SIZE);
+	mr_ecdh_setprivatekey(skey2, _skey2, KEY_SIZE);
 	_mr_ratchet_state ecdhstep;
 
 	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &ecdhstep,
@@ -431,8 +431,8 @@ void _ClientInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto ckey1 = mr_ecdh_create(mr_ctx);
 	auto ckey2 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(ckey1, _ckey1, KEY_SIZE);
-	mr_ecdsa_setprivatekey(ckey2, _ckey2, KEY_SIZE);
+	mr_ecdh_setprivatekey(ckey1, _ckey1, KEY_SIZE);
+	mr_ecdh_setprivatekey(ckey2, _ckey2, KEY_SIZE);
 	_mr_ratchet_state ecdhstep1;
 	_mr_ratchet_state ecdhstep2;
 
@@ -500,7 +500,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto key = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(key, _key, KEY_SIZE);
+	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 
 	_mr_ratchet_state step0;
 	EXPECT_EQ(E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
@@ -578,9 +578,9 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto key = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(key, _key, KEY_SIZE);
+	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 	auto nkey = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(nkey, _nkey, KEY_SIZE);
+	mr_ecdh_setprivatekey(nkey, _nkey, KEY_SIZE);
 
 	_mr_ratchet_state step0;
 	EXPECT_EQ(E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
@@ -661,13 +661,13 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 {
 	auto mr_ctx = mrclient_create(&_cfg);
 	auto skey1 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(skey1, _skey1, KEY_SIZE);
+	mr_ecdh_setprivatekey(skey1, _skey1, KEY_SIZE);
 	auto skey2 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(skey2, _skey2, KEY_SIZE);
+	mr_ecdh_setprivatekey(skey2, _skey2, KEY_SIZE);
 	auto ckey1 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(ckey1, _ckey1, KEY_SIZE);
+	mr_ecdh_setprivatekey(ckey1, _ckey1, KEY_SIZE);
 	auto ckey2 = mr_ecdh_create(mr_ctx);
-	mr_ecdsa_setprivatekey(ckey2, _ckey2, KEY_SIZE);
+	mr_ecdh_setprivatekey(ckey2, _ckey2, KEY_SIZE);
 	uint8_t spub1[KEY_SIZE];
 	uint8_t spub2[KEY_SIZE];
 	uint8_t cpub1[KEY_SIZE];
