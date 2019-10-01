@@ -132,6 +132,12 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	if (sendheaderkey && sendheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
+	LOG("--Initialize ECDH Ratchet");
+	LOGD("Root Key:           ", rootkey, KEY_SIZE);
+	LOGD("Receive Header Key: ", receiveheaderkey, KEY_SIZE);
+	LOGD("Send Header Key:    ", sendheaderkey, KEY_SIZE);
+	LOGD("ECDH Public:        ", remotepubickey, KEY_SIZE);
+
 	memset(ratchet, 0, sizeof(_mr_ratchet_state));
 	ratchet->ecdhkey = keypair;
 	ratchet->num = 1;
@@ -141,23 +147,36 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	else memset(ratchet->sendheaderkey, 0, KEY_SIZE);
 
 	uint8_t tmp[KEY_SIZE * 3];
+	uint8_t tmp_root[KEY_SIZE];
 
 	// receiving chain
+	LOG("--Receiving Chain");
 	_C(mr_ecdh_derivekey(previouskeypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
 	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
-	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
-	rootkey = tmp;
+	LOGD("  C Input Key:      ", rootkey, KEY_SIZE);
+	LOGD("  C Key Info:       ", tmp, KEY_SIZE);
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, KEY_SIZE, tmp, sizeof(tmp)));
+	LOGD("  C Key Out 0 rk:   ", tmp, KEY_SIZE);
+	LOGD("  C Key Out 1 rck:  ", tmp + KEY_SIZE, KEY_SIZE);
+	LOGD("  C Key Out 2 nrhk: ", tmp + KEY_SIZE * 2, KEY_SIZE);
+	memcpy(tmp_root, tmp, KEY_SIZE);
 	_C(chain_initialize(mr_ctx, &ratchet->receivingchain, tmp + KEY_SIZE, KEY_SIZE));
 	memcpy(ratchet->nextreceiveheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
 
 	// sending chain
+	LOG("--Sending Chain");
 	_C(mr_ecdh_derivekey(keypair, remotepubickey, remotepubickeysize, tmp, KEY_SIZE));
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
 	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
-	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
+	LOGD("  C Input Key:      ", tmp_root, KEY_SIZE);
+	LOGD("  C Key Info:       ", tmp, KEY_SIZE);
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, tmp_root, KEY_SIZE, tmp, sizeof(tmp)));
+	LOGD("  C Key Out 0 nrk:  ", tmp, KEY_SIZE);
+	LOGD("  C Key Out 1 sck:  ", tmp + KEY_SIZE, KEY_SIZE);
+	LOGD("  C Key Out 2 nshk: ", tmp + KEY_SIZE * 2, KEY_SIZE);
 	rootkey = tmp;
 	_C(chain_initialize(mr_ctx, &ratchet->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
 	memcpy(ratchet->nextsendheaderkey, tmp + KEY_SIZE * 2, KEY_SIZE);
@@ -186,6 +205,13 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 	if (receiveheaderkeysize != KEY_SIZE || sendheaderkeysize != KEY_SIZE) return E_INVALIDSIZE;
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
+	LOG("--Initialize ECDH Ratchet CLIENT");
+	LOGD("Root Key:           ", rootkey, KEY_SIZE);
+	LOGD("Receive Header Key: ", receiveheaderkey, KEY_SIZE);
+	LOGD("Send Header Key:    ", sendheaderkey, KEY_SIZE);
+	LOGD("ECDH Public 0:      ", remotepubickey0, KEY_SIZE);
+	LOGD("ECDH Public 1:      ", remotepubickey1, KEY_SIZE);
+
 	memset(ratchet1, 0, sizeof(_mr_ratchet_state));
 	memset(ratchet2, 0, sizeof(_mr_ratchet_state));
 	ratchet1->ecdhkey = keypair;
@@ -194,22 +220,31 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 
 	uint8_t tmp[KEY_SIZE * 3];
 
+	// no receiving chain
+	LOG("--NO Receiving Chain");
+
 	// sending chain
+	LOG("--Sending Chain");
 	_C(mr_ecdh_derivekey(keypair, remotepubickey0, remotepubickey0size, tmp, KEY_SIZE));
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, tmp, KEY_SIZE));
 	_C(mr_sha_compute(ctx->sha_ctx, tmp, sizeof(tmp)));
-	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, rootkeysize, tmp, sizeof(tmp)));
+	LOGD("  C Input Key:      ", rootkey, KEY_SIZE);
+	LOGD("  C Key Info:       ", tmp, KEY_SIZE);
+	_C(kdf_compute(mr_ctx, tmp, KEY_SIZE, rootkey, KEY_SIZE, tmp, sizeof(tmp)));
+	LOGD("  C Key Out 0 nrk:  ", tmp, KEY_SIZE);
+	LOGD("  C Key Out 1 sck:  ", tmp + KEY_SIZE, KEY_SIZE);
+	LOGD("  C Key Out 2 nshk: ", tmp + KEY_SIZE * 2, KEY_SIZE);
 	rootkey = tmp;
 	_C(chain_initialize(mr_ctx, &ratchet1->sendingchain, tmp + KEY_SIZE, KEY_SIZE));
 
 	_C(ratchet_initialize_server(mr_ctx,
 		ratchet2,
 		keypair,
-		rootkey, rootkeysize,
-		remotepubickey1, remotepubickey1size,
+		rootkey, KEY_SIZE,
+		remotepubickey1, KEY_SIZE,
 		nextkeypair,
-		receiveheaderkey, receiveheaderkeysize,
+		receiveheaderkey, KEY_SIZE,
 		tmp + KEY_SIZE * 2, KEY_SIZE));
 	ratchet2->num = 2;
 
