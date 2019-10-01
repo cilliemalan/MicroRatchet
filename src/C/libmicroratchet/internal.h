@@ -7,13 +7,18 @@
 #define DEBUG
 #endif
 
+#if defined(_MSC_VER)
+#define STATIC_ASSERT(e, r) static_assert(e, r)
+#elif defined(__GNUC__)
+#define STATICASSERT(e,r) _Static_assert(e, r)
+#else
+#define STATICASSERT(e, r)
+#endif
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define STATICASSERT(ex,msg) static_assert(ex,msg)
 
 #define KEY_SIZE 32
 #define MSG_KEY_SIZE 16
