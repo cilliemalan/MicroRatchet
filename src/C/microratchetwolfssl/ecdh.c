@@ -72,6 +72,28 @@ mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 	return E_SUCCESS;
 }
 
+
+mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uint32_t privatekeysize)
+{
+	_mr_ecdh_ctx* ctx = _ctx;
+	if (privatekeysize < 32) return E_INVALIDSIZE;
+	if (!privatekey || !ctx) return E_INVALIDARGUMENT;
+
+	ecc_key* key = &ctx->key;
+	int result = ecc_load(key, privatekey, privatekeysize);
+	if (result != 0) return result;
+	return E_SUCCESS;
+}
+
+mr_result_t mr_ecdh_getpublickey(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
+{
+	_mr_ecdh_ctx* ctx = _ctx;
+	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
+	if (!publickey || !ctx) return E_INVALIDARGUMENT;
+
+	return ecc_getpublickey(&ctx->key, publickey, publickeyspaceavail);
+}
+
 void mr_ecdh_destroy(mr_ecdh_ctx ctx)
 {
 	if (ctx)

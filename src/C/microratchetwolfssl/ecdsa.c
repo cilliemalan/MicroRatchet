@@ -32,6 +32,15 @@ mr_result_t mr_ecdsa_setprivatekey(mr_ecdsa_ctx _ctx, const uint8_t* privatekey,
 	return E_SUCCESS;
 }
 
+mr_result_t mr_ecdsa_getpublickey(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
+{
+	_mr_ecdsa_ctx* ctx = _ctx;
+	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
+	if (!publickey || !ctx) return E_INVALIDARGUMENT;
+
+	return ecc_getpublickey(&ctx->key, publickey, publickeyspaceavail);
+}
+
 mr_result_t mr_ecdsa_generate(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;

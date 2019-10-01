@@ -67,6 +67,8 @@ extern "C" {
 	mr_result_t mr_ecdh_derivekey(mr_ecdh_ctx ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail);
 	uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
 	mr_result_t mr_ecdh_store(mr_ecdh_ctx ctx, uint8_t* data, uint32_t spaceavail);
+	mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx ctx, const uint8_t* privatekey, uint32_t privatekeysize);
+	mr_result_t mr_ecdh_getpublickey(mr_ecdh_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
 	void mr_ecdh_destroy(mr_ecdh_ctx ctx);
 
 
@@ -74,6 +76,7 @@ extern "C" {
 
 	mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx);
 	mr_result_t mr_ecdsa_setprivatekey(mr_ecdsa_ctx ctx, const uint8_t* privatekey, uint32_t privatekeysize);
+	mr_result_t mr_ecdsa_getpublickey(mr_ecdsa_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
 	mr_result_t mr_ecdsa_generate(mr_ecdsa_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
 	mr_result_t mr_ecdsa_load(mr_ecdsa_ctx ctx, uint8_t* data, uint32_t spaceavail);
 	mr_result_t mr_ecdsa_sign(mr_ecdsa_ctx ctx, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail);
