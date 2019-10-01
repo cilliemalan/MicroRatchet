@@ -176,3 +176,27 @@ mr_result_t ecc_verify(const ecc_key *key, const uint8_t* signature, uint32_t si
 
 	return E_SUCCESS;
 }
+
+mr_result_t ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)
+{
+	if (!key || !publickey) return E_INVALIDARGUMENT;
+	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
+	int result = 0;
+
+	if (key->type == ECC_PRIVATEKEY_ONLY)
+	{
+		// we mutate but pointer is opaque
+		result = wc_ecc_make_pub(key, &key->pubkey);
+		key->type = ECC_PRIVATEKEY;
+	}
+	else if (key->type == ECC_PUBLICKEY)
+	{
+		return E_INVALIDARGUMENT;
+	}
+
+	uint32_t pubkeylen = (uint32_t)mp_unsigned_bin_size(key->pubkey.x);
+	result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
+	if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
+	if (result != 0) return E_INVALIDOP;
+	return E_SUCCESS;
+}
