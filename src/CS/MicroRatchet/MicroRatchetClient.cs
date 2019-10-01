@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MicroRatchet
 {
-    public class MicroRatchetClient
+    public sealed class MicroRatchetClient
     {
         public const int InitializationNonceSize = 16;
         public const int NonceSize = 4;
@@ -671,7 +671,7 @@ namespace MicroRatchet
             return decryptedInnerPayload;
         }
 
-        private byte[] ProcessInitializationInternal(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
+        private byte[] ProcessInitialization(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
         {
             byte[] sendback;
             if (Configuration.IsClient)
@@ -729,56 +729,12 @@ namespace MicroRatchet
                 }
             }
 
+            if (sendback != null && sendback.Length > Configuration.MaximumMessageSize)
+            {
+                throw new InvalidOperationException("The MTU is too small");
+            }
+
             return sendback;
-        }
-
-        private byte[] ProcessInitialization(State state, byte[] dataReceived, byte[] headerKeyUsed, EcdhRatchetStep ecdhRatchetStep, bool usedApplicationHeaderKey)
-        {
-            var sendback = ProcessInitializationInternal(state, dataReceived, headerKeyUsed, ecdhRatchetStep, usedApplicationHeaderKey);
-
-            if (sendback != null)
-            {
-                if (sendback.Length > Configuration.MaximumMessageSize)
-                {
-                    throw new InvalidOperationException("The MTU is too small");
-                }
-                else
-                {
-                    return sendback;
-                }
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        private byte[] SendSingle(State state, ArraySegment<byte> payload)
-        {
-            var canIncludeEcdh = payload.Count <= Configuration.MaximumMessageSize - 48;
-            EcdhRatchetStep step;
-            if (canIncludeEcdh)
-            {
-                step = state.Ratchets.Last;
-            }
-            else
-            {
-                step = state.Ratchets.SecondToLast;
-            }
-
-            return ConstructMessage(payload, canIncludeEcdh, step);
-        }
-
-        private byte[] SendInternal(ArraySegment<byte> payload, State state)
-        {
-            if (payload.Count <= MaximumMessageSize)
-            {
-                return SendSingle(state, payload);
-            }
-            else
-            {
-                throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
-            }
         }
 
         private State LoadState()
@@ -817,14 +773,17 @@ namespace MicroRatchet
             return ProcessInitialization(state, null, null, null, false);
         }
 
-        private ReceiveResult ReceiveInternal(byte[] data)
+        public ReceiveResult Receive(byte[] data)
         {
+            Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
+
             State state = LoadState();
 
             // check the MAC and get info regarding the message header
             var (headerKeyUsed, ratchetUsed, usedNextHeaderKey, usedApplicationKey) = InterpretMessageMAC(state, data);
 
             // if the application key was used this is an initialization message
+            ReceiveResult result;
             if (usedApplicationKey || !IsInitialized)
             {
                 if (state == null)
@@ -832,10 +791,9 @@ namespace MicroRatchet
                     state = InitializeState();
                 }
 
-                var toSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey);
-                return new ReceiveResult
+                result = new ReceiveResult
                 {
-                    ToSendBack = toSendBack
+                    ToSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey)
                 };
             }
             else
@@ -845,17 +803,12 @@ namespace MicroRatchet
                     throw new InvalidOperationException("Could not decrypt incoming message");
                 }
 
-                return new ReceiveResult
+                result = new ReceiveResult
                 {
                     Payload = DeconstructMessage(state, data, headerKeyUsed, ratchetUsed, usedNextHeaderKey)
                 };
             }
-        }
 
-        public ReceiveResult Receive(byte[] data)
-        {
-            Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
-            ReceiveResult result = ReceiveInternal(data);
             Log.Verbose($"/###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
             return result;
         }
@@ -863,15 +816,35 @@ namespace MicroRatchet
         public byte[] Send(ArraySegment<byte> payload)
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
+
             State state = LoadState();
             if (!state.IsInitialized)
             {
                 throw new InvalidOperationException("The client has not been initialized.");
             }
 
-            var response = SendInternal(payload, state);
-            Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
-            return response;
+            if (payload.Count <= MaximumMessageSize)
+            {
+                var canIncludeEcdh = payload.Count <= Configuration.MaximumMessageSize - 48;
+                EcdhRatchetStep step;
+                if (canIncludeEcdh)
+                {
+                    step = state.Ratchets.Last;
+                }
+                else
+                {
+                    step = state.Ratchets.SecondToLast;
+                }
+
+                var response = ConstructMessage(payload, canIncludeEcdh, step);
+
+                Log.Verbose($"###/{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
+                return response;
+            }
+            else
+            {
+                throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
+            }
         }
 
         public void SaveState()
