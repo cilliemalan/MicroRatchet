@@ -31,8 +31,8 @@ namespace MicroRatchet.Performance
             Thread.Sleep(1000);
             {
                 var poly = new Poly(defaultServices.AesFactory);
-                poly.Init(new ArraySegment<byte>(keys, 0, 32), new ArraySegment<byte>(blocks, 0, 16), 128);
-                poly.Init(new ArraySegment<byte>(keys, 1000, 32), new ArraySegment<byte>(blocks, 1000, 16), 128);
+                poly.Init(new ArraySegment<byte>(keys, 0, 32), new ArraySegment<byte>(blocks, 0, 16), 16);
+                poly.Init(new ArraySegment<byte>(keys, 1000, 32), new ArraySegment<byte>(blocks, 1000, 16), 16);
                 Console.WriteLine("Doing Pol1305 MACs");
                 sw.Reset();
                 sw.Start();
