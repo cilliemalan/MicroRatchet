@@ -156,6 +156,7 @@ extern "C" {
 
 
 #ifdef DEBUG
+#include <stdio.h>
 void _mrlog(const char* msg, const uint8_t* data, uint32_t amt);
 #define LOG(msg) printf("%s\n", msg)
 #define LOGD(msg, data, amt) _mrlog(msg, data, amt)

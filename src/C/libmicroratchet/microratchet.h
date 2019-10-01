@@ -94,7 +94,7 @@ extern "C" {
 	void mr_rng_destroy(mr_rng_ctx ctx);
 
 
-	///// Storage
+	///// Memory
 
 	// allocate some memory (i.e. malloc).
 	mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer);
@@ -103,6 +103,7 @@ extern "C" {
 	void mr_free(mr_ctx ctx, void* pointer);
 
 
+	///// Storage
 
 	// these functions and structures are the public interface for MicroRatchet
 
@@ -114,13 +115,19 @@ extern "C" {
 	} mr_config;
 
 
+
+
+
 	// implementation functions
 
 	// create a new MicroRatchet client with the provided configuration. the client will hold a reference to the configuration.
 	mr_ctx mrclient_create(mr_config* config);
-	int mrclient_initiate_initialization(mr_ctx ctx, int force);
-	int mrclient_receive_data(mr_ctx ctx, const uint8_t* data, uint32_t datasize, uint8_t* output, uint32_t spaceAvail);
-	int mrclient_send_data(mr_ctx ctx, const uint8_t* data, uint32_t datasize, int mustPad);
+	mr_result_t mrclient_initiate_initialization(mr_ctx ctx, bool force, const uint8_t* message, uint32_t spaceavailable);
+	mr_result_t mrclient_receive(mr_ctx ctx, const uint8_t* message, uint32_t messagesize, uint8_t* data, uint32_t spaceAvail);
+	mr_result_t mrclient_send_data(mr_ctx ctx, const uint8_t* payload, uint32_t payloadsize, const uint8_t* message, uint32_t spaceavailable);
+	uint32_t mrclient_state_size_needed(mr_ctx ctx);
+	mr_result_t mrclient_state_store(mr_ctx ctx, uint8_t* destination, uint32_t spaceavailable);
+	mr_result_t mrclient_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount);
 	void mrclient_destroy(mr_ctx ctx);
 
 
