@@ -119,7 +119,7 @@ mr_result_t ecc_store_size_needed(const mp_int* key)
 
 mr_result_t ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 {
-	if (!key || !data) return E_INVALIDARG;
+	if (!key || !data) return E_INVALIDARGUMENT;
 	if (spaceavail < 32) return E_INVALIDSIZE;
 
 	int len = mp_unsigned_bin_size((mp_int*)&key->k);
@@ -131,7 +131,7 @@ mr_result_t ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 
 mr_result_t ecc_sign(const ecc_key *key, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail)
 {
-	if (!key || !digest || !signature) return E_INVALIDARG;
+	if (!key || !digest || !signature) return E_INVALIDARGUMENT;
 	if (signaturespaceavail < 64) return E_INVALIDSIZE;
 
 	WC_RNG rng;
@@ -159,7 +159,7 @@ mr_result_t ecc_sign(const ecc_key *key, const uint8_t* digest, uint32_t digests
 
 mr_result_t ecc_verify(const ecc_key *key, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result)
 {
-	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARG;
+	if (!key || !digest || !signature || !signaturesize) return E_INVALIDARGUMENT;
 	if (signaturesize != 64) return E_INVALIDSIZE;
 
 	mp_int r, s;
