@@ -336,7 +336,7 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 {
 	_mr_chain_state chain{};
 	
-	auto r = chain_initialize(ctx, &chain, chainkey, chainkeysize);
+	auto r = chain_initialize(ctx, &chain, chainkey, (uint32_t)chainkeysize);
 	ASSERT_EQ(r, E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
