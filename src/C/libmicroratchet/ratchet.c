@@ -119,11 +119,11 @@ mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	_mr_ratchet_state * ratchet,
 	mr_ecdh_ctx previouskeypair,
-	uint8_t* rootkey, uint32_t rootkeysize,
-	uint8_t* remotepubickey, uint32_t remotepubickeysize,
+	const uint8_t* rootkey, uint32_t rootkeysize,
+	const uint8_t* remotepubickey, uint32_t remotepubickeysize,
 	mr_ecdh_ctx keypair,
-	uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
-	uint8_t* sendheaderkey, uint32_t sendheaderkeysize)
+	const uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
+	const uint8_t* sendheaderkey, uint32_t sendheaderkeysize)
 {
 	if (!mr_ctx || !ratchet || !previouskeypair || !keypair) return E_INVALIDARGUMENT;
 	if (!rootkey || !remotepubickey) return E_INVALIDARGUMENT;
@@ -190,12 +190,12 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 	_mr_ratchet_state * ratchet1,
 	_mr_ratchet_state * ratchet2,
-	uint8_t* rootkey, uint32_t rootkeysize,
-	uint8_t* remotepubickey0, uint32_t remotepubickey0size,
-	uint8_t* remotepubickey1, uint32_t remotepubickey1size,
+	const uint8_t* rootkey, uint32_t rootkeysize,
+	const uint8_t* remotepubickey0, uint32_t remotepubickey0size,
+	const uint8_t* remotepubickey1, uint32_t remotepubickey1size,
 	mr_ecdh_ctx keypair,
-	uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
-	uint8_t* sendheaderkey, uint32_t sendheaderkeysize,
+	const uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
+	const uint8_t* sendheaderkey, uint32_t sendheaderkeysize,
 	mr_ecdh_ctx nextkeypair)
 {
 	if (!mr_ctx || !ratchet1 || !ratchet2 || !nextkeypair || !keypair) return E_INVALIDARGUMENT;
@@ -256,15 +256,15 @@ mr_result_t ratchet_initialize(
 	_mr_ratchet_state * ratchet,
 	uint32_t num,
 	mr_ecdh_ctx ecdhkey,
-	uint8_t* nextrootkey, uint32_t nextrootkeysize,
+	const uint8_t* nextrootkey, uint32_t nextrootkeysize,
 	uint32_t receivinggeneration,
-	uint8_t* receivingheaderkey, uint32_t receivingheaderkeysize,
-	uint8_t* receivingnextheaderkey, uint32_t receivingnextheaderkeysize,
-	uint8_t* receivingchainkey, uint32_t receivingchainkeysize,
+	const uint8_t* receivingheaderkey, uint32_t receivingheaderkeysize,
+	const uint8_t* receivingnextheaderkey, uint32_t receivingnextheaderkeysize,
+	const uint8_t* receivingchainkey, uint32_t receivingchainkeysize,
 	uint32_t sendinggeneration,
-	uint8_t* sendingheaderkey, uint32_t sendingheaderkeysize,
-	uint8_t* sendingnextheaderkey, uint32_t sendingnextheaderkeysize,
-	uint8_t* sendingchainkey, uint32_t sendingchainkeysize)
+	const uint8_t* sendingheaderkey, uint32_t sendingheaderkeysize,
+	const uint8_t* sendingnextheaderkey, uint32_t sendingnextheaderkeysize,
+	const uint8_t* sendingchainkey, uint32_t sendingchainkeysize)
 {
 	if (!ratchet || !mr_ctx) return E_INVALIDARGUMENT;
 	if (nextrootkey && nextrootkeysize != KEY_SIZE) return E_INVALIDSIZE;
@@ -295,7 +295,7 @@ mr_result_t ratchet_initialize(
 	return E_SUCCESS;
 }
 
-mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratchet_state * nextratchet, uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair)
+mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratchet_state * nextratchet, const uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair)
 {
 	if (!ratchet || !nextratchet || !remotepublickey || !keypair) return E_INVALIDARGUMENT;
 	if (remotepublickeysize != KEY_SIZE) return E_INVALIDSIZE;
