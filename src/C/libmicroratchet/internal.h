@@ -3,6 +3,9 @@
 #include "microratchet.h"
 
 
+#define HAS_SERVER
+
+
 #if defined(_DEBUG) && !defined(DEBUG)
 #define DEBUG
 #endif
@@ -22,12 +25,14 @@ extern "C" {
 
 #define KEY_SIZE 32
 #define MSG_KEY_SIZE 16
+#define INITIALIZATION_NONCE_SIZE 16
 #define NONCE_SIZE 4
 #define MAC_SIZE 12
 #define ECNUM_SIZE 32
 #define SIGNATURE_SIZE (ECNUM_SIZE+ECNUM_SIZE)
 #define NUM_RATCHETS 5
 #define MIN_MSG_SIZE 16
+#define DIGEST_SIZE 32
 #define MIN_OVERHEAD (NONCE_SIZE + MAC_SIZE)
 #define OVERHEAD_WITH_ECDH (MIN_OVERHEAD + ECNUM_SIZE)
 #define INIT_REQ_MSG_SIZE (NONCE_SIZE + ECNUM_SIZE*2 + SIGNATURE_SIZE)
@@ -39,8 +44,9 @@ extern "C" {
 
 	typedef struct _mr_initialization_state {
 		union {
+#ifdef HAS_SERVER
 			struct server {
-				uint8_t nextinitializationnonce[NONCE_SIZE];
+				uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
 				uint8_t rootkey[KEY_SIZE];
 				uint8_t firstsendheaderkey[KEY_SIZE];
 				uint8_t firstreceiveheaderkey[KEY_SIZE];
@@ -48,8 +54,9 @@ extern "C" {
 				mr_ecdh_ctx localratchetstep1;
 				uint8_t clientpublickey[ECNUM_SIZE];
 			} server;
+#endif
 			struct client {
-				uint8_t initializationnonce[NONCE_SIZE];
+				uint8_t initializationnonce[INITIALIZATION_NONCE_SIZE];
 				mr_ecdh_ctx localecdhforinit;
 			} client;
 		};
@@ -74,9 +81,10 @@ extern "C" {
 		_mr_chain_state receivingchain;
 	} _mr_ratchet_state;
 
-	typedef struct _mr_ctx {
-		mr_config* config;
+	typedef struct s_mr_ctx {
+		mr_config config;
 		mr_sha_ctx sha_ctx;
+		mr_rng_ctx rng_ctx;
 		_mr_initialization_state init;
 		_mr_ratchet_state ratchets[NUM_RATCHETS];
 	} _mr_ctx;
