@@ -220,7 +220,6 @@ namespace MicroRatchet
                 }
             }
 
-            serverState.ClientPublicKey = clientPublicKey.ToArray();
             IVerifier verifier = VerifierFactory.Create(clientPublicKey);
 
             if (!verifier.VerifySignedMessage(Digest, signedMessage))
@@ -228,6 +227,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The signature was invalid");
             }
 
+            serverState.ClientPublicKey = clientPublicKey.ToArray();
             return (initializationNonce, remoteEcdhForInit);
         }
 
@@ -264,11 +264,10 @@ namespace MicroRatchet
 
             var minimumMessageSize = InitializationNonceSize * 2 + EcPntSize * 6 + MacSize;
             var entireMessageSize = Math.Max(Configuration.MinimumMessageSize, minimumMessageSize);
-            var entireMessageWithoutMacSize = entireMessageSize - MacSize;
-            var entireMessageWithoutMacOrSignatureSize = entireMessageWithoutMacSize - SignatureSize;
-            var encryptedPayloadOffset = InitializationNonceSize + EcPntSize;
-            var encryptedPayloadSize = entireMessageWithoutMacSize - encryptedPayloadOffset;
             var macOffset = entireMessageSize - MacSize;
+            var entireMessageWithoutMacOrSignatureSize = macOffset - SignatureSize;
+            var encryptedPayloadOffset = InitializationNonceSize + EcPntSize;
+            var encryptedPayloadSize = macOffset - encryptedPayloadOffset;
 
             // construct the message
             var message = new byte[entireMessageSize];
@@ -322,7 +321,7 @@ namespace MicroRatchet
             var decryptedHeader = cipher.Process(data, 0, headerSize);
             Array.Copy(decryptedHeader, 0, data, 0, headerSize);
 
-            // new nonce(16), ecdh pubkey(32), <nonce(4), server pubkey(32), 
+            // new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
             // new ecdh pubkey(32) x2, signature(64)>, mac(12)
             var nonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
             var rootEcdhKey = new ArraySegment<byte>(data, InitializationNonceSize, EcPntSize);
@@ -492,7 +491,7 @@ namespace MicroRatchet
             }
 
             // encrypt the header using the header key and using the
-            // last MinMessageSize bytes of the message as the nonce.
+            // last 16 bytes of the message as the nonce.
             var headerEncryptionNonce = new ArraySegment<byte>(encryptedPayload, encryptedPayload.Length - HeaderIVSize, HeaderIVSize);
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(step.SendHeaderKey), headerEncryptionNonce);
             var encryptedHeader = hcipher.Process(header);
@@ -654,7 +653,7 @@ namespace MicroRatchet
             }
 
 
-            // get the inner payload key from the server receive chain
+            // get the inner payload key from the receive chain
             if (ratchetUsed == null)
             {
                 throw new InvalidOperationException("An override header key was used but the message did not contain ECDH parameters");
