@@ -19,6 +19,7 @@ extern "C" {
 	typedef enum mr_result_e {
 		E_SUCCESS = 0,
 		E_MORE = 1,
+		E_SENDBACK = 1,
 		E_INVALIDARGUMENT = -1,
 		E_INVALIDSIZE = -2,
 		E_INVALIDOP = -3,
