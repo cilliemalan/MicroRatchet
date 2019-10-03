@@ -3,7 +3,7 @@
 #include <internal.h>
 #include "support.h"
 
-static mr_config _cfg{ 64, 256, 1 };
+static mr_config _cfg{ true };
 
 TEST(AesCtr, Init256) {
 	const uint8_t key[]{

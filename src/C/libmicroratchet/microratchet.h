@@ -104,18 +104,13 @@ extern "C" {
 	void mr_free(mr_ctx ctx, void* pointer);
 
 
-	///// Storage
+
+
 
 	// these functions and structures are the public interface for MicroRatchet
 
 	// main configuration
 	typedef struct t_mr_config {
-
-		// The minimum size a message will be padded to. Must be at least 16 bytes.
-		uint32_t minimum_message_size;
-
-		// The maximum message size. If a message would be created larger than this the call will fail. Must be at least 64 bytes. 
-		uint32_t maximum_message_size;
 
 		// true if this instance is a client. False if this instance is a server. The difference is that only a client can initiate a session.
 		bool is_client;
@@ -124,6 +119,8 @@ extern "C" {
 		uint8_t applicationKey[32];
 
 		// key pair identifying the client. Consumer is responsible for allocating and freeing.
+		// it must remain valid for the duration of the initialization process. If the client
+		// is already initialized, it need not be specified.
 		mr_ecdsa_ctx identity;
 	} mr_config;
 
@@ -134,10 +131,10 @@ extern "C" {
 	// implementation functions
 
 	// create a new MicroRatchet client with the provided configuration. the client will hold a reference to the configuration.
-	mr_ctx mrclient_create(mr_config* config);
+	mr_ctx mrclient_create(const mr_config* config);
 	mr_result_t mrclient_initiate_initialization(mr_ctx ctx, uint8_t* message, uint32_t spaceavailable, bool force);
 	mr_result_t mrclient_receive(mr_ctx ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** paylod, uint32_t* paylodsize);
-	mr_result_t mrclient_send_data(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize);
+	mr_result_t mrclient_send(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize);
 	uint32_t mrclient_state_size_needed(mr_ctx ctx);
 	mr_result_t mrclient_state_store(mr_ctx ctx, uint8_t* destination, uint32_t spaceavailable);
 	mr_result_t mrclient_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount);

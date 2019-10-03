@@ -106,13 +106,10 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 	return E_SUCCESS;
 }
 
-mr_ctx mrclient_create(mr_config* config)
+mr_ctx mrclient_create(const mr_config* config)
 {
 	// check config
 	if (!config) return 0;
-	if (config->maximum_message_size < MINIMUMMAXIMUMMESSAGE_SIZE) return 0;
-	if (config->minimum_message_size < MINIMUMMESSAGE_SIZE) return 0;
-	if (config->minimum_message_size > config->maximum_message_size) return 0;
 
 	_mr_ctx* ctx;
 	int r = mr_allocate(0, sizeof(_mr_ctx), &ctx);
@@ -132,8 +129,6 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 	if (!ctx->config.is_client) return E_INVALIDOP;
 	uint32_t initializationMessageSize = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 4 + MAC_SIZE;
 	if (spaceavail < initializationMessageSize) return E_INVALIDSIZE;
-	if (spaceavail < ctx->config.minimum_message_size) return E_INVALIDSIZE;
-	if (spaceavail > ctx->config.maximum_message_size) return E_INVALIDSIZE;
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -793,7 +788,7 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	}
 }
 
-mr_result_t mrclient_send_data(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize)
+mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize)
 {
 	_mr_ctx* ctx = _ctx;
 	return E_INVALIDOP;

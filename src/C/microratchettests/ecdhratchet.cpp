@@ -3,7 +3,7 @@
 #include <internal.h>
 #include "support.h"
 
-static mr_config _cfg{ 64, 256, 1 };
+static mr_config _cfg{ true };
 static uint8_t b_empty[KEY_SIZE]{};
 
 TEST(EcdhRatchet, ServerInitializeTest) {
