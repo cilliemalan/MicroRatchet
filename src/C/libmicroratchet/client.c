@@ -34,6 +34,9 @@ static bool allzeroes(const uint8_t* d, uint32_t amt)
 
 static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
+	if (!ctx || !data || !key || !iv) return E_INVALIDARGUMENT;
+	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
+	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
 	if (datasize < MAC_SIZE + 1) return E_INVALIDSIZE;
 
 	mr_poly_ctx mac = mr_poly_create(ctx);
@@ -47,7 +50,11 @@ static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, co
 
 static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize, bool* result)
 {
+	if (!ctx || !data || !key || !iv || !result) return E_INVALIDARGUMENT;
+	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
+	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
 	if (datasize < MAC_SIZE + 1) return E_INVALIDSIZE;
+
 	*result = false;
 
 	uint8_t computedmac[MAC_SIZE];
@@ -63,6 +70,9 @@ static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 
 static mr_result_t digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, uint8_t* digest, uint32_t digestsize)
 {
+	if (!ctx || !data || !digest) return E_INVALIDARGUMENT;
+	if (digestsize < DIGEST_SIZE) return E_INVALIDSIZE;
+
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, data, datasize));
 	_C(mr_sha_compute(ctx->sha_ctx, digest, digestsize));
@@ -71,7 +81,9 @@ static mr_result_t digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, 
 
 static mr_result_t sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_ctx signer)
 {
+	if (!ctx || !data || !signer) return E_INVALIDARGUMENT;
 	if (datasize < SIGNATURE_SIZE + 1) return E_INVALIDSIZE;
+
 	uint8_t sha[DIGEST_SIZE];
 	uint32_t sigresult = 0;
 	_C(digest(ctx, data, datasize - SIGNATURE_SIZE, sha, sizeof(sha)));
@@ -81,7 +93,9 @@ static mr_result_t sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa
 
 static mr_result_t verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* pubkey, uint32_t pubkeysize, bool* result)
 {
+	if (!ctx || !data || !pubkey || !result) return E_INVALIDARGUMENT;
 	if (datasize < SIGNATURE_SIZE + 1) return E_INVALIDSIZE;
+
 	*result = false;
 	uint8_t sha[DIGEST_SIZE];
 	uint32_t sigresult = 0;
@@ -96,6 +110,11 @@ static mr_result_t verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 
 static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
+	if (!ctx || !data || !key || !iv) return E_INVALIDARGUMENT;
+	if (datasize < 1) return E_INVALIDSIZE;
+	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
+	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
+
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
 	if (!aes) return E_NOMEM;
@@ -108,11 +127,11 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 
 mr_ctx mrclient_create(const mr_config* config)
 {
-	// check config
 	if (!config) return 0;
 
 	_mr_ctx* ctx;
 	int r = mr_allocate(0, sizeof(_mr_ctx), &ctx);
+	if (r != E_SUCCESS || !ctx) return 0;
 
 	*ctx = (_mr_ctx){
 		*config,
@@ -120,15 +139,14 @@ mr_ctx mrclient_create(const mr_config* config)
 		mr_rng_create(ctx)
 	};
 
-	if (r != E_SUCCESS) return 0;
 	return ctx;
 }
 
 static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
+	if (!ctx || !output) return E_INVALIDARGUMENT;
 	if (!ctx->config.is_client) return E_INVALIDOP;
-	uint32_t initializationMessageSize = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 4 + MAC_SIZE;
-	if (spaceavail < initializationMessageSize) return E_INVALIDSIZE;
+	if (spaceavail < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -174,7 +192,16 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 	uint8_t** initializationnonce, uint32_t* initializationnoncesize,
 	uint8_t** remoteecdhforinit, uint32_t* remoteecdhforinitsize)
 {
-	if (ctx->config.is_client) return E_INVALIDOP;
+	if (!ctx || !data || !initializationnonce ||
+		!initializationnoncesize || !remoteecdhforinit ||
+		!remoteecdhforinitsize) return E_INVALIDARGUMENT;
+	if (amount < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
+	if (!ctx->config.is_client) return E_INVALIDOP;
+
+	*initializationnonce = 0;
+	*initializationnoncesize = 0;
+	*remoteecdhforinit = 0;
+	*remoteecdhforinitsize = 0;
 
 	// nonce(16), pubkey(32), ecdh(32), pading(...), signature(64), mac(12)
 
