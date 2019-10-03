@@ -121,6 +121,7 @@ extern "C" {
 	mr_result_t ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result_t ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet);
 	mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		mr_ecdh_ctx previouskeypair,

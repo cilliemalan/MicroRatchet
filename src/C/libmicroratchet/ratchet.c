@@ -14,7 +14,6 @@ static int keyallzeroes(const uint8_t* k)
 	return 1;
 }
 
-
 mr_result_t ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes)
 {
 	if (!mr_ctx || !indexes) return E_INVALIDOP;
@@ -113,6 +112,34 @@ mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 
 	if (maxix < 0) return E_NOTFOUND;
 	*ratchet = &ctx->ratchets[maxix];
+	return E_SUCCESS;
+}
+
+mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet)
+{
+	if (!mr_ctx || !ratchet) return E_INVALIDOP;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
+
+	uint32_t maxnum = 0;
+	uint32_t minnum = 0xffffffff;
+	int minix = -1;
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		if (ctx->ratchets[i].num > maxnum)
+		{
+			maxnum = ctx->ratchets[i].num;
+		}
+		if (ctx->ratchets[i].num < minnum)
+		{
+			maxnum = ctx->ratchets[i].num;
+			minnum = i;
+		}
+	}
+
+	if (minix < 0) return E_NOTFOUND;
+	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
+	ctx->ratchets[minix] = *ratchet;
+	ctx->ratchets[minix].num = maxnum + 1;
 	return E_SUCCESS;
 }
 
