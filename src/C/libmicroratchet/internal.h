@@ -50,13 +50,17 @@ extern "C" {
 #define _E(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { (mr_ctx->next = ctx->next)(__r, ctx, mr_ctx); return; } }
 
 	typedef struct _mr_initialization_state {
+
 		union {
+			bool initialized;
 #ifdef HAS_SERVER
 			struct server {
 				uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
+				// the order of these is important
 				uint8_t rootkey[KEY_SIZE];
 				uint8_t firstsendheaderkey[KEY_SIZE];
 				uint8_t firstreceiveheaderkey[KEY_SIZE];
+
 				mr_ecdh_ctx localratchetstep0;
 				mr_ecdh_ctx localratchetstep1;
 				uint8_t clientpublickey[ECNUM_SIZE];
