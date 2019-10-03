@@ -44,8 +44,6 @@ mr_result_t mr_ecdsa_getpublickey(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_
 mr_result_t mr_ecdsa_generate(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
-	if (!publickey || !ctx) return E_INVALIDARGUMENT;
 
 	int result = ecc_generate(&ctx->key, publickey, publickeyspaceavail);
 	if (result != 0) return result;

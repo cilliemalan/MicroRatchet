@@ -71,8 +71,7 @@ mr_result_t ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpubli
 
 mr_result_t ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
-	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
-	if (!publickey || !key) return E_INVALIDARGUMENT;
+	if (!key) return E_INVALIDARG;
 
 	WC_RNG rng;
 	int result = wc_InitRng(&rng);
@@ -95,9 +94,12 @@ mr_result_t ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspa
 		}
 	}
 
-	result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
-	if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
-	if (result != 0) return E_INVALIDOP;
+	if (publickey && publickeyspaceavail)
+	{
+		result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
+		if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
+		if (result != 0) return E_INVALIDOP;
+	}
 
 	return E_SUCCESS;
 }
