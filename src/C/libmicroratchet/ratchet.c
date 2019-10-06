@@ -133,6 +133,7 @@ mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet)
 		{
 			maxnum = ctx->ratchets[i].num;
 			minnum = i;
+			minix = 0;
 		}
 	}
 
@@ -273,7 +274,6 @@ mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
 		nextkeypair,
 		receiveheaderkey, KEY_SIZE,
 		tmp + KEY_SIZE * 2, KEY_SIZE));
-	ratchet2->num = 2;
 
 	return E_SUCCESS;
 }
@@ -335,7 +335,6 @@ mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratc
 		ratchet->nextreceiveheaderkey, KEY_SIZE,
 		ratchet->nextsendheaderkey, KEY_SIZE));
 
-	nextratchet->num = ratchet->num + 1;
 	ratchet->ecdhkey = 0;
 	memset(ratchet->nextrootkey, 0, KEY_SIZE);
 	memset(ratchet->nextreceiveheaderkey, 0, KEY_SIZE);
