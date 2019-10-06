@@ -268,7 +268,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 
 	// message format:
 	// new nonce(16), ecdh pubkey(32),
-	// <nonce from init request(4), server pubkey(32), 
+	// <nonce from init request(16), server pubkey(32), 
 	// new ecdh pubkey(32) x2, Padding(...), signature(64)>, mac(12) = 236 bytes
 
 	// generate a nonce and new ecdh parms
@@ -361,7 +361,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	uint32_t payloadSize = amount - headerSize - MAC_SIZE;
 	uint8_t* payload = data + headerSize;
 
-	// new nonce(16), ecdh pubkey(32), <nonce(4), server pubkey(32), 
+	// new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
 	// new ecdh pubkey(32) x2, signature(64)>, mac(12)
 
 	// decrypt header
