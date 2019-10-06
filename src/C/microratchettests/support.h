@@ -75,3 +75,10 @@ inline void buffer_to_string(const uint8_t* b, uint32_t l, char* ob)
 	GTEST_ASSERT_(::testing::internal::CmpHelperSTRNE(#b1, #b2, sbuffer1, sbuffer2), GTEST_NONFATAL_FAILURE_); \
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
+
+
+struct run_on_exit {
+	inline run_on_exit(std::function<void(void)> wut) : wut(wut) {}
+	inline ~run_on_exit() { wut(); }
+	std::function<void(void)> wut;
+};
