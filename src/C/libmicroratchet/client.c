@@ -2,7 +2,6 @@
 #include "microratchet.h"
 #include "internal.h"
 
-
 // forward
 static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amount, uint32_t spaceavail, bool includeecdh, _mr_ratchet_state* step);
 static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amount, uint8_t** payload, uint32_t* payloadsize, const uint8_t* headerkey, uint32_t headerkeysize, _mr_ratchet_state* step, bool usedNextKey);
@@ -805,8 +804,12 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	_mr_ctx* ctx = _ctx;
 	if (!ctx) return E_INVALIDARGUMENT;
 	if (!message) return E_INVALIDARGUMENT;
-	if (!messagesize) return E_INVALIDARGUMENT;
-	if (!spaceavailable) return E_INVALIDARGUMENT;
+	if (messagesize < MIN_MSG_SIZE) return E_INVALIDARGUMENT;
+	if (spaceavailable < MIN_MSG_SIZE) return E_INVALIDARGUMENT;
+	if (spaceavailable < messagesize) return E_INVALIDARGUMENT;
+
+	if (ctx->config.is_client) LOG("\n\n====CLIENT RECEIVE");
+	else LOG("\n\n====SERVER RECEIVE");
 
 	// check the MAC and get info regarding the message header
 	uint8_t* headerkeyused;
