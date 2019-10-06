@@ -837,9 +837,15 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	}
 }
 
-mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize)
+mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
 {
 	_mr_ctx* ctx = _ctx;
+	if (!ctx) return E_INVALIDARGUMENT;
+	if (!payload) return E_INVALIDARGUMENT;
+
+	if (ctx->config.is_client) LOG("\n\n====CLIENT SEND");
+	else LOG("\n\n====SERVER SEND");
+
 	return E_INVALIDOP;
 }
 

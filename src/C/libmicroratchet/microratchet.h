@@ -130,7 +130,7 @@ extern "C" {
 	mr_result_t mrclient_set_identity(mr_ctx ctx, mr_ecdsa_ctx identity);
 	mr_result_t mrclient_initiate_initialization(mr_ctx ctx, uint8_t* message, uint32_t spaceavailable, bool force);
 	mr_result_t mrclient_receive(mr_ctx ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** paylod, uint32_t* paylodsize);
-	mr_result_t mrclient_send(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize);
+	mr_result_t mrclient_send(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t messagesize);
 	uint32_t mrclient_state_size_needed(mr_ctx ctx);
 	mr_result_t mrclient_state_store(mr_ctx ctx, uint8_t* destination, uint32_t spaceavailable);
 	mr_result_t mrclient_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount);
