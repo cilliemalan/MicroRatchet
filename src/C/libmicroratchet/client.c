@@ -283,6 +283,14 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 {
 	if (ctx->config.is_client) return E_INVALIDOP;
 
+	// store the passed in parms because we're going to overwrite the buffer
+	uint8_t tmp1[INITIALIZATION_NONCE_SIZE];
+	uint8_t tmp2[ECNUM_SIZE];
+	memcpy(tmp1, initializationnonce, INITIALIZATION_NONCE_SIZE);
+	memcpy(tmp2, remoteecdhforinit, ECNUM_SIZE);
+	initializationnonce = tmp1;
+	remoteecdhforinit = tmp2;
+
 	// message format:
 	// new nonce(16), ecdh pubkey(32),
 	// <nonce from init request(16), server pubkey(32), 
@@ -369,7 +377,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	_C(computemac(ctx,
 		output, spaceavail,
 		ctx->config.applicationKey, KEY_SIZE,
-		initializationnonce, INITIALIZATION_NONCE_SIZE));
+		output, INITIALIZATION_NONCE_SIZE));
 
 	return E_SUCCESS;
 }
@@ -400,12 +408,13 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	_C(mr_ecdh_derivekey(ctx->init.client.localecdhforinit,
 		data + ecdhOffset, ECNUM_SIZE,
 		rootPreKey, sizeof(rootPreKey)));
+	_C(digest(ctx, rootPreKey, sizeof(rootPreKey), rootPreKey, sizeof(rootPreKey)));
 	LOGD("remote ecdh pub       ", data + ecdhOffset, ECNUM_SIZE);
 	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
 	_C(crypt(ctx,
 		payload, payloadSize,
 		rootPreKey, KEY_SIZE,
-		data + headerIvOffset, HEADERIV_SIZE));
+		data, INITIALIZATION_NONCE_SIZE));
 
 	LOGD("sent init nonce       ", payload, INITIALIZATION_NONCE_SIZE);
 	LOGD("client init nonce     ", ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
@@ -444,14 +453,17 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	LOGD("local step1 pub       ", localStep1, ECNUM_SIZE);
 
 	// initialize client root key and ecdh ratchet
-	uint8_t genKeys[KEY_SIZE][3];
+	uint8_t genKeys[KEY_SIZE * 3];
 	_C(kdf_compute(ctx,
 		rootPreKey, KEY_SIZE,
 		data, INITIALIZATION_NONCE_SIZE,
-		&genKeys[0][0], sizeof(genKeys)));
-	uint8_t* rootKey = genKeys[0];
-	uint8_t* receiveHeaderKey = genKeys[1];
-	uint8_t* sendHeaderKey = genKeys[2];
+		genKeys, sizeof(genKeys)));
+	uint8_t* rootKey = genKeys;
+	uint8_t* receiveHeaderKey = genKeys + KEY_SIZE;
+	uint8_t* sendHeaderKey = genKeys + KEY_SIZE * 2;
+	LOGD("root key              ", rootKey, KEY_SIZE);
+	LOGD("first recv header k   ", receiveHeaderKey, KEY_SIZE);
+	LOGD("first send header k   ", sendHeaderKey, KEY_SIZE);
 
 	uint8_t* remoteRatchetEcdh0 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
@@ -461,14 +473,14 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 		rootKey, KEY_SIZE,
 		remoteRatchetEcdh0, ECNUM_SIZE,
 		remoteRatchetEcdh1, ECNUM_SIZE,
-		&localStep0,
+		localStep0,
 		receiveHeaderKey, KEY_SIZE,
 		sendHeaderKey, KEY_SIZE,
-		&localStep1));
+		localStep1));
 	_C(ratchet_add(ctx, &ratchet0));
 	_C(ratchet_add(ctx, &ratchet1));
 
-	return E_INVALIDOP;
+	return E_SUCCESS;
 }
 
 static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
