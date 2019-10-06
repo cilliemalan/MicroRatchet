@@ -235,7 +235,7 @@ namespace MicroRatchet
         {
             // message format:
             // new nonce(16), ecdh pubkey(32),
-            // <nonce from init request(4), server pubkey(32), 
+            // <nonce from init request(16), server pubkey(32), 
             // new ecdh pubkey(32) x2, Padding(...), signature(64)>, mac(12) = 236 bytes
 
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can send init response.");
