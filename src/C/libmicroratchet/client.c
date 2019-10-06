@@ -44,6 +44,9 @@ static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, co
 	_C(mr_poly_process(mac, data, datasize - MAC_SIZE));
 	_C(mr_poly_compute(mac, data + datasize - MAC_SIZE, MAC_SIZE));
 	mr_poly_destroy(mac);
+	LOGD("mac iv                ", iv, ivsize);
+	LOGD("mac key               ", key, keysize);
+	LOGD("mac computed          ", data + datasize - MAC_SIZE, MAC_SIZE);
 	return E_SUCCESS;
 }
 
@@ -62,6 +65,10 @@ static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 	_C(mr_poly_init(mac, key, keysize, iv, ivsize));
 	_C(mr_poly_process(mac, data, datasize - MAC_SIZE));
 	_C(mr_poly_compute(mac, computedmac, MAC_SIZE));
+	LOGD("verify mac iv         ", iv, ivsize);
+	LOGD("verify mac key        ", key, keysize);
+	LOGD("verify mac computed   ", computedmac, MAC_SIZE);
+	LOGD("verify mac compareto  ", data + datasize - MAC_SIZE, MAC_SIZE);
 	*result = memcmp(computedmac, data + datasize - MAC_SIZE, MAC_SIZE) == 0;
 	mr_poly_destroy(mac);
 	return E_SUCCESS;
@@ -87,6 +94,8 @@ static mr_result_t sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa
 	uint32_t sigresult = 0;
 	_C(digest(ctx, data, datasize - SIGNATURE_SIZE, sha, sizeof(sha)));
 	_C(mr_ecdsa_sign(signer, sha, DIGEST_SIZE, data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE));
+	LOGD("signature hash        ", sha, DIGEST_SIZE);
+	LOGD("signature             ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
 	return E_SUCCESS;
 }
 
@@ -103,6 +112,8 @@ static mr_result_t verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 		sha, DIGEST_SIZE,
 		pubkey, pubkeysize,
 		&sigresult));
+	LOGD("verify signature hash ", sha, DIGEST_SIZE);
+	LOGD(sigresult ? "verify signature GOOD " : "verify signature BAD  ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
 	*result = !!sigresult;
 	return E_SUCCESS;
 }
@@ -113,6 +124,9 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 	if (datasize < 1) return E_INVALIDSIZE;
 	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
 	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
+
+	LOGD("crypt with iv         ", iv, ivsize);
+	LOGD("crypt with key        ", key, keysize);
 
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
@@ -163,15 +177,18 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 
 	// 16 bytes nonce
 	_C(mr_rng_generate(ctx->rng_ctx, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE));
+	LOGD("Initialization Nonce  ", ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// get the public key
 	uint8_t pubkey[ECNUM_SIZE];
 	_C(mr_ecdsa_getpublickey(ctx->identity, pubkey, sizeof(pubkey)));
+	LOGD("client public key     ", pubkey, sizeof(pubkey));
 
 	// generate new ECDH keypair for init message and root key
 	uint8_t clientEcdhPub[ECNUM_SIZE];
 	ctx->init.client.localecdhforinit = mr_ecdh_create(ctx);
 	_C(mr_ecdh_generate(ctx->init.client.localecdhforinit, clientEcdhPub, sizeof(clientEcdhPub)));
+	LOGD("client ecdh           ", clientEcdhPub, sizeof(clientEcdhPub));
 
 	// nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
 	uint32_t macOffset = spaceavail - MAC_SIZE;
@@ -275,10 +292,12 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	uint8_t* serverNonce = ctx->init.server.nextinitializationnonce;
 	uint8_t* rootKey = ctx->init.server.rootkey;
 	_C(mr_rng_generate(ctx->rng_ctx, serverNonce, INITIALIZATION_NONCE_SIZE));
+	LOGD("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
 	mr_ecdh_ctx rootPreEcdh = mr_ecdh_create(ctx);
 	if (!rootPreEcdh) return E_NOMEM;
 	_C(mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
+	LOGD("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
 
 	// generate server ECDH for root key and root key
 	uint8_t rootPreKey[KEY_SIZE];
@@ -288,6 +307,10 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 		rootPreKey, KEY_SIZE,
 		serverNonce, INITIALIZATION_NONCE_SIZE,
 		rootKey, KEY_SIZE * 3)); //rootkey, firstsendheaderkey, firstreceiveheaderkey
+	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
+	LOGD("root key              ", ctx->init.server.rootkey, KEY_SIZE);
+	LOGD("first send header k   ", ctx->init.server.firstsendheaderkey, KEY_SIZE);
+	LOGD("first recv header k   ", ctx->init.server.firstreceiveheaderkey, KEY_SIZE);
 
 	// generate two server ECDH. One for ratchet 0 sending key and one for the next
 	// this is enough for the server to generate a receiving chain key and sending
@@ -296,10 +319,12 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	ctx->init.server.localratchetstep0 = mr_ecdh_create(ctx);
 	if (!ctx->init.server.localratchetstep0) return E_NOMEM;
 	_C(mr_ecdh_generate(ctx->init.server.localratchetstep0, rre0, sizeof(rre0)));
+	LOGD("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
 	ctx->init.server.localratchetstep1 = mr_ecdh_create(ctx);
 	if (!ctx->init.server.localratchetstep1) return E_NOMEM;
 	_C(mr_ecdh_generate(ctx->init.server.localratchetstep1, rre1, sizeof(rre1)));
+	LOGD("rre1                  ", rre1, ECNUM_SIZE);
 
 	uint32_t minimumMessageSize = INITIALIZATION_NONCE_SIZE * 2 + ECNUM_SIZE * 6 + MAC_SIZE;
 	uint32_t macOffset = spaceavail - MAC_SIZE;
@@ -375,10 +400,15 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	_C(mr_ecdh_derivekey(ctx->init.client.localecdhforinit,
 		data + ecdhOffset, ECNUM_SIZE,
 		rootPreKey, sizeof(rootPreKey)));
+	LOGD("remote ecdh pub       ", data + ecdhOffset, ECNUM_SIZE);
+	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
 	_C(crypt(ctx,
 		payload, payloadSize,
 		rootPreKey, KEY_SIZE,
 		data + headerIvOffset, HEADERIV_SIZE));
+
+	LOGD("sent init nonce       ", payload, INITIALIZATION_NONCE_SIZE);
+	LOGD("client init nonce     ", ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// ensure the nonce matches
 	if (memcmp(payload, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
@@ -399,16 +429,19 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 
 	// store the nonce we got from the server
 	memcpy(ctx->init.client.initializationnonce, data, INITIALIZATION_NONCE_SIZE);
+	LOGD("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
 
 	// we now have enough information to construct our double ratchet
 	uint8_t localStep0Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep0 = mr_ecdh_create(ctx);
 	if (!localStep0) return E_NOMEM;
 	_C(mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
+	LOGD("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
 	uint8_t localStep1Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
 	if (!localStep1) return E_NOMEM;
 	_C(mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
+	LOGD("local step1 pub       ", localStep1, ECNUM_SIZE);
 
 	// initialize client root key and ecdh ratchet
 	uint8_t genKeys[KEY_SIZE][3];
