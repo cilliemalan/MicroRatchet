@@ -58,6 +58,7 @@
     <ClCompile Include="ecdhratchet.cpp" />
     <ClCompile Include="ecdsa.cpp" />
     <ClCompile Include="poly.cpp" />
+    <ClCompile Include="reference.cpp" />
     <ClCompile Include="rng.cpp" />
     <ClCompile Include="sha.cpp" />
     <ClCompile Include="support.cpp" />
