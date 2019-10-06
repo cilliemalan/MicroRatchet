@@ -142,11 +142,22 @@ mr_ctx mrclient_create(const mr_config* config)
 	return ctx;
 }
 
+mr_result_t mrclient_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
+{
+	_mr_ctx* ctx = (_mr_ctx*)_ctx;
+	if (!ctx) return E_INVALIDARGUMENT;
+	if (!identity) return E_INVALIDARGUMENT;
+	
+	ctx->identity = identity;
+	return E_SUCCESS;
+}
+
 static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
 	if (!ctx || !output) return E_INVALIDARGUMENT;
 	if (!ctx->config.is_client) return E_INVALIDOP;
 	if (spaceavail < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
+	if (!ctx->identity) return E_INVALIDOP;
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -156,7 +167,7 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 
 	// get the public key
 	uint8_t pubkey[ECNUM_SIZE];
-	_C(mr_ecdsa_getpublickey(ctx->config.identity, pubkey, sizeof(pubkey)));
+	_C(mr_ecdsa_getpublickey(ctx->identity, pubkey, sizeof(pubkey)));
 
 	// generate new ECDH keypair for init message and root key
 	uint8_t clientEcdhPub[ECNUM_SIZE];
@@ -171,7 +182,7 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 	memcpy(output + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE, clientEcdhPub, ECNUM_SIZE);
 
 	// sign the message
-	_C(sign(ctx, output, macOffset, ctx->config.identity));
+	_C(sign(ctx, output, macOffset, ctx->identity));
 
 	// encrypt the message with the application key
 	_C(crypt(ctx,
@@ -196,7 +207,8 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 		!initializationnoncesize || !remoteecdhforinit ||
 		!remoteecdhforinitsize) return E_INVALIDARGUMENT;
 	if (amount < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
-	if (!ctx->config.is_client) return E_INVALIDOP;
+	if (ctx->config.is_client) return E_INVALIDOP;
+	if (!ctx->identity) return E_INVALIDOP;
 
 	*initializationnonce = 0;
 	*initializationnoncesize = 0;
@@ -238,6 +250,12 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 
 	// store the client public key
 	memcpy(ctx->init.server.clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE);
+
+	// set all the pointers
+	*initializationnonce = data;
+	*initializationnoncesize = INITIALIZATION_NONCE_SIZE;
+	*remoteecdhforinit = data + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
+	*remoteecdhforinitsize = ECNUM_SIZE;
 
 	return E_SUCCESS;
 }
@@ -300,7 +318,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	memcpy(encryptedPayload,
 		initializationnonce, INITIALIZATION_NONCE_SIZE);
 	// server public key
-	_C(mr_ecdsa_getpublickey(ctx->config.identity, encryptedPayload + INITIALIZATION_NONCE_SIZE, ECNUM_SIZE));
+	_C(mr_ecdsa_getpublickey(ctx->identity, encryptedPayload + INITIALIZATION_NONCE_SIZE, ECNUM_SIZE));
 	// server ratchet 0
 	memcpy(encryptedPayload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE,
 		rre0, ECNUM_SIZE);
@@ -309,7 +327,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 		rre1, ECNUM_SIZE);
 
 	// sign the message
-	_C(sign(ctx, output, macOffset, ctx->config.identity));
+	_C(sign(ctx, output, macOffset, ctx->identity));
 
 	// encrypt the encrypted part
 	_C(crypt(ctx,
@@ -785,6 +803,10 @@ mr_result_t mrclient_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint
 mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
 {
 	_mr_ctx* ctx = _ctx;
+	if (!ctx) return E_INVALIDARGUMENT;
+	if (!message) return E_INVALIDARGUMENT;
+	if (!messagesize) return E_INVALIDARGUMENT;
+	if (!spaceavailable) return E_INVALIDARGUMENT;
 
 	// check the MAC and get info regarding the message header
 	uint8_t* headerkeyused;

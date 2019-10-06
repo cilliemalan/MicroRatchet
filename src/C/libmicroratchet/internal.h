@@ -98,6 +98,7 @@ extern "C" {
 		mr_rng_ctx rng_ctx;
 		_mr_initialization_state init;
 		_mr_ratchet_state ratchets[NUM_RATCHETS];
+		mr_ecdsa_ctx identity;
 	} _mr_ctx;
 
 	typedef struct _mr_aesctr_ctx {

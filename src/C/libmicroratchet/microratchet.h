@@ -117,11 +117,6 @@ extern "C" {
 
 		// the application key. Must match the key for the server.
 		uint8_t applicationKey[32];
-
-		// key pair identifying the client. Consumer is responsible for allocating and freeing.
-		// it must remain valid for the duration of the initialization process. If the client
-		// is already initialized, it need not be specified.
-		mr_ecdsa_ctx identity;
 	} mr_config;
 
 
@@ -132,6 +127,7 @@ extern "C" {
 
 	// create a new MicroRatchet client with the provided configuration. the client will hold a reference to the configuration.
 	mr_ctx mrclient_create(const mr_config* config);
+	mr_result_t mrclient_set_identity(mr_ctx ctx, mr_ecdsa_ctx identity);
 	mr_result_t mrclient_initiate_initialization(mr_ctx ctx, uint8_t* message, uint32_t spaceavailable, bool force);
 	mr_result_t mrclient_receive(mr_ctx ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** paylod, uint32_t* paylodsize);
 	mr_result_t mrclient_send(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavail, uint8_t** message, uint32_t* messagesize);
