@@ -7,12 +7,8 @@ mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, 
 {
 	if (!iv || !ctx || !aes) return E_INVALIDARGUMENT;
 
-	ctx->aes_ctx = aes;
+	*ctx = (_mr_aesctr_ctx){ aes };
 	memcpy(ctx->ctr, iv, ivsize > 16 ? 16 : ivsize);
-	if (ivsize < 16)
-	{
-		memset(ctx->ctr + ivsize, 0, 16 - ivsize);
-	}
 	
 	return E_SUCCESS;
 }
@@ -30,12 +26,17 @@ mr_result_t aesctr_process(_mr_aesctr_ctx *ctx, const uint8_t* data, uint32_t am
 	while (i < amount)
 	{
 		_C(mr_aes_process(ctx->aes_ctx, ctr, 16, ctrout, 16));
-		for (int j = 0; j < 16 && i < amount; j++, i++)
+
+		for (; ctx->ctrix < 16 && i < amount; ctx->ctrix++, i++)
 		{
-			output[i] = ctrout[j] ^ data[i];
+			output[i] = ctrout[ctx->ctrix] ^ data[i];
 		}
 
-		for (int z = 15; z >= 0 && ++ctr[z] == 0; z--);
+		if (ctx->ctrix == 16)
+		{
+			for (int z = 15; z >= 0 && ++ctr[z] == 0; z--);
+			ctx->ctrix = 0;
+		}
 	}
 
 	return E_SUCCESS;
