@@ -29,30 +29,25 @@ extern "C" {
 #define NONCE_SIZE 4
 #define MAC_SIZE 12
 #define ECNUM_SIZE 32
-#define SIGNATURE_SIZE (ECNUM_SIZE+ECNUM_SIZE)
+#define SIGNATURE_SIZE (ECNUM_SIZE  +ECNUM_SIZE)
 #define NUM_RATCHETS 5
 #define HEADERIV_SIZE 16
 #define DIGEST_SIZE 32
-#define MACIV_SIZE 32
-#define MIN_MSG_SIZE (HEADERIV_SIZE)
-#define MIN_OVERHEAD (NONCE_SIZE + MAC_SIZE)
-#define OVERHEAD_WITH_ECDH (MIN_OVERHEAD + ECNUM_SIZE)
+#define MACIV_SIZE 16
+#define MIN_PAYLOAD_SIZE (HEADERIV_SIZE)
+#define OVERHEAD_WITHOUT_ECDH (NONCE_SIZE + MAC_SIZE)
+#define OVERHEAD_WITH_ECDH (OVERHEAD_WITHOUT_ECDH + ECNUM_SIZE)
 #define INIT_REQ_MSG_SIZE (NONCE_SIZE + ECNUM_SIZE*2 + SIGNATURE_SIZE + MAC_SIZE)
 #define INIT_RES_MSG_SIZE (NONCE_SIZE*2 + ECNUM_SIZE*4 + SIGNATURE_SIZE + MAC_SIZE)
-#define MINIMUMPAYLOAD_SIZE (INITIALIZATION_NONCE_SIZE)
-#define MINIMUMOVERHEAD (NONCE_SIZE + MAC_SIZE) // 16
-#define OVERHEADWITHECDH (MINIMUMOVERHEAD + ECNUM_SIZE) // 48
-#define MINIMUMMESSAGE_SIZE (MINIMUMPAYLOAD_SIZE + MINIMUMOVERHEAD)
-#define MINIMUMMAXIMUMMESSAGE_SIZE (OVERHEADWITHECDH + MINIMUMPAYLOAD_SIZE)
+#define MIN_MESSAGE_SIZE (OVERHEAD_WITH_ECDH + MIN_PAYLOAD_SIZE)
 
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
 #define _N(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { ctx->next(__r, ctx, mr_ctx); return; } }
 #define _E(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { (mr_ctx->next = ctx->next)(__r, ctx, mr_ctx); return; } }
 
 	typedef struct _mr_initialization_state {
-
+		bool initialized;
 		union {
-			bool initialized;
 #ifdef HAS_SERVER
 			struct server {
 				uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
@@ -104,6 +99,7 @@ extern "C" {
 	typedef struct _mr_aesctr_ctx {
 		mr_aes_ctx aes_ctx;
 		uint8_t ctr[16];
+		uint32_t ctrix;
 	} _mr_aesctr_ctx;
 
 

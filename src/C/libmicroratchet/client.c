@@ -122,7 +122,7 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 {
 	if (!ctx || !data || !key || !iv) return E_INVALIDARGUMENT;
 	if (datasize < 1) return E_INVALIDSIZE;
-	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
+	if (keysize != KEY_SIZE && keysize != MSG_KEY_SIZE) return E_INVALIDSIZE;
 	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
 
 	LOGD("crypt with iv         ", iv, ivsize);
@@ -171,6 +171,8 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 	if (!ctx->config.is_client) return E_INVALIDOP;
 	if (spaceavail < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
 	if (!ctx->identity) return E_INVALIDOP;
+
+	LOG("--send_initialization_request");
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -225,6 +227,8 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 	if (amount < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
 	if (ctx->config.is_client) return E_INVALIDOP;
 	if (!ctx->identity) return E_INVALIDOP;
+
+	LOG("--receive_initialization_request");
 
 	*initializationnonce = 0;
 	*initializationnoncesize = 0;
@@ -282,6 +286,8 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	uint8_t* output, uint32_t spaceavail)
 {
 	if (ctx->config.is_client) return E_INVALIDOP;
+
+	LOG("--send_initialization_response");
 
 	// store the passed in parms because we're going to overwrite the buffer
 	uint8_t tmp1[INITIALIZATION_NONCE_SIZE];
@@ -394,6 +400,8 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	uint32_t payloadSize = amount - headerSize - MAC_SIZE;
 	uint8_t* payload = data + headerSize;
 
+	LOG("--receive_initialization_response");
+
 	// new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
 	// new ecdh pubkey(32) x2, signature(64)>, mac(12)
 
@@ -450,7 +458,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
 	if (!localStep1) return E_NOMEM;
 	_C(mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
-	LOGD("local step1 pub       ", localStep1, ECNUM_SIZE);
+	LOGD("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
 
 	// initialize client root key and ecdh ratchet
 	uint8_t genKeys[KEY_SIZE * 3];
@@ -495,9 +503,7 @@ static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint
 	return construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, true, secondToLast);
 }
 
-static mr_result_t receive_first_client_message(_mr_ctx* ctx,
-	uint8_t* data, uint32_t amount,
-	_mr_ratchet_state* step)
+static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint32_t amount)
 {
 	if (ctx->config.is_client) return E_INVALIDOP;
 	uint8_t* payload = 0;
@@ -506,11 +512,10 @@ static mr_result_t receive_first_client_message(_mr_ctx* ctx,
 		data, amount,
 		&payload, &payloadSize,
 		ctx->init.server.firstreceiveheaderkey, KEY_SIZE,
-		step, false));
+		0, false));
 
-	if (payloadSize < INITIALIZATION_NONCE_SIZE || memcpy(payload, ctx->init.server.nextinitializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
+	if (payloadSize < INITIALIZATION_NONCE_SIZE || memcmp(payload, ctx->init.server.nextinitializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
-		
 		return E_INVALIDOP;
 	}
 
@@ -522,7 +527,7 @@ static mr_result_t receive_first_client_message(_mr_ctx* ctx,
 	ctx->init.server.localratchetstep1 = 0;
 	ctx->init.initialized = true;
 
-	return E_INVALIDOP;
+	return E_SUCCESS;
 }
 
 static mr_result_t send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
@@ -557,7 +562,7 @@ static mr_result_t receive_first_server_response(_mr_ctx* ctx, uint8_t* data, ui
 	memset(ctx->init.client.initializationnonce, 0, sizeof(ctx->init.client.initializationnonce));
 	ctx->init.initialized = true;
 
-	return E_INVALIDOP;
+	return E_SUCCESS;
 }
 
 static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amount, uint32_t spaceavail,
@@ -565,8 +570,10 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	_mr_ratchet_state* step)
 {
 	if (includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH) return E_INVALIDSIZE;
-	if (!includeecdh && spaceavail < amount + MINIMUMOVERHEAD) return E_INVALIDSIZE;
-	if (amount < MINIMUMMESSAGE_SIZE) return E_INVALIDSIZE;
+	if (!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH) return E_INVALIDSIZE;
+	if (amount < MIN_PAYLOAD_SIZE) return E_INVALIDSIZE;
+
+	LOG("--construct_message");
 
 	// message format:
 	// <nonce (4)>, <payload, padding>, mac(12)
@@ -588,16 +595,18 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	// calculate some sizes
 	uint32_t headersize = NONCE_SIZE + (includeecdh ? ECNUM_SIZE : 0);
 	uint32_t overhead = headersize + MAC_SIZE;
-	uint32_t amountAfterPayload = spaceavail - amount - headersize;
-	uint32_t payloadSize = amountAfterPayload - MAC_SIZE;
+	uint32_t payloadSize = spaceavail - headersize - MAC_SIZE;
+	uint32_t amountAfterPayload = spaceavail - amount - headersize - MAC_SIZE;
 	uint32_t headerIvOffset = spaceavail - MAC_SIZE - HEADERIV_SIZE;
 
 	// build the payload <payload, padding>
 	memmove(message + headersize, message, amount);
-	memset(message + headersize, 0, amountAfterPayload);
+	memset(message + headersize + amount, 0, amountAfterPayload);
+	LOGD("[payload]             ", message + headersize, amount);
 
 	// copy in the nonce
 	be_packu32(generation, message);
+	LOGD("[nonce]               ", message, NONCE_SIZE);
 
 	// encrypt the payload
 	_C(crypt(ctx, message + headersize, payloadSize, payloadKey, MSG_KEY_SIZE, message, NONCE_SIZE));
@@ -606,6 +615,7 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	if (includeecdh)
 	{
 		_C(mr_ecdh_getpublickey(step->ecdhkey, message + NONCE_SIZE, ECNUM_SIZE));
+		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 		message[0] |= 0b10000000;
 	}
 	else
@@ -616,15 +626,16 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	// encrypt the header using the header key and using the
 	// last 16 bytes of the message as the nonce.
 	_C(crypt(ctx, message, headersize, step->sendheaderkey, KEY_SIZE, message + headerIvOffset, HEADERIV_SIZE));
+	LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 
 	// mac the message
 	_C(computemac(ctx, message, spaceavail, step->sendheaderkey, KEY_SIZE, message, MACIV_SIZE));
+	LOGD("[mac]                 ", message + spaceavail - MAC_SIZE, ECNUM_SIZE);
 
 	return E_SUCCESS;
 }
 
 static mr_result_t interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t amount,
-	const uint8_t* overrideheaderkey, uint32_t overrideheaderkeysize,
 	const uint8_t** headerKeyUsed, _mr_ratchet_state** stepUsed, bool* usedNextHeaderKey)
 {
 	*headerKeyUsed = 0;
@@ -632,38 +643,58 @@ static mr_result_t interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t 
 	*usedNextHeaderKey = false;
 
 	bool macmatches = false;
-	if (overrideheaderkey && overrideheaderkeysize)
+	
+	// check ratchet header keys
+	if (ctx->ratchets[0].num)
 	{
-		// check override header key
-		_C(verifymac(ctx, message, amount, overrideheaderkey, overrideheaderkeysize, message, HEADERIV_SIZE, &macmatches));
-		if (!macmatches)
+		for (int i = NUM_RATCHETS - 1; i >= 0; i--)
 		{
-			return E_INVALIDOP;
-		}
-		else
-		{
-			*headerKeyUsed = overrideheaderkey;
-			return E_SUCCESS;
+			if (ctx->ratchets[i].num && !allzeroes(ctx->ratchets[i].receiveheaderkey, KEY_SIZE))
+			{
+				_C(verifymac(ctx, message, amount, ctx->ratchets[i].receiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+				if (macmatches)
+				{
+					*headerKeyUsed = ctx->ratchets[i].receiveheaderkey;
+					*stepUsed = &ctx->ratchets[i];
+					return E_SUCCESS;
+				}
+				else if (!allzeroes(ctx->ratchets[i].nextreceiveheaderkey, KEY_SIZE))
+				{
+					_C(verifymac(ctx, message, amount, ctx->ratchets[i].nextreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+					if (macmatches)
+					{
+						*headerKeyUsed = ctx->ratchets[i].nextreceiveheaderkey;
+						*stepUsed = &ctx->ratchets[i];
+						*usedNextHeaderKey = true;
+						return E_SUCCESS;
+					}
+				}
+			}
 		}
 	}
-	else
-	{
-		// check ratchet header keys
-		if (ctx->ratchets[0].num)
-		{
-			// TODO
-		}
 
-		// check application header key
-		_C(verifymac(ctx, message, amount, ctx->config.applicationKey, KEY_SIZE, message, HEADERIV_SIZE, &macmatches));
-		if (macmatches)
+	// check application header key
+	_C(verifymac(ctx, message, amount, ctx->config.applicationKey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+	if (macmatches)
+	{
+		*headerKeyUsed = ctx->config.applicationKey;
+		return E_SUCCESS;
+	}
+	else if (!ctx->config.is_client)
+	{
+		if (!ctx->init.initialized && ctx->ratchets[0].num == 0 && !allzeroes(ctx->init.server.firstreceiveheaderkey, KEY_SIZE))
 		{
-			*headerKeyUsed = ctx->config.applicationKey;
-			return E_SUCCESS;
+			_C(verifymac(ctx, message, amount, ctx->init.server.firstreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+			if (macmatches)
+			{
+				*headerKeyUsed = ctx->init.server.firstreceiveheaderkey;
+				return E_SUCCESS;
+			}
 		}
 	}
+	
 
-	return E_INVALIDOP;
+	return E_NOTFOUND;
 }
 
 static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amount,
@@ -672,7 +703,7 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	_mr_ratchet_state* step,
 	bool usedNextKey)
 {
-	if (amount < MIN_MSG_SIZE + MINIMUMOVERHEAD) return E_INVALIDSIZE;
+	if (amount < MIN_MESSAGE_SIZE) return E_INVALIDSIZE;
 
 	uint32_t headerIvOffset = amount - MAC_SIZE - HEADERIV_SIZE;
 
@@ -683,22 +714,29 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	_C(mr_aes_init(aes, headerkey, headerkeysize));
 	_C(aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
 	_C(aesctr_process(&cipher, message, NONCE_SIZE, message, NONCE_SIZE));
+	LOGD("headerkey             ", headerkey, headerkeysize);
+	LOGD("headeriv              ", message + headerIvOffset, HEADERIV_SIZE);
 
 	// decrypt ecdh if needed
 	bool hasEcdh = message[0] & 0b10000000;
+
+	// clear the ecdh bit
+	message[0] = message[0] & 0b01111111;
+
 	uint32_t ecdhOffset = NONCE_SIZE;
 	uint32_t payloadOffset = NONCE_SIZE + (hasEcdh ? ECNUM_SIZE : 0);
 	uint32_t payloadSize = amount - payloadOffset - MAC_SIZE;
+	LOGD("[nonce]               ", message, NONCE_SIZE);
 
 	if (hasEcdh)
 	{
+		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 		_C(aesctr_process(&cipher, message + NONCE_SIZE, ECNUM_SIZE, message + NONCE_SIZE, ECNUM_SIZE));
+		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 	}
 	mr_aes_destroy(aes);
 	aes = 0;
 
-	// clear the ecdh bit
-	message[0] = message[0] & 0b01111111;
 
 	// get the nonce
 	uint32_t nonce = be_unpacku32(message);
@@ -760,13 +798,14 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	*payload = message + payloadOffset;
 	*payloadsize = payloadSize;
 
+	LOGD("[payload]             ", message + payloadOffset, payloadSize);
+
 	return E_SUCCESS;
 }
 
 static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t amount, uint32_t spaceavail,
 	const uint8_t* headerkey, uint32_t headerkeysize,
-	_mr_ratchet_state* step,
-	bool usedApplicationHeaderKey)
+	_mr_ratchet_state* step)
 {
 	if (ctx->config.is_client)
 	{
@@ -778,7 +817,7 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 		}
 		else
 		{
-			if (usedApplicationHeaderKey)
+			if (headerkey == ctx->config.applicationKey)
 			{
 				if (!ctx->ratchets[0].num)
 				{
@@ -792,6 +831,12 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 					return E_INVALIDOP;
 				}
 			}
+			else if (step)
+			{
+				// step 3: receive first message from server
+				_C(receive_first_server_response(ctx, message, amount, headerkey, headerkeysize, step));
+					return E_SUCCESS;
+			}
 		}
 	}
 	else
@@ -800,7 +845,7 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 		{
 			return E_INVALIDOP;
 		}
-		else if (usedApplicationHeaderKey)
+		else if (headerkey == ctx->config.applicationKey)
 		{
 			// step 1: client init request
 			uint8_t* initialization_nonce;
@@ -816,10 +861,10 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 				message, spaceavail));
 			return E_SENDBACK;
 		}
-		else
+		else if (headerkey == ctx->init.server.firstreceiveheaderkey)
 		{
 			// step 2: first message from client
-			_C(receive_first_client_message(ctx, message, amount, step));
+			_C(receive_first_client_message(ctx, message, amount));
 			_C(send_first_server_response(ctx, message, spaceavail));
 			return E_SENDBACK;
 		}
@@ -841,7 +886,7 @@ mr_result_t mrclient_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint
 		return E_INVALIDOP;
 	}
 
-	return process_initialization(ctx, message, 0, spaceavailable, 0, 0, 0, false);
+	return process_initialization(ctx, message, 0, spaceavailable, 0, 0, 0);
 }
 
 mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
@@ -849,19 +894,18 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	_mr_ctx* ctx = _ctx;
 	if (!ctx) return E_INVALIDARGUMENT;
 	if (!message) return E_INVALIDARGUMENT;
-	if (messagesize < MIN_MSG_SIZE) return E_INVALIDARGUMENT;
-	if (spaceavailable < MIN_MSG_SIZE) return E_INVALIDARGUMENT;
+	if (messagesize < MIN_MESSAGE_SIZE) return E_INVALIDARGUMENT;
+	if (spaceavailable < MIN_MESSAGE_SIZE) return E_INVALIDARGUMENT;
 	if (spaceavailable < messagesize) return E_INVALIDARGUMENT;
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT RECEIVE");
 	else LOG("\n\n====SERVER RECEIVE");
 
 	// check the MAC and get info regarding the message header
-	uint8_t* headerkeyused;
-	_mr_ratchet_state* stepused;
-	bool usednextheaderkey;
+	uint8_t* headerkeyused = 0;
+	_mr_ratchet_state* stepused = 0;
+	bool usednextheaderkey = false;
 	_C(interpret_mac(ctx, message, messagesize,
-		0, 0, // header key override
 		&headerkeyused,
 		&stepused,
 		&usednextheaderkey));
@@ -873,7 +917,10 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	else if (headerkeyused == ctx->config.applicationKey || !ctx->init.initialized)
 	{
 		// if the application key was used this is an initialization message
-		return process_initialization(ctx, message, messagesize, spaceavailable, headerkeyused, KEY_SIZE, stepused, true);
+		return process_initialization(ctx,
+			message, messagesize, spaceavailable,
+			headerkeyused, KEY_SIZE,
+			stepused);
 	}
 	else if (stepused)
 	{
