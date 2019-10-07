@@ -77,20 +77,26 @@ mr_result_t ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t maxnum = 0;
-	int maxix = -1;
-	int notmaxix = -1;
+	uint32_t nextmaxnum = 0;
+	int nextmaxix = -1;
 	for (int i = 0; i < NUM_RATCHETS; i++)
 	{
 		if (ctx->ratchets[i].num > maxnum)
 		{
 			maxnum = ctx->ratchets[i].num;
-			notmaxix = maxix;
-			maxix = i;
+		}
+	}
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		if (ctx->ratchets[i].num < maxnum && ctx->ratchets[i].num > nextmaxnum)
+		{
+			nextmaxnum = ctx->ratchets[i].num;
+			nextmaxix = i;
 		}
 	}
 
-	if (notmaxix < 0) return E_NOTFOUND;
-	*ratchet = &ctx->ratchets[notmaxix];
+	if (nextmaxix < 0) return E_NOTFOUND;
+	*ratchet = &ctx->ratchets[nextmaxix];
 	return E_SUCCESS;
 }
 
@@ -131,9 +137,8 @@ mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet)
 		}
 		if (ctx->ratchets[i].num < minnum)
 		{
-			maxnum = ctx->ratchets[i].num;
-			minnum = i;
-			minix = 0;
+			minnum = ctx->ratchets[i].num;
+			minix = i;
 		}
 	}
 
