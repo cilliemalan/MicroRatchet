@@ -16,8 +16,8 @@ static int keyallzeroes(const uint8_t* k)
 
 mr_result_t ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes)
 {
-	FAILIF(!mr_ctx || !indexes, E_INVALIDOP, "!mr_ctx || !indexes")
-	FAILIF(numindexes < NUM_RATCHETS, E_INVALIDSIZE, "numindexes < NUM_RATCHETS")
+	FAILIF(!mr_ctx || !indexes, E_INVALIDOP, "one of the arguments was null")
+	FAILIF(numindexes < NUM_RATCHETS, E_INVALIDSIZE, "numindexes cannot be greater than the maximum number of stored ratchets")
 	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t mustbeunder = 0xffffffff;
@@ -66,7 +66,7 @@ mr_result_t ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 		}
 	}
 
-	FAILIF(minix < 0, E_NOTFOUND, "minix < 0")
+	FAILIF(minix < 0, E_NOTFOUND, "could not find the oldest ratchet")
 	*ratchet = &ctx->ratchets[minix];
 	return E_SUCCESS;
 }
@@ -95,7 +95,19 @@ mr_result_t ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 		}
 	}
 
-	FAILIF(nextmaxix < 0, E_NOTFOUND, "nextmaxix < 0")
+	if (nextmaxix < 0)
+	{
+		// special case where the server has just initialized.
+		// it's the one case where the last ecdh key can be used without
+		// including it in the message that's being sent.
+		if (!ctx->config.is_client && ctx->ratchets[0].num == 1 && ctx->ratchets[1].num == 0)
+		{
+			*ratchet = &ctx->ratchets[0];
+			return E_SUCCESS;
+		}
+	}
+
+	FAILIF(nextmaxix < 0, E_NOTFOUND, "could not find a second to last ratchet.");
 	*ratchet = &ctx->ratchets[nextmaxix];
 	return E_SUCCESS;
 }

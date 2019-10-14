@@ -982,11 +982,11 @@ mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, u
 	_mr_ratchet_state* step;
 	if (canIncludeEcdh)
 	{
-		ratchet_getlast(ctx, &step);
+		_C(ratchet_getlast(ctx, &step));
 	}
 	else
 	{
-		ratchet_getsecondtolast(ctx, &step);
+		_C(ratchet_getsecondtolast(ctx, &step));
 	}
 
 	_C(construct_message(ctx, payload, payloadsize, spaceavailable, canIncludeEcdh, step));
