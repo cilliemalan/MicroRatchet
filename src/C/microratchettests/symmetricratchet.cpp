@@ -7,21 +7,12 @@
 
 static mr_config _cfg{ true };
 
-static mr_ctx ctx;
-static mr_rng_ctx rng;
-
-template<unsigned int T>
-void genrnd(unsigned char d[T]) { mr_rng_generate(rng, d, T); }
-static struct __ {
-	__() {
-		ctx = mrclient_create(&_cfg);
-		rng = mr_rng_create(ctx);
-	}
-} __;
-
 TEST(SymmetricRatchet, Initialize) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain;
 
@@ -33,11 +24,17 @@ TEST(SymmetricRatchet, Initialize) {
 	EXPECT_BUFFEREQ(ck, sizeof(ck), chain.chainkey, sizeof(chain.chainkey));
 	EXPECT_EQ(0, chain.oldgeneration);
 	EXPECT_BUFFEREQ(zeroes, sizeof(zeroes), chain.oldchainkey, sizeof(chain.oldchainkey));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicSend) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[KEY_SIZE];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -52,11 +49,17 @@ TEST(SymmetricRatchet, BasicSend) {
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	ASSERT_EQ(gen, 1);
 	ASSERT_BUFFERNE(key, sizeof(key), zeroes, sizeof(zeroes));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, ChainKeyModulation) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -69,11 +72,17 @@ TEST(SymmetricRatchet, ChainKeyModulation) {
 	ASSERT_EQ(r, E_SUCCESS);
 
 	EXPECT_BUFFERNE(ck, sizeof(ck), chain.chainkey, sizeof(chain.chainkey));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiSend) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -95,11 +104,17 @@ TEST(SymmetricRatchet, MultiSend) {
 	ASSERT_EQ(gen2, 2);
 	ASSERT_BUFFERNE(key2, sizeof(key2), zeroes, sizeof(zeroes));
 	ASSERT_BUFFERNE(key1, sizeof(key1), key2, sizeof(key2));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicReceive) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -118,11 +133,17 @@ TEST(SymmetricRatchet, BasicReceive) {
 	EXPECT_EQ(1, chain.generation);
 	EXPECT_EQ(0, chain.oldgeneration);
 	ASSERT_BUFFEREQ(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiReceive) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -146,11 +167,17 @@ TEST(SymmetricRatchet, MultiReceive) {
 	EXPECT_EQ(2, chain.generation);
 	EXPECT_EQ(0, chain.oldgeneration);
 	EXPECT_BUFFEREQ(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, SkipReceive) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -171,11 +198,17 @@ TEST(SymmetricRatchet, SkipReceive) {
 
 	EXPECT_EQ(chain.generation, 10);
 	EXPECT_EQ(chain.oldgeneration, 1);
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, OooReceive) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -203,11 +236,17 @@ TEST(SymmetricRatchet, OooReceive) {
 
 	EXPECT_EQ(chain.generation, 10);
 	EXPECT_EQ(chain.oldgeneration, 2);
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicSymmetry) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
@@ -228,11 +267,17 @@ TEST(SymmetricRatchet, BasicSymmetry) {
 
 	EXPECT_BUFFEREQ(keya, sizeof(keya), keyb, sizeof(keyb));
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb, sizeof(keyb));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiSymmetry) {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
@@ -264,12 +309,18 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb2, sizeof(keyb2));
 	EXPECT_BUFFERNE(keya1, sizeof(keya1), keyb2, sizeof(keyb2));
 	EXPECT_NE(gen1, gen2);
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 void deepsymmetrytest(int depth) 
 {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chaina{};
 	_mr_chain_state chainb{};
@@ -294,6 +345,9 @@ void deepsymmetrytest(int depth)
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	EXPECT_BUFFEREQ(keya, sizeof(keya), keyb, sizeof(keyb));
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb, sizeof(keyb));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, DeepSymmetry10) { deepsymmetrytest(10); }
@@ -303,8 +357,11 @@ TEST(SymmetricRatchet, DeepSymmetry10000) { deepsymmetrytest(10000); }
 
 void receivetest(int depth)
 {
+	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_rng_ctx rng = mr_rng_create(ctx);
+
 	unsigned char ck[32];
-	genrnd<32>(ck);
+	mr_rng_generate(rng, ck, sizeof(ck));
 
 	_mr_chain_state chain{};
 
@@ -323,6 +380,9 @@ void receivetest(int depth)
 	EXPECT_EQ(depth, chain.generation);
 	EXPECT_EQ(0, chain.oldgeneration);
 	ASSERT_BUFFERNE(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
+
+	mr_rng_destroy(rng);
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, RatchetForReceivingMany10) { receivetest(10); }
@@ -334,6 +394,7 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	unsigned int generation,
 	const unsigned char expectedkey[], size_t expectedkeysize)
 {
+	auto ctx = mrclient_create(&_cfg);
 	_mr_chain_state chain{};
 	
 	auto r = chain_initialize(ctx, &chain, chainkey, (uint32_t)chainkeysize);
@@ -343,6 +404,8 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	r = chain_ratchetforreceiving(ctx, &chain, generation, key, sizeof(key));
 	ASSERT_EQ(E_SUCCESS, r);
 	ASSERT_BUFFEREQ(key, sizeof(key), expectedkey, (unsigned int)expectedkeysize);
+
+	mrclient_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, Reference1) {

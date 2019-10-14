@@ -1,5 +1,7 @@
 #pragma once
 
+#define TRACE
+
 #define SIZEOF(x) static_cast<uint32_t>(sizeof(x))
 
 template<class... Args>
@@ -84,4 +86,25 @@ struct run_on_exit {
 };
 
 size_t calculate_memory_used();
-#define ASSERT_ALL_MEMORY_FREED() ASSERT_EQ(0, calculate_memory_used())
+void free_all();
+
+#define EXPECT_ALL_MEMORY_FREED() EXPECT_EQ(0, calculate_memory_used())
+
+
+
+
+
+
+
+
+
+
+#define TEST(test_suite_name, test_name) \
+inline void test_suite_name##_##test_name##_Test_internal(); \
+GTEST_TEST(test_suite_name, test_name) \
+{ \
+	test_suite_name##_##test_name##_Test_internal(); \
+	EXPECT_ALL_MEMORY_FREED(); \
+	free_all(); \
+} \
+inline void test_suite_name##_##test_name##_Test_internal()

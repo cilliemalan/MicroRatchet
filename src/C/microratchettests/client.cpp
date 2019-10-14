@@ -31,12 +31,12 @@ static constexpr size_t buffersize_overhead = buffersize_total - buffersize;
 	auto serveridentity = mr_ecdsa_create(server); \
 	ASSERT_EQ(E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey))); \
 	ASSERT_EQ(E_SUCCESS, mrclient_set_identity(server, serveridentity)); \
-	run_on_exit _a{[client] { mrclient_destroy(client); }}; \
-	run_on_exit _b{[server] { mrclient_destroy(server); }};
-
-#define TEST_POSTAMBLE \
-	mrclient_destroy(client); \
-	mrclient_destroy(server);
+	run_on_exit _a{[client, server, clientidentity, serveridentity] { \
+		mrclient_destroy(client); \
+		mrclient_destroy(server); \
+		mr_ecdsa_destroy(clientidentity); \
+		mr_ecdsa_destroy(serveridentity); \
+	}};
 
 
 TEST(Client, Create) {

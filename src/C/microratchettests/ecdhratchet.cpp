@@ -47,6 +47,12 @@ TEST(EcdhRatchet, ServerInitializeTest) {
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.sendingchain.chainkey, KEY_SIZE);
 	EXPECT_EQ(0, ratchet.receivingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.receivingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(ckey);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ClientInitializeTest) {
@@ -106,6 +112,13 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	EXPECT_EQ(0, ratchet2.receivingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.sendingchain.chainkey, KEY_SIZE);
 	EXPECT_EQ(0, ratchet2.sendingchain.generation);
+
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryTest1) {
@@ -161,6 +174,13 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
+
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryTest2) {
@@ -219,6 +239,14 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
+
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(skey3);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainRatchetTest) {
@@ -284,6 +312,14 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
+
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(skey3);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, SecondChainRatchetTest) {
@@ -359,6 +395,15 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet3.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
+
+	mr_ecdh_destroy(ckey3);
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(skey3);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mr_rng_destroy(rng);
+	mrclient_destroy(mr_ctx);
 }
 
 
@@ -382,6 +427,10 @@ void _ServerInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 
 	EXPECT_BUFFEREQ(rckey, KEY_SIZE, ecdhstep.receivingchain.chainkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(sckey, KEY_SIZE, ecdhstep.sendingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ServerInitializeReferenceTest1) {
@@ -447,6 +496,10 @@ void _ClientInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 
 	EXPECT_BUFFEREQ(rckey, KEY_SIZE, ecdhstep2.receivingchain.chainkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(sckey, KEY_SIZE, ecdhstep1.sendingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(ckey1);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ClientInitializeReferenceTest1) {
@@ -522,6 +575,10 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 		rpk, KEY_SIZE, _k));
 
 	EXPECT_BUFFEREQ(erck, KEY_SIZE, step1.receivingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(_k);
+	mr_ecdh_destroy(key);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, RatchetReferenceTest1) {
@@ -602,6 +659,11 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 		rpk, KEY_SIZE, nkey));
 
 	EXPECT_BUFFEREQ(esck, KEY_SIZE, step1.sendingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(_k);
+	mr_ecdh_destroy(key);
+	mr_ecdh_destroy(nkey);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, SecondRatchetReferenceTest1) {
@@ -699,6 +761,12 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 	EXPECT_BUFFEREQ(rckey, KEY_SIZE, cecdhstep1.sendingchain.chainkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(sckey, KEY_SIZE, secdhstep.sendingchain.chainkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(sckey, KEY_SIZE, cecdhstep2.receivingchain.chainkey, KEY_SIZE);
+
+	mr_ecdh_destroy(ckey2);
+	mr_ecdh_destroy(ckey1);
+	mr_ecdh_destroy(skey2);
+	mr_ecdh_destroy(skey1);
+	mrclient_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryReferenceTest1) {
