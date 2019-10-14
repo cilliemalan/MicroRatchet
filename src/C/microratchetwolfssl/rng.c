@@ -42,8 +42,8 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 {
 	_mr_rng_ctx* ctx = _ctx;
-	if (outputsize < 1) return E_INVALIDSIZE;
-	if (!output) return E_INVALIDARGUMENT;
+	FAILIF(outputsize < 1, E_INVALIDSIZE, "outputsize < 1")
+	FAILIF(!output, E_INVALIDARGUMENT, "!output")
 
 #ifdef CUSTOM_RNG
 	if (ctx->random_data && ctx->random_data_length)
@@ -66,11 +66,11 @@ mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsiz
 	if (ctx->rng.seed.handle == 0)
 	{
 		int r = wc_InitRng(&ctx->rng);
-		if (r != 0) return E_INVALIDOP;
+		FAILIF(r != 0, E_INVALIDOP, "r != 0")
 	}
 
 	int r = wc_RNG_GenerateBlock(&ctx->rng, output, outputsize);
-	if (r != 0) return E_INVALIDOP;
+	FAILIF(r != 0, E_INVALIDOP, "r != 0")
 	return E_SUCCESS;
 }
 

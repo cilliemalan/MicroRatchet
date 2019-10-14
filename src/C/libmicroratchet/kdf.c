@@ -4,9 +4,9 @@
 
 mr_result_t kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t outputlen)
 {
-	if (!mr_ctx || !key || !output) return E_INVALIDARGUMENT;
-	if (keylen != 16 && keylen != 24 && keylen != 32) return E_INVALIDSIZE;
-	if (outputlen == 0) return E_SUCCESS;
+	FAILIF(!mr_ctx || !key || !output, E_INVALIDARGUMENT, "!mr_ctx || !key || !output")
+	FAILIF(keylen != 16 && keylen != 24 && keylen != 32, E_INVALIDSIZE, "keylen != 16 && keylen != 24 && keylen != 32")
+	FAILIF(outputlen == 0, E_SUCCESS, "outputlen == 0")
 
 	int r = E_SUCCESS;
 

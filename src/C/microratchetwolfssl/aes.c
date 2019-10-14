@@ -21,11 +21,11 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 mr_result_t mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 {
 	_mr_aes_ctx* ctx = _ctx;
-	if (keysize != 16 && keysize != 24 && keysize != 32) return E_INVALIDSIZE;
+	FAILIF(keysize != 16 && keysize != 24 && keysize != 32, E_INVALIDSIZE, "keysize != 16 && keysize != 24 && keysize != 32")
 
 
 	int r = wc_AesSetKeyDirect(&ctx->wc_aes, key, keysize, 0, AES_ENCRYPTION);
-	if (r != 0) return E_INVALIDOP;
+	FAILIF(r != 0, E_INVALIDOP, "r != 0")
 
 	return E_SUCCESS;
 }	
@@ -33,9 +33,9 @@ mr_result_t mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 mr_result_t mr_aes_process(mr_aes_ctx _ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
 {
 	_mr_aes_ctx* ctx = _ctx;
-	if (amount > spaceavail) return E_INVALIDSIZE;
-	if (!data || !output || !_ctx) return E_INVALIDARGUMENT;
-	if (amount < 16 || spaceavail < 16) return E_INVALIDSIZE;
+	FAILIF(amount > spaceavail, E_INVALIDSIZE, "amount > spaceavail")
+	FAILIF(!data || !output || !_ctx, E_INVALIDARGUMENT, "!data || !output || !_ctx")
+	FAILIF(amount < 16 || spaceavail < 16, E_INVALIDSIZE, "amount < 16 || spaceavail < 16")
 
 	wc_AesEncryptDirect(&ctx->wc_aes, output, data);
 	return E_SUCCESS;

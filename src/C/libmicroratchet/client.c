@@ -33,13 +33,13 @@ static bool allzeroes(const uint8_t* d, uint32_t amt)
 
 static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
-	if (!ctx || !data || !key || !iv) return E_INVALIDARGUMENT;
-	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
-	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
-	if (datasize < MAC_SIZE + 1) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !key || !iv, E_INVALIDARGUMENT, "!ctx || !data || !key || !iv")
+	FAILIF(keysize != KEY_SIZE, E_INVALIDSIZE, "keysize != KEY_SIZE")
+	FAILIF(ivsize < NONCE_SIZE, E_INVALIDSIZE, "ivsize < NONCE_SIZE")
+	FAILIF(datasize < MAC_SIZE + 1, E_INVALIDSIZE, "datasize < MAC_SIZE + 1")
 
 	mr_poly_ctx mac = mr_poly_create(ctx);
-	if (!mac) return E_NOMEM;
+	FAILIF(!mac, E_NOMEM, "!mac")
 	mr_result_t result = E_SUCCESS;
 	_R(result, mr_poly_init(mac, key, keysize, iv, ivsize));
 	_R(result, mr_poly_process(mac, data, datasize - MAC_SIZE));
@@ -55,16 +55,16 @@ static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, co
 
 static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize, bool* result)
 {
-	if (!ctx || !data || !key || !iv || !result) return E_INVALIDARGUMENT;
-	if (keysize != KEY_SIZE) return E_INVALIDSIZE;
-	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
-	if (datasize < MAC_SIZE + 1) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !key || !iv || !result, E_INVALIDARGUMENT, "!ctx || !data || !key || !iv || !result")
+	FAILIF(keysize != KEY_SIZE, E_INVALIDSIZE, "keysize != KEY_SIZE")
+	FAILIF(ivsize < NONCE_SIZE, E_INVALIDSIZE, "ivsize < NONCE_SIZE")
+	FAILIF(datasize < MAC_SIZE + 1, E_INVALIDSIZE, "datasize < MAC_SIZE + 1")
 
 	*result = false;
 
 	uint8_t computedmac[MAC_SIZE] = { 0 };
 	mr_poly_ctx mac = mr_poly_create(ctx);
-	if (!mac) return E_NOMEM;
+	FAILIF(!mac, E_NOMEM, "!mac")
 	mr_result_t rr = E_SUCCESS;
 	_R(rr, mr_poly_init(mac, key, keysize, iv, ivsize));
 	_R(rr, mr_poly_process(mac, data, datasize - MAC_SIZE));
@@ -81,8 +81,8 @@ static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 
 static mr_result_t digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, uint8_t* digest, uint32_t digestsize)
 {
-	if (!ctx || !data || !digest) return E_INVALIDARGUMENT;
-	if (digestsize < DIGEST_SIZE) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !digest, E_INVALIDARGUMENT, "!ctx || !data || !digest")
+	FAILIF(digestsize < DIGEST_SIZE, E_INVALIDSIZE, "digestsize < DIGEST_SIZE")
 
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, data, datasize));
@@ -92,8 +92,8 @@ static mr_result_t digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, 
 
 static mr_result_t sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_ctx signer)
 {
-	if (!ctx || !data || !signer) return E_INVALIDARGUMENT;
-	if (datasize < SIGNATURE_SIZE + 1) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !signer, E_INVALIDARGUMENT, "!ctx || !data || !signer")
+	FAILIF(datasize < SIGNATURE_SIZE + 1, E_INVALIDSIZE, "datasize < SIGNATURE_SIZE + 1")
 
 	uint8_t sha[DIGEST_SIZE];
 	uint32_t sigresult = 0;
@@ -106,8 +106,8 @@ static mr_result_t sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa
 
 static mr_result_t verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* pubkey, uint32_t pubkeysize, bool* result)
 {
-	if (!ctx || !data || !pubkey || !result) return E_INVALIDARGUMENT;
-	if (datasize < SIGNATURE_SIZE + 1) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !pubkey || !result, E_INVALIDARGUMENT, "!ctx || !data || !pubkey || !result")
+	FAILIF(datasize < SIGNATURE_SIZE + 1, E_INVALIDSIZE, "datasize < SIGNATURE_SIZE + 1")
 
 	*result = false;
 	uint8_t sha[DIGEST_SIZE];
@@ -125,17 +125,17 @@ static mr_result_t verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 
 static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
-	if (!ctx || !data || !key || !iv) return E_INVALIDARGUMENT;
-	if (datasize < 1) return E_INVALIDSIZE;
-	if (keysize != KEY_SIZE && keysize != MSG_KEY_SIZE) return E_INVALIDSIZE;
-	if (ivsize < NONCE_SIZE) return E_INVALIDSIZE;
+	FAILIF(!ctx || !data || !key || !iv, E_INVALIDARGUMENT, "!ctx || !data || !key || !iv")
+	FAILIF(datasize < 1, E_INVALIDSIZE, "datasize < 1")
+	FAILIF(keysize != KEY_SIZE && keysize != MSG_KEY_SIZE, E_INVALIDSIZE, "keysize != KEY_SIZE && keysize != MSG_KEY_SIZE")
+	FAILIF(ivsize < NONCE_SIZE, E_INVALIDSIZE, "ivsize < NONCE_SIZE")
 
 	LOGD("crypt with iv         ", iv, ivsize);
 	LOGD("crypt with key        ", key, keysize);
 
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
-	if (!aes) return E_NOMEM;
+	FAILIF(!aes, E_NOMEM, "!aes")
 	mr_result_t result = E_SUCCESS;
 	_R(result, mr_aes_init(aes, key, keysize));
 	_R(result, aesctr_init(&cipher, aes, iv, ivsize));
@@ -165,8 +165,8 @@ mr_ctx mrclient_create(const mr_config* config)
 mr_result_t mrclient_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
-	if (!ctx) return E_INVALIDARGUMENT;
-	if (!identity) return E_INVALIDARGUMENT;
+	FAILIF(!ctx, E_INVALIDARGUMENT, "!ctx")
+	FAILIF(!identity, E_INVALIDARGUMENT, "!identity")
 	
 	ctx->identity = identity;
 	return E_SUCCESS;
@@ -174,10 +174,10 @@ mr_result_t mrclient_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
 
 static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	if (!ctx || !output) return E_INVALIDARGUMENT;
-	if (!ctx->config.is_client) return E_INVALIDOP;
-	if (spaceavail < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
-	if (!ctx->identity) return E_INVALIDOP;
+	FAILIF(!ctx || !output, E_INVALIDARGUMENT, "!ctx || !output")
+	FAILIF(!ctx->config.is_client, E_INVALIDOP, "!ctx->config.is_client")
+	FAILIF(spaceavail < INIT_REQ_MSG_SIZE, E_INVALIDSIZE, "spaceavail < INIT_REQ_MSG_SIZE")
+	FAILIF(!ctx->identity, E_INVALIDOP, "!ctx->identity")
 
 	LOG("--send_initialization_request");
 
@@ -232,9 +232,9 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 	if (!ctx || !data || !initializationnonce ||
 		!initializationnoncesize || !remoteecdhforinit ||
 		!remoteecdhforinitsize) return E_INVALIDARGUMENT;
-	if (amount < INIT_REQ_MSG_SIZE) return E_INVALIDSIZE;
-	if (ctx->config.is_client) return E_INVALIDOP;
-	if (!ctx->identity) return E_INVALIDOP;
+	FAILIF(amount < INIT_REQ_MSG_SIZE, E_INVALIDSIZE, "amount < INIT_REQ_MSG_SIZE")
+	FAILIF(ctx->config.is_client, E_INVALIDOP, "ctx->config.is_client")
+	FAILIF(!ctx->identity, E_INVALIDOP, "!ctx->identity")
 
 	LOG("--receive_initialization_request");
 
@@ -293,7 +293,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	uint8_t* remoteecdhforinit, uint32_t remoteecdhforinitsize,
 	uint8_t* output, uint32_t spaceavail)
 {
-	if (ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(ctx->config.is_client, E_INVALIDOP, "ctx->config.is_client")
 
 	LOG("--send_initialization_response");
 
@@ -317,7 +317,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	LOGD("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
 	mr_ecdh_ctx rootPreEcdh = mr_ecdh_create(ctx);
-	if (!rootPreEcdh) return E_NOMEM;
+	FAILIF(!rootPreEcdh, E_NOMEM, "!rootPreEcdh")
 	mr_result_t result = E_SUCCESS;
 	_R(result, mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
 	LOGD("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
@@ -343,12 +343,12 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	// chain key as soon as the client sends a sending chain key
 	uint8_t rre0[ECNUM_SIZE];
 	ctx->init.server.localratchetstep0 = mr_ecdh_create(ctx);
-	if (!ctx->init.server.localratchetstep0) return E_NOMEM;
+	FAILIF(!ctx->init.server.localratchetstep0, E_NOMEM, "!ctx->init.server.localratchetstep0")
 	_C(mr_ecdh_generate(ctx->init.server.localratchetstep0, rre0, sizeof(rre0)));
 	LOGD("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
 	ctx->init.server.localratchetstep1 = mr_ecdh_create(ctx);
-	if (!ctx->init.server.localratchetstep1) return E_NOMEM;
+	FAILIF(!ctx->init.server.localratchetstep1, E_NOMEM, "!ctx->init.server.localratchetstep1")
 	_C(mr_ecdh_generate(ctx->init.server.localratchetstep1, rre1, sizeof(rre1)));
 	LOGD("rre1                  ", rre1, ECNUM_SIZE);
 
@@ -403,7 +403,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* data, uint32_t amount)
 {
-	if (!ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(!ctx->config.is_client, E_INVALIDOP, "!ctx->config.is_client")
 
 	uint32_t macOffset = amount - MAC_SIZE;
 	uint32_t ecdhOffset = INITIALIZATION_NONCE_SIZE;
@@ -464,12 +464,12 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	mr_result_t result = E_SUCCESS;
 	uint8_t localStep0Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep0 = mr_ecdh_create(ctx);
-	if (!localStep0) return E_NOMEM;
+	FAILIF(!localStep0, E_NOMEM, "!localStep0")
 	_R(result, mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
 	LOGD("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
 	uint8_t localStep1Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
-	if (!localStep1) return E_NOMEM;
+	FAILIF(!localStep1, E_NOMEM, "!localStep1")
 	_R(result, mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
 	LOGD("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
 
@@ -515,7 +515,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 
 static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	if (!ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(!ctx->config.is_client, E_INVALIDOP, "!ctx->config.is_client")
 
 	_mr_ratchet_state* secondToLast;
 	_C(ratchet_getsecondtolast(ctx, &secondToLast));
@@ -527,7 +527,7 @@ static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint
 
 static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint32_t amount)
 {
-	if (ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(ctx->config.is_client, E_INVALIDOP, "ctx->config.is_client")
 	uint8_t* payload = 0;
 	uint32_t payloadSize = 0;
 	_C(deconstruct_message(ctx,
@@ -552,7 +552,7 @@ static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uin
 
 static mr_result_t send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	if (ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(ctx->config.is_client, E_INVALIDOP, "ctx->config.is_client")
 
 	memcpy(output, ctx->init.server.nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
 	_mr_ratchet_state *laststep;
@@ -564,7 +564,7 @@ static mr_result_t receive_first_server_response(_mr_ctx* ctx, uint8_t* data, ui
 	const uint8_t* headerkey, uint32_t headerkeysize,
 	_mr_ratchet_state* step)
 {
-	if (!ctx->config.is_client) return E_INVALIDOP;
+	FAILIF(!ctx->config.is_client, E_INVALIDOP, "!ctx->config.is_client")
 
 	uint8_t* payload = 0;
 	uint32_t payloadsize = 0;
@@ -589,9 +589,9 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	bool includeecdh,
 	_mr_ratchet_state* step)
 {
-	if (includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH) return E_INVALIDSIZE;
-	if (!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH) return E_INVALIDSIZE;
-	if (amount < MIN_PAYLOAD_SIZE) return E_INVALIDSIZE;
+	FAILIF(includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH, E_INVALIDSIZE, "includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH")
+	FAILIF(!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH, E_INVALIDSIZE, "!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH")
+	FAILIF(amount < MIN_PAYLOAD_SIZE, E_INVALIDSIZE, "amount < MIN_PAYLOAD_SIZE")
 
 	LOG("--construct_message");
 
@@ -723,14 +723,14 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	_mr_ratchet_state* step,
 	bool usedNextKey)
 {
-	if (amount < MIN_MESSAGE_SIZE) return E_INVALIDSIZE;
+	FAILIF(amount < MIN_MESSAGE_SIZE, E_INVALIDSIZE, "amount < MIN_MESSAGE_SIZE")
 
 	uint32_t headerIvOffset = amount - MAC_SIZE - HEADERIV_SIZE;
 
 	// decrypt the header
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
-	if (!aes) return E_NOMEM;
+	FAILIF(!aes, E_NOMEM, "!aes")
 	mr_result_t result = E_SUCCESS;
 	_R(result, mr_aes_init(aes, headerkey, headerkeysize));
 	_R(result, aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
@@ -794,7 +794,7 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 			{
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
-				if (!newEcdh) return E_NOMEM;
+				FAILIF(!newEcdh, E_NOMEM, "!newEcdh")
 				mr_result_t result = E_SUCCESS;
 				_R(result, mr_ecdh_generate(newEcdh, 0, 0));
 
@@ -924,11 +924,11 @@ mr_result_t mrclient_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint
 mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
 {
 	_mr_ctx* ctx = _ctx;
-	if (!ctx) return E_INVALIDARGUMENT;
-	if (!message) return E_INVALIDARGUMENT;
-	if (messagesize < MIN_MESSAGE_SIZE) return E_INVALIDARGUMENT;
-	if (spaceavailable < MIN_MESSAGE_SIZE) return E_INVALIDARGUMENT;
-	if (spaceavailable < messagesize) return E_INVALIDARGUMENT;
+	FAILIF(!ctx, E_INVALIDARGUMENT, "!ctx")
+	FAILIF(!message, E_INVALIDARGUMENT, "!message")
+	FAILIF(messagesize < MIN_MESSAGE_SIZE, E_INVALIDARGUMENT, "messagesize < MIN_MESSAGE_SIZE")
+	FAILIF(spaceavailable < MIN_MESSAGE_SIZE, E_INVALIDARGUMENT, "spaceavailable < MIN_MESSAGE_SIZE")
+	FAILIF(spaceavailable < messagesize, E_INVALIDARGUMENT, "spaceavailable < messagesize")
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT RECEIVE");
 	else LOG("\n\n====SERVER RECEIVE");
@@ -967,12 +967,12 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
 {
 	_mr_ctx* ctx = _ctx;
-	if (!ctx) return E_INVALIDARGUMENT;
-	if (!payload) return E_INVALIDARGUMENT;
-	if (!ctx->init.initialized) return E_INVALIDOP;
+	FAILIF(!ctx, E_INVALIDARGUMENT, "!ctx")
+	FAILIF(!payload, E_INVALIDARGUMENT, "!payload")
+	FAILIF(!ctx->init.initialized, E_INVALIDOP, "!ctx->init.initialized")
 
-	if (payloadsize < MIN_PAYLOAD_SIZE) return E_INVALIDSIZE;
-	if (spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH) return E_INVALIDSIZE;
+	FAILIF(payloadsize < MIN_PAYLOAD_SIZE, E_INVALIDSIZE, "payloadsize < MIN_PAYLOAD_SIZE")
+	FAILIF(spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH, E_INVALIDSIZE, "spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH")
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT SEND");
 	else LOG("\n\n====SERVER SEND");

@@ -2,6 +2,7 @@
 
 #define TRACE
 
+
 #define SIZEOF(x) static_cast<uint32_t>(sizeof(x))
 
 template<class... Args>
@@ -103,6 +104,8 @@ void free_all();
 inline void test_suite_name##_##test_name##_Test_internal(); \
 GTEST_TEST(test_suite_name, test_name) \
 { \
+	EXPECT_ALL_MEMORY_FREED(); \
+	free_all(); \
 	test_suite_name##_##test_name##_Test_internal(); \
 	EXPECT_ALL_MEMORY_FREED(); \
 	free_all(); \

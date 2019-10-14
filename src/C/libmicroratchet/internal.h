@@ -39,10 +39,17 @@ extern "C" {
 #define OVERHEAD_WITH_ECDH (OVERHEAD_WITHOUT_ECDH + ECNUM_SIZE)
 #define INIT_REQ_MSG_SIZE (NONCE_SIZE + ECNUM_SIZE*2 + SIGNATURE_SIZE + MAC_SIZE)
 #define INIT_RES_MSG_SIZE (NONCE_SIZE*2 + ECNUM_SIZE*4 + SIGNATURE_SIZE + MAC_SIZE)
-#define MIN_MESSAGE_SIZE (OVERHEAD_WITH_ECDH + MIN_PAYLOAD_SIZE)
+#define MIN_MESSAGE_SIZE (OVERHEAD_WITHOUT_ECDH + MIN_PAYLOAD_SIZE)
 
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
 #define _R(r, x) if (r == E_SUCCESS) r = x;
+
+#ifdef DEBUG
+#include <stdio.h>
+#define FAILIF(condition, error, messageonfailure) if (condition) { printf("%s:%d error: %s\n", __FILE__, __LINE__, messageonfailure); return (error); }
+#else
+#define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
+#endif
 
 	typedef struct _mr_initialization_state {
 		bool initialized;

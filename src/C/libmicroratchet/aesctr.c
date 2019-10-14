@@ -5,7 +5,7 @@
 
 mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, uint32_t ivsize)
 {
-	if (!iv || !ctx || !aes) return E_INVALIDARGUMENT;
+	FAILIF(!iv || !ctx || !aes, E_INVALIDARGUMENT, "!iv || !ctx || !aes")
 
 	*ctx = (_mr_aesctr_ctx){ aes };
 	memcpy(ctx->ctr, iv, ivsize > 16 ? 16 : ivsize);
@@ -15,9 +15,9 @@ mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, 
 
 mr_result_t aesctr_process(_mr_aesctr_ctx *ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
 {
-	if (!data || !ctx || !output) return E_INVALIDARGUMENT;
-	if (amount == 0) return E_SUCCESS;
-	if (spaceavail < amount) return E_INVALIDARGUMENT;
+	FAILIF(!data || !ctx || !output, E_INVALIDARGUMENT, "!data || !ctx || !output")
+	FAILIF(amount == 0, E_SUCCESS, "amount == 0")
+	FAILIF(spaceavail < amount, E_INVALIDARGUMENT, "spaceavail < amount")
 
 	uint8_t *ctr = ctx->ctr;
 	uint8_t ctrout[16];

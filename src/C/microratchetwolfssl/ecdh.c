@@ -41,17 +41,17 @@ mr_result_t mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 mr_result_t mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	if (!ctx || !otherpublickey || !derivedkey) return E_INVALIDARG;
-	if (otherpublickeysize != 32) return E_INVALIDSIZE;
-	if (derivedkeyspaceavail < 32) return E_INVALIDSIZE;
+	FAILIF(!ctx || !otherpublickey || !derivedkey, E_INVALIDARG, "!ctx || !otherpublickey || !derivedkey")
+	FAILIF(otherpublickeysize != 32, E_INVALIDSIZE, "otherpublickeysize != 32")
+	FAILIF(derivedkeyspaceavail < 32, E_INVALIDSIZE, "derivedkeyspaceavail < 32")
 
 	ecc_point pub;
 	int result = ecc_import_public(otherpublickey, otherpublickeysize, &pub);
-	if (result != 0) return E_INVALIDOP;
+	FAILIF(result != 0, E_INVALIDOP, "result != 0")
 
 	int dummy = derivedkeyspaceavail;
 	result = wc_ecc_shared_secret_ex(&ctx->key, &pub, derivedkey, &dummy);
-	if (result != 0 || dummy != 32) return E_INVALIDOP;
+	FAILIF(result != 0 || dummy != 32, E_INVALIDOP, "result != 0 || dummy != 32")
 	return E_SUCCESS;
 }
 
@@ -65,7 +65,7 @@ mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key.k);
-	if (len < 0 || (uint32_t)len > spaceavail) return E_INVALIDSIZE;
+	FAILIF(len < 0 || (uint32_t)len > spaceavail, E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail")
 	int result = ecc_store(&ctx->key, data, spaceavail);
 	return E_SUCCESS;
 }
@@ -74,8 +74,8 @@ mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uint32_t privatekeysize)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	if (privatekeysize < 32) return E_INVALIDSIZE;
-	if (!privatekey || !ctx) return E_INVALIDARGUMENT;
+	FAILIF(privatekeysize < 32, E_INVALIDSIZE, "privatekeysize < 32")
+	FAILIF(!privatekey || !ctx, E_INVALIDARGUMENT, "!privatekey || !ctx")
 
 	ecc_key* key = &ctx->key;
 	int result = ecc_load(key, privatekey, privatekeysize);
@@ -86,8 +86,8 @@ mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, u
 mr_result_t mr_ecdh_getpublickey(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	if (publickeyspaceavail < 32) return E_INVALIDSIZE;
-	if (!publickey || !ctx) return E_INVALIDARGUMENT;
+	FAILIF(publickeyspaceavail < 32, E_INVALIDSIZE, "publickeyspaceavail < 32")
+	FAILIF(!publickey || !ctx, E_INVALIDARGUMENT, "!publickey || !ctx")
 
 	return ecc_getpublickey(&ctx->key, publickey, publickeyspaceavail);
 }
