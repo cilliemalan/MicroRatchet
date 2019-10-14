@@ -101,3 +101,47 @@ TEST(Client, ClientInitialization5) {
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
 }
+
+TEST(Client, ClientCommunicationClientToServer) {
+	TEST_PREAMBLE;
+
+	ASSERT_EQ(E_MORE, mrclient_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_MORE, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_MORE, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_MORE, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SUCCESS, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+
+	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	uint8_t msg[128] = {};
+	memcpy(msg, content, sizeof(content));
+	uint8_t* output = nullptr;
+	uint32_t size = 0;
+
+	EXPECT_EQ(E_SUCCESS, mrclient_send(client, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mrclient_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
+
+	ASSERT_TRUE(size > sizeof(content));
+	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
+}
+
+TEST(Client, ClientCommunicationServerToClient) {
+	TEST_PREAMBLE;
+
+	ASSERT_EQ(E_MORE, mrclient_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_MORE, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_MORE, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_MORE, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SUCCESS, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+
+	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+	uint8_t msg[128] = {};
+	memcpy(msg, content, sizeof(content));
+	uint8_t* output = nullptr;
+	uint32_t size = 0;
+
+	EXPECT_EQ(E_SUCCESS, mrclient_send(server, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mrclient_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
+
+	ASSERT_TRUE(size > sizeof(content));
+	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
+}
