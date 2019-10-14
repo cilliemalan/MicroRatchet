@@ -521,9 +521,7 @@ static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uin
 
 	memset(ctx->init.server.firstsendheaderkey, 0, sizeof(ctx->init.server.firstsendheaderkey));
 	memset(ctx->init.server.firstreceiveheaderkey, 0, sizeof(ctx->init.server.firstreceiveheaderkey));
-	mr_ecdh_destroy(ctx->init.server.localratchetstep0);
 	ctx->init.server.localratchetstep0 = 0;
-	mr_ecdh_destroy(ctx->init.server.localratchetstep1);
 	ctx->init.server.localratchetstep1 = 0;
 	ctx->init.initialized = true;
 
@@ -630,7 +628,7 @@ static mr_result_t construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 
 	// mac the message
 	_C(computemac(ctx, message, spaceavail, step->sendheaderkey, KEY_SIZE, message, MACIV_SIZE));
-	LOGD("[mac]                 ", message + spaceavail - MAC_SIZE, ECNUM_SIZE);
+	LOGD("[mac]                 ", message + spaceavail - MAC_SIZE, MAC_SIZE);
 
 	return E_SUCCESS;
 }
@@ -771,12 +769,13 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 			{
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
-				_C(mr_ecdh_generate(ctx, 0, 0));
+				_C(mr_ecdh_generate(newEcdh, 0, 0));
 
 				_C(ratchet_ratchet(ctx, step,
 					&_step,
 					message + ecdhOffset, ECNUM_SIZE,
 					newEcdh));
+
 				_C(ratchet_add(ctx, &_step));
 				step = &_step;
 			}
@@ -937,11 +936,29 @@ mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, u
 	_mr_ctx* ctx = _ctx;
 	if (!ctx) return E_INVALIDARGUMENT;
 	if (!payload) return E_INVALIDARGUMENT;
+	if (!ctx->init.initialized) return E_INVALIDOP;
+
+	if (payloadsize < MIN_PAYLOAD_SIZE) return E_INVALIDSIZE;
+	if (spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH) return E_INVALIDSIZE;
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT SEND");
 	else LOG("\n\n====SERVER SEND");
 
-	return E_INVALIDOP;
+	bool canIncludeEcdh = spaceavailable - payloadsize >= OVERHEAD_WITH_ECDH;
+
+	_mr_ratchet_state* step;
+	if (canIncludeEcdh)
+	{
+		ratchet_getlast(ctx, &step);
+	}
+	else
+	{
+		ratchet_getsecondtolast(ctx, &step);
+	}
+
+	_C(construct_message(ctx, payload, payloadsize, spaceavailable, canIncludeEcdh, step));
+
+	return E_SUCCESS;
 }
 
 uint32_t mrclient_state_size_needed(mr_ctx _ctx)
@@ -977,6 +994,7 @@ void mrclient_destroy(mr_ctx _ctx)
 			mr_rng_destroy(ctx->rng_ctx);
 			ctx->rng_ctx = 0;
 		}
+		*ctx = (_mr_ctx){ 0 };
 		mr_free(ctx, ctx);
 	}
 }
