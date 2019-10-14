@@ -3,10 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	// structures
 	typedef void* mr_ctx;
 	typedef void* mr_sha_ctx;
@@ -16,6 +12,7 @@ extern "C" {
 	typedef void* mr_ecdsa_ctx;
 	typedef void* mr_rng_ctx;
 
+	// defines and constants
 	typedef enum mr_result_e {
 		E_SUCCESS = 0,
 		E_MORE = 1,
@@ -29,6 +26,15 @@ extern "C" {
 		E_KEYLOST = -7,
 		E_NOTFOUND = -7
 	} mr_result_t;
+
+#define MR_MIN_PAYLOAD_SIZE 16
+#define MR_MIN_MESSAGE_SIZE 32
+#define MR_MIN_MESSAGE_SIZE_WITH_ECDH 64
+
+
+#ifdef __cplusplus
+	extern "C" {
+#endif
 
 	// these functions must be supplied by the integrating application.
 	// The project will fail to link if they are not implemented.
