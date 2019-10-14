@@ -82,3 +82,6 @@ struct run_on_exit {
 	inline ~run_on_exit() { wut(); }
 	std::function<void(void)> wut;
 };
+
+size_t calculate_memory_used();
+#define ASSERT_ALL_MEMORY_FREED() ASSERT_EQ(0, calculate_memory_used())

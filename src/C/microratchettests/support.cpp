@@ -2,8 +2,11 @@
 #include <microratchet.h>
 #include "support.h"
 #include <internal.h>
+#include <unordered_map>
+#include <gtest/gtest.h>
 
 // allocation functions for mr
+static std::unordered_map<void*, size_t> memory;
 
 mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 {
@@ -18,6 +21,8 @@ mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 		{
 			static_assert(sizeof(uint8_t) == 1, "uint8_t must be 1 byte");
 			*pointer = new uint8_t[amountrequested];
+			memory[*pointer] = amountrequested;
+			printf("alloc 0x%x (%d bytes)\n", reinterpret_cast<size_t>(*pointer), amountrequested);
 			if (*pointer) return E_SUCCESS;
 			else return E_NOMEM;
 		}
@@ -32,6 +37,23 @@ void mr_free(mr_ctx ctx, void* pointer)
 {
 	if (pointer)
 	{
+		auto szptr = memory.find(pointer);
+		ASSERT_NE(szptr, memory.end());
+		if (szptr == memory.end())
+		{
+			printf("ATTEMPT TO FREE UNKNOWN MEMORY at 0x%x\n", reinterpret_cast<size_t>(pointer));
+		}
+		else
+		{
+			printf("freed 0x%x (%d bytes)\n", reinterpret_cast<size_t>(pointer), szptr->second);
+		}
 		delete[] reinterpret_cast<uint8_t*>(pointer);
 	}
+}
+
+size_t calculate_memory_used()
+{
+	size_t sum = 0;
+	for (const auto &p : memory) sum += p.second;
+	return sum;
 }
