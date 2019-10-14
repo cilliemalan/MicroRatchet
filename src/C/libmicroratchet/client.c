@@ -385,6 +385,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 		ctx->config.applicationKey, KEY_SIZE,
 		output, INITIALIZATION_NONCE_SIZE));
 
+	mr_ecdh_destroy(rootPreEcdh);
 	return E_SUCCESS;
 }
 
@@ -760,6 +761,7 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 				ctx->init.server.localratchetstep1,
 				ctx->init.server.firstreceiveheaderkey, KEY_SIZE,
 				ctx->init.server.firstsendheaderkey, KEY_SIZE));
+			mr_ecdh_destroy(ctx->init.server.localratchetstep0);
 			_C(ratchet_add(ctx, &_step));
 			step = &_step;
 		}
@@ -798,7 +800,7 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	*payloadsize = payloadSize;
 
 	LOGD("[payload]             ", message + payloadOffset, payloadSize);
-
+	
 	return E_SUCCESS;
 }
 
@@ -989,11 +991,40 @@ void mrclient_destroy(mr_ctx _ctx)
 			mr_sha_destroy(ctx->sha_ctx);
 			ctx->sha_ctx = 0;
 		}
+
 		if (ctx->rng_ctx)
 		{
 			mr_rng_destroy(ctx->rng_ctx);
 			ctx->rng_ctx = 0;
 		}
+
+		for (int i = 0; i < NUM_RATCHETS; i++)
+		{
+			if (ctx->ratchets[i].ecdhkey)
+			{
+				mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+			}
+		}
+
+		if (ctx->config.is_client)
+		{
+			if (ctx->init.client.localecdhforinit)
+			{
+				mr_ecdh_destroy(ctx->init.client.localecdhforinit);
+			}
+		}
+		else
+		{
+			if (ctx->init.server.localratchetstep0)
+			{
+				mr_ecdh_destroy(ctx->init.server.localratchetstep0);
+			}
+			if (ctx->init.server.localratchetstep1)
+			{
+				mr_ecdh_destroy(ctx->init.server.localratchetstep1);
+			}
+		}
+
 		*ctx = (_mr_ctx){ 0 };
 		mr_free(ctx, ctx);
 	}

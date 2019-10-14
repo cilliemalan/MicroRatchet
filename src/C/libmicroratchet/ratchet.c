@@ -173,7 +173,7 @@ mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 	LOGD("ECDH Public:        ", remotepubickey, KEY_SIZE);
 
 	memset(ratchet, 0, sizeof(_mr_ratchet_state));
-	ratchet->ecdhkey = keypair;
+	ratchet->ecdhkey = keypair; // note: pointer aliased here
 	ratchet->num = 1;
 	if (receiveheaderkey) memcpy(ratchet->receiveheaderkey, receiveheaderkey, KEY_SIZE);
 	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
@@ -342,6 +342,7 @@ mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratc
 		ratchet->nextreceiveheaderkey, KEY_SIZE,
 		ratchet->nextsendheaderkey, KEY_SIZE));
 
+	if (ratchet->ecdhkey) mr_ecdh_destroy(ratchet->ecdhkey);
 	ratchet->ecdhkey = 0;
 	memset(ratchet->nextrootkey, 0, KEY_SIZE);
 	memset(ratchet->nextreceiveheaderkey, 0, KEY_SIZE);
