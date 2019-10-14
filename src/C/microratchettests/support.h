@@ -1,7 +1,5 @@
 #pragma once
 
-#define TRACE
-
 
 #define SIZEOF(x) static_cast<uint32_t>(sizeof(x))
 
