@@ -40,10 +40,13 @@ static mr_result_t computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, co
 
 	mr_poly_ctx mac = mr_poly_create(ctx);
 	if (!mac) return E_NOMEM;
-	_C(mr_poly_init(mac, key, keysize, iv, ivsize));
-	_C(mr_poly_process(mac, data, datasize - MAC_SIZE));
-	_C(mr_poly_compute(mac, data + datasize - MAC_SIZE, MAC_SIZE));
+	mr_result_t result = E_SUCCESS;
+	_R(result, mr_poly_init(mac, key, keysize, iv, ivsize));
+	_R(result, mr_poly_process(mac, data, datasize - MAC_SIZE));
+	_R(result, mr_poly_compute(mac, data + datasize - MAC_SIZE, MAC_SIZE));
 	mr_poly_destroy(mac);
+	_C(result);
+
 	LOGD("mac iv                ", iv, ivsize);
 	LOGD("mac key               ", key, keysize);
 	LOGD("mac computed          ", data + datasize - MAC_SIZE, MAC_SIZE);
@@ -59,18 +62,20 @@ static mr_result_t verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasiz
 
 	*result = false;
 
-	uint8_t computedmac[MAC_SIZE];
+	uint8_t computedmac[MAC_SIZE] = { 0 };
 	mr_poly_ctx mac = mr_poly_create(ctx);
 	if (!mac) return E_NOMEM;
-	_C(mr_poly_init(mac, key, keysize, iv, ivsize));
-	_C(mr_poly_process(mac, data, datasize - MAC_SIZE));
-	_C(mr_poly_compute(mac, computedmac, MAC_SIZE));
+	mr_result_t rr = E_SUCCESS;
+	_R(rr, mr_poly_init(mac, key, keysize, iv, ivsize));
+	_R(rr, mr_poly_process(mac, data, datasize - MAC_SIZE));
+	_R(rr, mr_poly_compute(mac, computedmac, MAC_SIZE));
 	LOGD("verify mac iv         ", iv, ivsize);
 	LOGD("verify mac key        ", key, keysize);
 	LOGD("verify mac computed   ", computedmac, MAC_SIZE);
 	LOGD("verify mac compareto  ", data + datasize - MAC_SIZE, MAC_SIZE);
 	*result = memcmp(computedmac, data + datasize - MAC_SIZE, MAC_SIZE) == 0;
 	mr_poly_destroy(mac);
+	_C(rr);
 	return E_SUCCESS;
 }
 
@@ -131,10 +136,12 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
 	if (!aes) return E_NOMEM;
-	_C(mr_aes_init(aes, key, keysize));
-	_C(aesctr_init(&cipher, aes, iv, ivsize));
-	_C(aesctr_process(&cipher, data, datasize, data, datasize));
+	mr_result_t result = E_SUCCESS;
+	_R(result, mr_aes_init(aes, key, keysize));
+	_R(result, aesctr_init(&cipher, aes, iv, ivsize));
+	_R(result, aesctr_process(&cipher, data, datasize, data, datasize));
 	mr_aes_destroy(aes);
+	_C(result);
 	return E_SUCCESS;
 }
 
@@ -188,6 +195,7 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 
 	// generate new ECDH keypair for init message and root key
 	uint8_t clientEcdhPub[ECNUM_SIZE];
+	if (ctx->init.client.localecdhforinit) mr_ecdh_destroy(ctx->init.client.localecdhforinit);
 	ctx->init.client.localecdhforinit = mr_ecdh_create(ctx);
 	_C(mr_ecdh_generate(ctx->init.client.localecdhforinit, clientEcdhPub, sizeof(clientEcdhPub)));
 	LOGD("client ecdh           ", clientEcdhPub, sizeof(clientEcdhPub));
@@ -310,14 +318,15 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
 	mr_ecdh_ctx rootPreEcdh = mr_ecdh_create(ctx);
 	if (!rootPreEcdh) return E_NOMEM;
-	_C(mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
+	mr_result_t result = E_SUCCESS;
+	_R(result, mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
 	LOGD("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
 
 	// generate server ECDH for root key and root key
 	uint8_t rootPreKey[KEY_SIZE];
-	_C(mr_ecdh_derivekey(rootPreEcdh, remoteecdhforinit, remoteecdhforinitsize, rootPreKey, sizeof(rootPreKey)));
-	_C(digest(ctx, rootPreKey, sizeof(rootPreKey), rootPreKey, sizeof(rootPreKey)));
-	_C(kdf_compute(ctx,
+	_R(result, mr_ecdh_derivekey(rootPreEcdh, remoteecdhforinit, remoteecdhforinitsize, rootPreKey, sizeof(rootPreKey)));
+	_R(result, digest(ctx, rootPreKey, sizeof(rootPreKey), rootPreKey, sizeof(rootPreKey)));
+	_R(result, kdf_compute(ctx,
 		rootPreKey, KEY_SIZE,
 		serverNonce, INITIALIZATION_NONCE_SIZE,
 		rootKey, KEY_SIZE * 3)); //rootkey, firstsendheaderkey, firstreceiveheaderkey
@@ -325,6 +334,9 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	LOGD("root key              ", ctx->init.server.rootkey, KEY_SIZE);
 	LOGD("first send header k   ", ctx->init.server.firstsendheaderkey, KEY_SIZE);
 	LOGD("first recv header k   ", ctx->init.server.firstreceiveheaderkey, KEY_SIZE);
+
+	mr_ecdh_destroy(rootPreEcdh);
+	_C(result);
 
 	// generate two server ECDH. One for ratchet 0 sending key and one for the next
 	// this is enough for the server to generate a receiving chain key and sending
@@ -385,7 +397,6 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 		ctx->config.applicationKey, KEY_SIZE,
 		output, INITIALIZATION_NONCE_SIZE));
 
-	mr_ecdh_destroy(rootPreEcdh);
 	return E_SUCCESS;
 }
 
@@ -450,20 +461,21 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	LOGD("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
 
 	// we now have enough information to construct our double ratchet
+	mr_result_t result = E_SUCCESS;
 	uint8_t localStep0Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep0 = mr_ecdh_create(ctx);
 	if (!localStep0) return E_NOMEM;
-	_C(mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
+	_R(result, mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
 	LOGD("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
 	uint8_t localStep1Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
 	if (!localStep1) return E_NOMEM;
-	_C(mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
+	_R(result, mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
 	LOGD("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
 
 	// initialize client root key and ecdh ratchet
 	uint8_t genKeys[KEY_SIZE * 3];
-	_C(kdf_compute(ctx,
+	_R(result, kdf_compute(ctx,
 		rootPreKey, KEY_SIZE,
 		data, INITIALIZATION_NONCE_SIZE,
 		genKeys, sizeof(genKeys)));
@@ -478,7 +490,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
 	_mr_ratchet_state ratchet0 = { 0 };
 	_mr_ratchet_state ratchet1 = { 0 };
-	_C(ratchet_initialize_client(ctx, &ratchet0, &ratchet1,
+	_R(result, ratchet_initialize_client(ctx, &ratchet0, &ratchet1,
 		rootKey, KEY_SIZE,
 		remoteRatchetEcdh0, ECNUM_SIZE,
 		remoteRatchetEcdh1, ECNUM_SIZE,
@@ -486,8 +498,17 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 		receiveHeaderKey, KEY_SIZE,
 		sendHeaderKey, KEY_SIZE,
 		localStep1));
-	_C(ratchet_add(ctx, &ratchet0));
-	_C(ratchet_add(ctx, &ratchet1));
+	_R(result, ratchet_add(ctx, &ratchet0));
+	_R(result, ratchet_add(ctx, &ratchet1));
+
+	if (result != E_SUCCESS)
+	{
+		if (localStep0) mr_ecdh_destroy(localStep0);
+		if (localStep1) mr_ecdh_destroy(localStep1);
+		if (ratchet0.num) ratchet_destroy(ctx, ratchet0.num);
+		if (ratchet1.num) ratchet_destroy(ctx, ratchet1.num);
+	}
+	_C(result);
 
 	return E_SUCCESS;
 }
@@ -710,9 +731,10 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
 	if (!aes) return E_NOMEM;
-	_C(mr_aes_init(aes, headerkey, headerkeysize));
-	_C(aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
-	_C(aesctr_process(&cipher, message, NONCE_SIZE, message, NONCE_SIZE));
+	mr_result_t result = E_SUCCESS;
+	_R(result, mr_aes_init(aes, headerkey, headerkeysize));
+	_R(result, aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
+	_R(result, aesctr_process(&cipher, message, NONCE_SIZE, message, NONCE_SIZE));
 	LOGD("headerkey             ", headerkey, headerkeysize);
 	LOGD("headeriv              ", message + headerIvOffset, HEADERIV_SIZE);
 
@@ -730,11 +752,12 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 	if (hasEcdh)
 	{
 		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
-		_C(aesctr_process(&cipher, message + NONCE_SIZE, ECNUM_SIZE, message + NONCE_SIZE, ECNUM_SIZE));
+		_R(result, aesctr_process(&cipher, message + NONCE_SIZE, ECNUM_SIZE, message + NONCE_SIZE, ECNUM_SIZE));
 		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 	}
 	mr_aes_destroy(aes);
 	aes = 0;
+	_C(result);
 
 
 	// get the nonce
@@ -771,14 +794,22 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 			{
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
-				_C(mr_ecdh_generate(newEcdh, 0, 0));
+				if (!newEcdh) return E_NOMEM;
+				mr_result_t result = E_SUCCESS;
+				_R(result, mr_ecdh_generate(newEcdh, 0, 0));
 
-				_C(ratchet_ratchet(ctx, step,
+				_R(result, ratchet_ratchet(ctx, step,
 					&_step,
 					message + ecdhOffset, ECNUM_SIZE,
 					newEcdh));
 
-				_C(ratchet_add(ctx, &_step));
+				_R(result, ratchet_add(ctx, &_step));
+				if (result != E_SUCCESS)
+				{
+					mr_ecdh_destroy(newEcdh);
+					if (_step.num) ratchet_destroy(ctx, _step.num);
+				}
+				_C(result);
 				step = &_step;
 			}
 		}

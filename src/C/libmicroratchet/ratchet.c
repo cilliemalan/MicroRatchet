@@ -121,7 +121,7 @@ mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 	return E_SUCCESS;
 }
 
-mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet)
+mr_result_t ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 {
 	if (!mr_ctx || !ratchet) return E_INVALIDOP;
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
@@ -144,9 +144,26 @@ mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet)
 
 	if (minix < 0) return E_NOTFOUND;
 	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
+	ratchet->num = maxnum + 1;
 	ctx->ratchets[minix] = *ratchet;
-	ctx->ratchets[minix].num = maxnum + 1;
 	return E_SUCCESS;
+}
+
+bool ratchet_destroy(_mr_ctx* ctx, int num)
+{
+	if (!ctx) return false;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		if (ctx->ratchets[i].num == num)
+		{
+			mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+			ctx->ratchets[i] = (_mr_ratchet_state){ 0 };
+			return true;
+		}
+	}
+
+	return false;
 }
 
 mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,

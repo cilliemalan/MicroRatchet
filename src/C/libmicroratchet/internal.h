@@ -42,8 +42,7 @@ extern "C" {
 #define MIN_MESSAGE_SIZE (OVERHEAD_WITH_ECDH + MIN_PAYLOAD_SIZE)
 
 #define _C(x) { int __r = x; if(__r != E_SUCCESS) return __r; }
-#define _N(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { ctx->next(__r, ctx, mr_ctx); return; } }
-#define _E(x, mr_ctx, ctx) { int __r = x; if(__r != E_SUCCESS) { (mr_ctx->next = ctx->next)(__r, ctx, mr_ctx); return; } }
+#define _R(r, x) if (r == E_SUCCESS) r = x;
 
 	typedef struct _mr_initialization_state {
 		bool initialized;
@@ -129,7 +128,8 @@ extern "C" {
 	mr_result_t ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result_t ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result_t ratchet_add(mr_ctx mr_ctx, const _mr_ratchet_state* ratchet);
+	mr_result_t ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
+	bool ratchet_destroy(_mr_ctx* ctx, int num);
 	mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		mr_ecdh_ctx previouskeypair,
