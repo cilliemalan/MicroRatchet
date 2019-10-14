@@ -111,6 +111,54 @@ namespace MicroRatchet.Tests
         }
 
         [Fact]
+        public void ClientCanSendLargeMessageAfterInitialization()
+        {
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+
+            var client = new MicroRatchetClient(clientServices, true);
+            var server = new MicroRatchetClient(serverServices, false);
+
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
+            client.SaveState();
+            server.SaveState();
+
+            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetClient.MinimumOverhead];
+            clientServices.RandomNumberGenerator.Generate(payload);
+            byte[] message = client.Send(payload);
+            byte[] received = server.Receive(message).Payload;
+            Assert.Equal(payload, received);
+        }
+
+        [Fact]
+        public void ServerCanSendLargeMessageAfterInitialization()
+        {
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+
+            var client = new MicroRatchetClient(clientServices, true);
+            var server = new MicroRatchetClient(serverServices, false);
+
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+            var firstPacket = client.Receive(responsePacket).ToSendBack;
+            var firstResponse = server.Receive(firstPacket).ToSendBack;
+            var lastResult = client.Receive(firstResponse).ToSendBack;
+            client.SaveState();
+            server.SaveState();
+
+            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetClient.MinimumOverhead];
+            clientServices.RandomNumberGenerator.Generate(payload);
+            byte[] message = server.Send(payload);
+            byte[] received = client.Receive(message).Payload;
+            Assert.Equal(payload, received);
+        }
+
+        [Fact]
         public void ClientInitializationClientReinstantiation()
         {
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
