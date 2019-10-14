@@ -41,7 +41,6 @@ void mr_free(mr_ctx ctx, void* pointer)
 	{
 		auto szptr = memory.find(pointer);
 #if defined(TRACE)
-		ASSERT_NE(szptr, memory.end());
 		if (szptr == memory.end())
 		{
 			printf("ATTEMPT TO FREE UNKNOWN MEMORY at 0x%x\n", reinterpret_cast<size_t>(pointer));
@@ -50,6 +49,7 @@ void mr_free(mr_ctx ctx, void* pointer)
 		{
 			printf("freed 0x%x (%d bytes)\n", reinterpret_cast<size_t>(pointer), szptr->second);
 		}
+		ASSERT_NE(szptr, memory.end());
 #endif 
 		if (szptr != memory.end()) memory.erase(szptr);
 		delete[] reinterpret_cast<uint8_t*>(pointer);
