@@ -152,7 +152,7 @@ TEST(Client, ClientCommunicationClientToServerWithoutExchange) {
 	EXPECT_EQ(E_SUCCESS, mrclient_send(client, msg, sizeof(content), sizeof(msg)));
 	EXPECT_EQ(E_SUCCESS, mrclient_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
 
-	ASSERT_TRUE(size >= sizeof(content));
+	ASSERT_TRUE(size == sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
 }
 
@@ -168,6 +168,6 @@ TEST(Client, ClientCommunicationServerToClientWithoutExchange) {
 	EXPECT_EQ(E_SUCCESS, mrclient_send(server, msg, sizeof(content), sizeof(msg)));
 	EXPECT_EQ(E_SUCCESS, mrclient_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
 
-	ASSERT_TRUE(size > sizeof(content));
+	ASSERT_TRUE(size == sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
 }
