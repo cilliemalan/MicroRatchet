@@ -56,6 +56,7 @@ void mr_sha_destroy(mr_sha_ctx ctx)
 	{
 		_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 		wc_Sha256Free(&_ctx->wc_sha);
+		*_ctx = (_mr_sha_ctx){ 0 };
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

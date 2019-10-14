@@ -102,6 +102,7 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 	if (ctx)
 	{
 		_mr_ecdsa_ctx* _ctx = (_mr_ecdsa_ctx*)ctx;
+		*_ctx = (_mr_ecdsa_ctx){ 0 };
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

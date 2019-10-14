@@ -47,6 +47,7 @@ void mr_aes_destroy(mr_aes_ctx ctx)
 	{
 		_mr_aes_ctx* _ctx = (_mr_aes_ctx*)ctx;
 		wc_AesFree(&_ctx->wc_aes);
+		*_ctx = (_mr_aes_ctx){ 0 };
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

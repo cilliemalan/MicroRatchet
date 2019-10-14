@@ -97,6 +97,7 @@ void mr_ecdh_destroy(mr_ecdh_ctx ctx)
 	if (ctx)
 	{
 		_mr_ecdh_ctx* _ctx = (_mr_ecdh_ctx*)ctx;
+		*_ctx = (_mr_ecdh_ctx){0};
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }
