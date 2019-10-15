@@ -267,5 +267,96 @@ namespace MicroRatchet.Tests
                 server.SaveState();
             }
         }
+
+        [Fact]
+        public void ClientInitializationRetransmitThrowsTest()
+        {
+            // this test makes sure that during the initialization process
+            // any retransmitted packet will cause an exception. However,
+            // the initialization process will not be affected and a client
+            // and server can still process non-repeated messages.
+
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+
+            var client = new MicroRatchetClient(clientServices, true);
+            var server = new MicroRatchetClient(serverServices, false);
+
+            var clientInitPacket = client.InitiateInitialization();
+            var responsePacket = server.Receive(clientInitPacket.ToArray()).ToSendBack;
+            Assert.Throws<InvalidOperationException>(() => server.Receive(clientInitPacket.ToArray()));
+            var firstPacket = client.Receive(responsePacket.ToArray()).ToSendBack;
+            Assert.Throws<InvalidOperationException>(() => client.Receive(responsePacket.ToArray()));
+            var firstResponse = server.Receive(firstPacket.ToArray()).ToSendBack;
+            Assert.Throws<InvalidOperationException>(() => server.Receive(firstPacket.ToArray()));
+            var lastResult = client.Receive(firstResponse.ToArray()).ToSendBack;
+            Assert.Throws<InvalidOperationException>(() => client.Receive(firstResponse.ToArray()));
+            client.SaveState();
+            server.SaveState();
+            ClientState clientState = ClientState.Load(clientServices.Storage, DefaultKexFactory.Instance);
+            ServerState serverState = ServerState.Load(serverServices.Storage, DefaultKexFactory.Instance);
+
+            var rng = new RandomNumberGenerator();
+            byte[] message1 = rng.Generate(32);
+            byte[] message2 = rng.Generate(32);
+            var m1 = client.Send(message1);
+            var p1 = server.Receive(m1).Payload;
+            var m2 = server.Send(message2);
+            var p2 = client.Receive(m2).Payload;
+            Assert.Equal(message1, p1);
+            Assert.Equal(message2, p2);
+        }
+
+        [Fact]
+        public void ClientInitializationRestartTest()
+        {
+            // this test simulates a client timeout during initialization. When this
+            // happens the client will restart initialization. The test checks that
+            // the server and client will behave properly no matter at what point
+            // during initialization the packet was dropped.
+
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+
+
+            for (int i = 0; i < 4; i++)
+            {
+                var client = new MicroRatchetClient(clientServices, true);
+                var server = new MicroRatchetClient(serverServices, false);
+
+                {
+                    var clientInitPacket = client.InitiateInitialization();
+                    if (i == 0) goto restart;
+                    var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+                    if (i == 1) goto restart;
+                    var firstPacket = client.Receive(responsePacket).ToSendBack;
+                    if (i == 2) goto restart;
+                    var firstResponse = server.Receive(firstPacket).ToSendBack;
+                    if (i == 3) goto restart;
+                    client.Receive(firstResponse);
+                }
+
+                restart:
+                {
+                    var clientInitPacket = client.InitiateInitialization();
+                    var responsePacket = server.Receive(clientInitPacket).ToSendBack;
+                    var firstPacket = client.Receive(responsePacket).ToSendBack;
+                    var firstResponse = server.Receive(firstPacket).ToSendBack;
+                    var lastResult = client.Receive(firstResponse).ToSendBack;
+
+                    Assert.Null(lastResult);
+                }
+
+                var rng = new RandomNumberGenerator();
+                byte[] message1 = rng.Generate(32);
+                byte[] message2 = rng.Generate(32);
+                var m1 = client.Send(message1);
+                var p1 = server.Receive(m1).Payload;
+                var m2 = server.Send(message2);
+                var p2 = client.Receive(m2).Payload;
+                Assert.Equal(message1, p1);
+                Assert.Equal(message2, p2);
+            }
+        }
     }
 }

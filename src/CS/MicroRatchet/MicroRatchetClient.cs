@@ -208,6 +208,10 @@ namespace MicroRatchet
                 {
                     throw new InvalidOperationException("The server was initialized before with a different public key");
                 }
+                else if (serverState.ClientInitializationNonce != null && initializationNonce.Matches(serverState.ClientInitializationNonce))
+                {
+                    throw new InvalidOperationException("The server was initialized before with the same nonce");
+                }
                 else
                 {
                     // the client wants to reinitialize. Reset state.
@@ -219,6 +223,8 @@ namespace MicroRatchet
                     serverState.Ratchets.Clear();
                 }
             }
+
+            serverState.ClientInitializationNonce = initializationNonce.ToArray();
 
             IVerifier verifier = VerifierFactory.Create(clientPublicKey);
 
