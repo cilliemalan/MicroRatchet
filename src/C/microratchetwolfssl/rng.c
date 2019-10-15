@@ -33,7 +33,7 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 {
 	_mr_rng_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), &ctx);
-	if (r != E_SUCCESS) return 0;
+	if (r != MR_E_SUCCESS) return 0;
 
 	*ctx = (_mr_rng_ctx){ mr_ctx };
 	return ctx;
@@ -42,8 +42,8 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 {
 	_mr_rng_ctx* ctx = _ctx;
-	FAILIF(outputsize < 1, E_INVALIDSIZE, "outputsize < 1")
-	FAILIF(!output, E_INVALIDARGUMENT, "!output")
+	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1")
+	FAILIF(!output, MR_E_INVALIDARG, "!output")
 
 #ifdef CUSTOM_RNG
 	if (ctx->random_data && ctx->random_data_length)
@@ -59,19 +59,19 @@ mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsiz
 			ctx->random_data_index = (ctx->random_data_index + cpy) % ctx->random_data_length;
 		}
 
-		return E_SUCCESS;
+		return MR_E_SUCCESS;
 	}
 #endif
 
 	if (ctx->rng.seed.handle == 0)
 	{
 		int r = wc_InitRng(&ctx->rng);
-		FAILIF(r != 0, E_INVALIDOP, "r != 0")
+		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
 	}
 
 	int r = wc_RNG_GenerateBlock(&ctx->rng, output, outputsize);
-	FAILIF(r != 0, E_INVALIDOP, "r != 0")
-	return E_SUCCESS;
+	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+	return MR_E_SUCCESS;
 }
 
 void mr_rng_destroy(mr_rng_ctx _ctx)

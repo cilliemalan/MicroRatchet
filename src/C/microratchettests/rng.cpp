@@ -20,7 +20,7 @@ TEST(Rng, Generate) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : data) if (d != 0xCC)
@@ -42,9 +42,9 @@ TEST(Rng, GenerateTwice) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data1, SIZEOF(data1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_rng_generate(rng, data2, SIZEOF(data2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : data1) if (d != 0xCC) { allcc = false; break; }
@@ -71,9 +71,9 @@ TEST(Rng, GenerateTwiceReinit) {
 	auto rng1 = mr_rng_create(mr_ctx);
 	auto rng2 = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng1, data1, SIZEOF(data1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_rng_generate(rng2, data2, SIZEOF(data2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : data1) if (d != 0xCC) { allcc = false; break; }
@@ -98,7 +98,7 @@ TEST(Rng, GenerateTiny) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_rng_destroy(rng);
 	mr_ctx_destroy(mr_ctx);
@@ -111,7 +111,7 @@ TEST(Rng, GenerateSmall) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : data) if (d != 0xCC)
@@ -133,7 +133,7 @@ TEST(Rng, GenerateHuge) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (int i = 0; i < size; i++) if (data[i] != 0xCC)

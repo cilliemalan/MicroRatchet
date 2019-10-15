@@ -20,7 +20,7 @@ TEST(Ecdsa, Generate) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : pubkey) if (d != 0xCC)
@@ -48,10 +48,10 @@ TEST(Ecdsa, Sign) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_ecdsa_sign(ecdsa, digest, SIZEOF(digest), signature, SIZEOF(signature));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	bool allz = true;
@@ -79,14 +79,14 @@ TEST(Ecdsa, Verify) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_ecdsa_sign(ecdsa, digest, SIZEOF(digest), signature, SIZEOF(signature));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	uint32_t res;
 	result = mr_ecdsa_verify(ecdsa, (const uint8_t*)signature, SIZEOF(signature), digest, SIZEOF(digest), &res);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);
@@ -108,14 +108,14 @@ TEST(Ecdsa, VerifyOther) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_ecdsa_sign(ecdsa, digest, SIZEOF(digest), signature, SIZEOF(signature));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	uint32_t res;
 	result = mr_ecdsa_verify_other((const uint8_t*)signature, SIZEOF(signature), (const uint8_t*)digest, SIZEOF(digest), (const uint8_t*)pubkey, SIZEOF(pubkey), &res);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);
@@ -131,7 +131,7 @@ void test_verify_ecdsa(const uint8_t* pubkey, uint32_t sizeofpubkey,
 
 	uint32_t res;
 	int result = mr_ecdsa_verify_other(signature, sizeofsignature, digest, sizeofdigest, pubkey, sizeofpubkey, &res);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);

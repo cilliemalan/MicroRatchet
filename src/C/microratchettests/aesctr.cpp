@@ -22,9 +22,9 @@ TEST(AesCtr, Init256) {
 	_mr_aesctr_ctx aesctr;
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = aesctr_init(&aesctr, aes, iv, SIZEOF(iv));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
 	mr_ctx_destroy(mr_ctx);
@@ -45,9 +45,9 @@ TEST(AesCtr, Init128) {
 	_mr_aesctr_ctx aesctr;
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = aesctr_init(&aesctr, aes, iv, SIZEOF(iv));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
 	mr_ctx_destroy(mr_ctx);
@@ -67,12 +67,12 @@ void processTestInternal(
 	_mr_aesctr_ctx aesctr;
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, keysize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = aesctr_init(&aesctr, aes, iv, ivsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = aesctr_process(&aesctr, input, inputsize, output, outputsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(output, outputsize, expected, expectedsize);
 
 	mr_aes_destroy(aes);

@@ -17,7 +17,7 @@ TEST(SymmetricRatchet, Initialize) {
 	_mr_chain_state chain;
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char zeroes[KEY_SIZE]{};
 	EXPECT_EQ(0, chain.generation);
@@ -39,12 +39,12 @@ TEST(SymmetricRatchet, BasicSend) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
 	unsigned int gen;
 	r = chain_ratchetforsending(ctx, &chain, key, sizeof(key), &gen);
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	ASSERT_EQ(gen, 1);
@@ -64,12 +64,12 @@ TEST(SymmetricRatchet, ChainKeyModulation) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
 	unsigned int gen;
 	r = chain_ratchetforsending(ctx, &chain, key, sizeof(key), &gen);
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	EXPECT_BUFFERNE(ck, sizeof(ck), chain.chainkey, sizeof(chain.chainkey));
 
@@ -87,16 +87,16 @@ TEST(SymmetricRatchet, MultiSend) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
 	unsigned char key2[MSG_KEY_SIZE]{};
 	unsigned int gen1;
 	unsigned int gen2;
 	r = chain_ratchetforsending(ctx, &chain, key1, sizeof(key1), &gen1);
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforsending(ctx, &chain, key2, sizeof(key2), &gen2);
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	ASSERT_EQ(gen1, 1);
@@ -119,11 +119,11 @@ TEST(SymmetricRatchet, BasicReceive) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, 1, key, sizeof(key));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	unsigned char zeroes32[KEY_SIZE]{};
@@ -148,14 +148,14 @@ TEST(SymmetricRatchet, MultiReceive) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
 	unsigned char key2[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, 1, key1, sizeof(key1));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chain, 2, key2, sizeof(key2));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	unsigned char zeroes32[KEY_SIZE]{};
@@ -182,14 +182,14 @@ TEST(SymmetricRatchet, SkipReceive) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
 	unsigned char key2[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, 1, key1, sizeof(key1));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chain, 10, key2, sizeof(key2));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	EXPECT_BUFFERNE(key1, sizeof(key1), zeroes, sizeof(zeroes));
@@ -213,20 +213,20 @@ TEST(SymmetricRatchet, OooReceive) {
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key1[MSG_KEY_SIZE]{};
 	unsigned char key2[MSG_KEY_SIZE]{};
 	unsigned char key3[MSG_KEY_SIZE]{};
 	unsigned char key4[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, 1, key1, sizeof(key1));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chain, 10, key2, sizeof(key2));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chain, 5, key3, sizeof(key3));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chain, 2, key4, sizeof(key4));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	EXPECT_BUFFERNE(key1, sizeof(key1), zeroes, sizeof(zeroes));
@@ -252,18 +252,18 @@ TEST(SymmetricRatchet, BasicSymmetry) {
 	_mr_chain_state chainb{};
 	
 	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char keya[MSG_KEY_SIZE]{};
 	unsigned int gen;
 	unsigned char keyb[MSG_KEY_SIZE]{};
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	r = chain_ratchetforsending(ctx, &chaina, keya, sizeof(keya), &gen);
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chainb, gen, keyb, sizeof(keyb));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	EXPECT_BUFFEREQ(keya, sizeof(keya), keyb, sizeof(keyb));
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb, sizeof(keyb));
@@ -283,9 +283,9 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	_mr_chain_state chainb{};
 
 	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned int gen1;
 	unsigned char keya1[MSG_KEY_SIZE]{};
@@ -295,13 +295,13 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	unsigned char keyb2[MSG_KEY_SIZE]{};
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	r = chain_ratchetforsending(ctx, &chaina, keya1, sizeof(keya1), &gen1);
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforsending(ctx, &chaina, keya2, sizeof(keya2), &gen2);
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chainb, gen1, keyb1, sizeof(keyb1));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_ratchetforreceiving(ctx, &chainb, gen2, keyb2, sizeof(keyb2));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	EXPECT_BUFFEREQ(keya1, sizeof(keya1), keyb1, sizeof(keyb1));
 	EXPECT_BUFFEREQ(keya2, sizeof(keya2), keyb2, sizeof(keyb2));
@@ -326,9 +326,9 @@ void deepsymmetrytest(int depth)
 	_mr_chain_state chainb{};
 
 	auto r = chain_initialize(ctx, &chaina, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	r = chain_initialize(ctx, &chainb, ck, sizeof(ck));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned int gen = 0;
 	unsigned char keya[MSG_KEY_SIZE]{};
@@ -336,11 +336,11 @@ void deepsymmetrytest(int depth)
 	while (gen != depth)
 	{
 		r = chain_ratchetforsending(ctx, &chaina, keya, sizeof(keya), &gen);
-		ASSERT_EQ(E_SUCCESS, r);
+		ASSERT_EQ(MR_E_SUCCESS, r);
 	}
 
 	r = chain_ratchetforreceiving(ctx, &chainb, gen, keyb, sizeof(keyb));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	EXPECT_BUFFEREQ(keya, sizeof(keya), keyb, sizeof(keyb));
@@ -366,11 +366,11 @@ void receivetest(int depth)
 	_mr_chain_state chain{};
 
 	auto r = chain_initialize(ctx, &chain, ck, sizeof(ck));
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, depth, key, sizeof(key));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	unsigned char zeroes[MSG_KEY_SIZE]{};
 	unsigned char zeroes32[KEY_SIZE]{};
@@ -398,11 +398,11 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	_mr_chain_state chain{};
 	
 	auto r = chain_initialize(ctx, &chain, chainkey, (uint32_t)chainkeysize);
-	ASSERT_EQ(r, E_SUCCESS);
+	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	unsigned char key[MSG_KEY_SIZE]{};
 	r = chain_ratchetforreceiving(ctx, &chain, generation, key, sizeof(key));
-	ASSERT_EQ(E_SUCCESS, r);
+	ASSERT_EQ(MR_E_SUCCESS, r);
 	ASSERT_BUFFEREQ(key, sizeof(key), expectedkey, (unsigned int)expectedkeysize);
 
 	mr_ctx_destroy(ctx);

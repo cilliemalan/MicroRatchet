@@ -4,16 +4,16 @@
 
 mr_result_t kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t outputlen)
 {
-	FAILIF(!mr_ctx || !key || !output, E_INVALIDARGUMENT, "!mr_ctx || !key || !output")
-	FAILIF(keylen != 16 && keylen != 24 && keylen != 32, E_INVALIDSIZE, "keylen != 16 && keylen != 24 && keylen != 32")
-	FAILIF(outputlen == 0, E_SUCCESS, "outputlen == 0")
+	FAILIF(!mr_ctx || !key || !output, MR_E_INVALIDARG, "!mr_ctx || !key || !output")
+	FAILIF(keylen != 16 && keylen != 24 && keylen != 32, MR_E_INVALIDSIZE, "keylen != 16 && keylen != 24 && keylen != 32")
+	FAILIF(outputlen == 0, MR_E_SUCCESS, "outputlen == 0")
 
-	int r = E_SUCCESS;
+	int r = MR_E_SUCCESS;
 
 	// initialize AES with key
 	mr_aes_ctx aes = mr_aes_create(mr_ctx);
 	r = mr_aes_init(aes, key, keylen);
-	if (r != E_SUCCESS) goto exit;
+	if (r != MR_E_SUCCESS) goto exit;
 
 	// initialization phase. Pass all the bytes of info into AES in kind-of CBC mode.
 	uint8_t ctr[16];
@@ -29,7 +29,7 @@ mr_result_t kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, cons
 			}
 
 			int r = mr_aes_process(aes, ctr, sizeof(ctr), ctr, sizeof(ctr));
-			if (r != E_SUCCESS) goto exit;
+			if (r != MR_E_SUCCESS) goto exit;
 
 			info_offset += 16;
 		}
@@ -45,12 +45,12 @@ mr_result_t kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, cons
 		if (outputlen - output_offset >= 16)
 		{
 			int r = mr_aes_process(aes, ctr, sizeof(ctr), output + output_offset, sizeof(ctr));
-			if (r != E_SUCCESS) goto exit;
+			if (r != MR_E_SUCCESS) goto exit;
 		}
 		else
 		{
 			int r = mr_aes_process(aes, ctr, sizeof(ctr), ctr, sizeof(ctr));
-			if (r != E_SUCCESS) goto exit;
+			if (r != MR_E_SUCCESS) goto exit;
 			memcpy(output + output_offset, ctr, outputlen - output_offset);
 		}
 		output_offset += 16;

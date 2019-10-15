@@ -17,7 +17,7 @@ TEST(Sha, Init) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
 	mr_ctx_destroy(mr_ctx);
@@ -30,7 +30,7 @@ TEST(Sha, Process) {
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	result = mr_sha_process(sha, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
 	mr_ctx_destroy(mr_ctx);
@@ -44,11 +44,11 @@ void testsha(const uint8_t (&data)[L1], const uint8_t(&expected_output)[L2])
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	if(data && sizeof(data) > 0) result = mr_sha_process(sha, data, SIZEOF(data));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 
 	mr_sha_destroy(sha);
@@ -67,9 +67,9 @@ TEST(Sha, ReferenceTestEmpty) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 
 	mr_sha_destroy(sha);
@@ -151,16 +151,16 @@ TEST(Sha, ReferenceTestTwice) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_process(sha, input1, SIZEOF(input1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected1, sizeof(expected1), output, sizeof(output));
 	result = mr_sha_process(sha, input2, SIZEOF(input2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
 
 	mr_sha_destroy(sha);

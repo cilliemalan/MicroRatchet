@@ -19,7 +19,7 @@ TEST(AesKdf, Init128) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, sizeof(key), iv, sizeof(iv), output, sizeof(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_ctx_destroy(mr_ctx);
 }
@@ -40,7 +40,7 @@ TEST(AesKdf, Init256) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, sizeof(key), iv, sizeof(iv), output, sizeof(output));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_ctx_destroy(mr_ctx);
 }
@@ -51,7 +51,7 @@ void test_process(const uint8_t* key, uint32_t keysize, const uint8_t* info, uin
 	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, keysize, info, infosize, output, expectedsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(output, expectedsize, expected, expectedsize);
 
 	delete[] output;

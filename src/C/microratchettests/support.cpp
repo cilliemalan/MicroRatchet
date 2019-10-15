@@ -19,7 +19,7 @@ mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 		if (amountrequested <= 0)
 		{
 			*pointer = nullptr;
-			return E_INVALIDSIZE;
+			return MR_E_INVALIDSIZE;
 		}
 		else
 		{
@@ -39,17 +39,17 @@ mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 #endif
 #endif
 
-				return E_SUCCESS;
+				return MR_E_SUCCESS;
 			}
 			else
 			{
-				return E_NOMEM;
+				return MR_E_NOMEM;
 			}
 		}
 	}
 	else
 	{
-		return E_INVALIDARGUMENT;
+		return MR_E_INVALIDARG;
 	}
 }
 

@@ -14,14 +14,14 @@
 
 	// defines and constants
 	typedef enum mr_result_e {
-		E_SUCCESS = 0,
-		E_SENDBACK = 1,
-		E_INVALIDARGUMENT = -1,
-		E_INVALIDSIZE = -2,
-		E_INVALIDOP = -3,
-		E_NOMEM = -4,
-		E_VERIFYFAIL = -5,
-		E_NOTFOUND = -6
+		MR_E_SUCCESS = 0,
+		MR_E_SENDBACK = 1,
+		MR_E_INVALIDARG = -1,
+		MR_E_INVALIDSIZE = -2,
+		MR_E_INVALIDOP = -3,
+		MR_E_NOMEM = -4,
+		MR_E_VERIFYFAIL = -5,
+		MR_E_NOTFOUND = -6
 	} mr_result_t;
 
 #define MR_MIN_PAYLOAD_SIZE 16
@@ -105,9 +105,6 @@
 
 	// free some memory previously allocated with mr_allocate.
 	void mr_free(mr_ctx ctx, void* pointer);
-
-
-
 
 
 	// these functions and structures are the public interface for MicroRatchet

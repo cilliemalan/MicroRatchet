@@ -25,7 +25,7 @@ TEST(Aes, Init256) {
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
 	mr_ctx_destroy(mr_ctx);
@@ -41,7 +41,7 @@ TEST(Aes, Init128) {
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
 	mr_ctx_destroy(mr_ctx);
@@ -58,9 +58,9 @@ void processTest(
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, keysize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_aes_process(aes, input, inputsize, output, outputsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);

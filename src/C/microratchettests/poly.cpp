@@ -19,7 +19,7 @@ TEST(Poly, Init) {
 	};
 
 	int result = mr_poly_init(poly, key, SIZEOF(key), iv, SIZEOF(iv));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_poly_destroy(poly);
 	mr_ctx_destroy(mr_ctx);
@@ -44,10 +44,10 @@ TEST(Poly, Process) {
 	};
 
 	int result = mr_poly_init(poly, key, SIZEOF(key), iv, SIZEOF(iv));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_poly_process(poly, info, SIZEOF(info));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_poly_destroy(poly);
 	mr_ctx_destroy(mr_ctx);
@@ -64,13 +64,13 @@ void computetest(
 	uint8_t *output = new uint8_t[expectedsize];
 
 	int result = mr_poly_init(poly, key, keysize, iv, ivsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_poly_process(poly, info, infosize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	result = mr_poly_compute(poly, output, expectedsize);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	EXPECT_BUFFEREQ(output, expectedsize, expected, expectedsize);
 	mr_poly_destroy(poly);

@@ -20,7 +20,7 @@ TEST(Ecdh, Generate) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
 	auto result = mr_ecdh_generate(ecdh, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
 	for (auto d : pubkey) if (d != 0xCC)
@@ -43,16 +43,16 @@ TEST(Ecdh, Derive) {
 	uint8_t pubkey1[32];
 	uint8_t pubkey2[32];
 	int result = mr_ecdh_generate(ecdh1, pubkey1, SIZEOF(pubkey1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_generate(ecdh2, pubkey2, SIZEOF(pubkey2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	uint8_t derived1[32];
 	uint8_t derived2[32];
 	result = mr_ecdh_derivekey(ecdh1, (const uint8_t*)pubkey2, SIZEOF(pubkey1), derived1, SIZEOF(derived1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_derivekey(ecdh2, (const uint8_t*)pubkey1, SIZEOF(pubkey2), derived2, SIZEOF(derived2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	EXPECT_BUFFEREQ(derived1, sizeof(derived1), derived2, sizeof(derived2));
 
@@ -76,30 +76,30 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	uint8_t pubkey3[32];
 	uint8_t pubkey4[32];
 	int result = mr_ecdh_generate(ecdh1, pubkey1, SIZEOF(pubkey1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_generate(ecdh2, pubkey2, SIZEOF(pubkey2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_generate(ecdh3, pubkey3, SIZEOF(pubkey3));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_generate(ecdh4, pubkey4, SIZEOF(pubkey4));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// derive a key with the first two
 	uint8_t derived1[32];
 	uint8_t derived2[32];
 	result = mr_ecdh_derivekey(ecdh1, (const uint8_t*)pubkey2, SIZEOF(pubkey2), derived1, SIZEOF(derived1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_derivekey(ecdh2, (const uint8_t*)pubkey1, SIZEOF(pubkey1), derived2, SIZEOF(derived2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(derived1, sizeof(derived1), derived2, sizeof(derived2));
 
 	// derive a key with the other two
 	uint8_t derived3[32];
 	uint8_t derived4[32];
 	result = mr_ecdh_derivekey(ecdh3, (const uint8_t*)pubkey4, SIZEOF(pubkey4), derived3, SIZEOF(derived3));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_derivekey(ecdh4, (const uint8_t*)pubkey3, SIZEOF(pubkey3), derived4, SIZEOF(derived4));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(derived3, sizeof(derived3), derived4, sizeof(derived4));
 
 	// 1&2 and 3&4 must not be the same
@@ -112,9 +112,9 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	uint32_t store_size = mr_ecdh_store_size_needed(ecdh1);
 
 	result = mr_ecdh_store(ecdh1, storage1, SIZEOF(storage1));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_store(ecdh2, storage2, SIZEOF(storage2));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// destroy the first two ecdhes
 	mr_ecdh_destroy(ecdh1);
@@ -122,17 +122,17 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 
 	// load the stored params into 3&4
 	result = mr_ecdh_load(ecdh3, storage1, store_size);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_load(ecdh4, storage2, store_size);
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// now generate keys again
 	uint8_t derived5[32];
 	uint8_t derived6[32];
 	result = mr_ecdh_derivekey(ecdh3, (const uint8_t*)pubkey2, SIZEOF(pubkey2), derived5, SIZEOF(derived5));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_derivekey(ecdh4, (const uint8_t*)pubkey1, SIZEOF(pubkey1), derived6, SIZEOF(derived6));
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// and check them
 	EXPECT_BUFFEREQ(derived1, sizeof(derived1), derived5, sizeof(derived5));
@@ -150,11 +150,11 @@ void  TestReference(const uint8_t* privatekey, uint32_t privatekeysize, const ui
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
 	int r = mr_ecdh_setprivatekey(ecdh, privatekey, privatekeysize);
-	EXPECT_EQ(E_SUCCESS, r);
+	EXPECT_EQ(MR_E_SUCCESS, r);
 
 	uint8_t derived[32];
 	r = mr_ecdh_derivekey(ecdh, publickey, publickeysize, derived, sizeof(derived));
-	EXPECT_EQ(E_SUCCESS, r);
+	EXPECT_EQ(MR_E_SUCCESS, r);
 	EXPECT_BUFFEREQ(derived, sizeof(derived), expected, expectedsize);
 
 	mr_ecdh_destroy(ecdh);

@@ -37,7 +37,7 @@ TEST(EcdhRatchet, ServerInitializeTest) {
 		rhk, SIZEOF(rhk),
 		shk, SIZEOF(shk));
 
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.nextreceiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.nextrootkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.nextsendheaderkey, KEY_SIZE);
@@ -92,7 +92,7 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 		shk, SIZEOF(shk),
 		ckey2);
 
-	EXPECT_EQ(E_SUCCESS, result);
+	EXPECT_EQ(MR_E_SUCCESS, result);
 	EXPECT_BUFFEREQ(b_empty, KEY_SIZE, ratchet1.nextreceiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(b_empty, KEY_SIZE, ratchet1.nextsendheaderkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(b_empty, KEY_SIZE, ratchet1.nextrootkey, KEY_SIZE);
@@ -149,7 +149,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 	_mr_ratchet_state cratchet1;
 	_mr_ratchet_state cratchet2;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet,
 		skey1,
 		rk, SIZEOF(rk),
 		cpub1, SIZEOF(cpub1),
@@ -157,7 +157,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 		rhk, SIZEOF(rhk),
 		shk, SIZEOF(shk)));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(
 		mr_ctx, &cratchet1, &cratchet2,
 		rk, SIZEOF(rk),
 		spub1, SIZEOF(spub1),
@@ -170,8 +170,8 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 	uint8_t ckey[MSG_KEY_SIZE];
 	uint32_t cgen;
 	uint8_t skey[MSG_KEY_SIZE];
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforsending(mr_ctx, &cratchet1.sendingchain, ckey, SIZEOF(ckey), &cgen));
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet.receivingchain, cgen, skey, SIZEOF(skey)));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforsending(mr_ctx, &cratchet1.sendingchain, ckey, SIZEOF(ckey), &cgen));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
 
@@ -214,7 +214,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 	_mr_ratchet_state cratchet1;
 	_mr_ratchet_state cratchet2;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
 		skey1,
 		rk, SIZEOF(rk),
 		cpub1, SIZEOF(cpub1),
@@ -222,7 +222,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 		rhk, SIZEOF(rhk),
 		shk, SIZEOF(shk)));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(
 		mr_ctx, &cratchet1, &cratchet2,
 		rk, SIZEOF(rk),
 		spub1, SIZEOF(spub1),
@@ -235,8 +235,8 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 	uint8_t ckey[MSG_KEY_SIZE];
 	uint32_t cgen;
 	uint8_t skey[MSG_KEY_SIZE];
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforsending(mr_ctx, &sratchet1.sendingchain, ckey, SIZEOF(ckey), &cgen));
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforsending(mr_ctx, &sratchet1.sendingchain, ckey, SIZEOF(ckey), &cgen));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
 
@@ -281,7 +281,7 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 	_mr_ratchet_state cratchet1;
 	_mr_ratchet_state cratchet2;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
 		skey1,
 		rk, SIZEOF(rk),
 		cpub1, SIZEOF(cpub1),
@@ -289,7 +289,7 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 		rhk, SIZEOF(rhk),
 		shk, SIZEOF(shk)));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(
 		mr_ctx, &cratchet1, &cratchet2,
 		rk, SIZEOF(rk),
 		spub1, SIZEOF(spub1),
@@ -299,7 +299,7 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 		rhk, SIZEOF(rhk),
 		ckey2));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_ratchet(mr_ctx,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_ratchet(mr_ctx,
 		&sratchet1,
 		&sratchet2,
 		cpub2, KEY_SIZE,
@@ -308,8 +308,8 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 	uint8_t ckey[MSG_KEY_SIZE];
 	uint32_t cgen;
 	uint8_t skey[MSG_KEY_SIZE];
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforsending(mr_ctx, &cratchet2.sendingchain, ckey, SIZEOF(ckey), &cgen));
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforsending(mr_ctx, &cratchet2.sendingchain, ckey, SIZEOF(ckey), &cgen));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &sratchet2.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
 
@@ -358,7 +358,7 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 	_mr_ratchet_state cratchet2;
 	_mr_ratchet_state cratchet3;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &sratchet1,
 		skey1,
 		rk, SIZEOF(rk),
 		cpub1, SIZEOF(cpub1),
@@ -366,7 +366,7 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 		rhk, SIZEOF(rhk),
 		shk, SIZEOF(shk)));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(
 		mr_ctx, &cratchet1, &cratchet2,
 		rk, SIZEOF(rk),
 		spub1, SIZEOF(spub1),
@@ -376,13 +376,13 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 		rhk, SIZEOF(rhk),
 		ckey2));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_ratchet(mr_ctx,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_ratchet(mr_ctx,
 		&sratchet1,
 		&sratchet2,
 		cpub2, KEY_SIZE,
 		skey3));
 
-	EXPECT_EQ(E_SUCCESS, ratchet_ratchet(mr_ctx,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_ratchet(mr_ctx,
 		&cratchet2,
 		&cratchet3,
 		spub3, KEY_SIZE,
@@ -391,8 +391,8 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 	uint8_t ckey[MSG_KEY_SIZE];
 	uint32_t cgen;
 	uint8_t skey[MSG_KEY_SIZE];
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforsending(mr_ctx, &sratchet2.sendingchain, ckey, SIZEOF(ckey), &cgen));
-	EXPECT_EQ(E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet3.receivingchain, cgen, skey, SIZEOF(skey)));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforsending(mr_ctx, &sratchet2.sendingchain, ckey, SIZEOF(ckey), &cgen));
+	EXPECT_EQ(MR_E_SUCCESS, chain_ratchetforreceiving(mr_ctx, &cratchet3.receivingchain, cgen, skey, SIZEOF(skey)));
 
 	EXPECT_BUFFEREQ(ckey, MSG_KEY_SIZE, skey, MSG_KEY_SIZE);
 
@@ -417,7 +417,7 @@ void _ServerInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 	mr_ecdh_setprivatekey(skey2, _skey2, KEY_SIZE);
 	_mr_ratchet_state ecdhstep;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &ecdhstep,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &ecdhstep,
 		skey1,
 		rk, KEY_SIZE,
 		cpub, KEY_SIZE,
@@ -485,7 +485,7 @@ void _ClientInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 	_mr_ratchet_state ecdhstep1;
 	_mr_ratchet_state ecdhstep2;
 
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(mr_ctx, &ecdhstep1, &ecdhstep2,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(mr_ctx, &ecdhstep1, &ecdhstep2,
 		rk, KEY_SIZE,
 		spub1, KEY_SIZE,
 		spub2, KEY_SIZE,
@@ -556,7 +556,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 
 	_mr_ratchet_state step0;
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
 		nrk, KEY_SIZE,
 		0, rhk, KEY_SIZE,
 		nrhk, KEY_SIZE,
@@ -571,7 +571,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 	mr_ecdh_generate(_k, _p, SIZEOF(_p));
 
 	_mr_ratchet_state step1;
-	EXPECT_EQ(E_SUCCESS, ratchet_ratchet(mr_ctx, &step0, &step1,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_ratchet(mr_ctx, &step0, &step1,
 		rpk, KEY_SIZE, _k));
 
 	EXPECT_BUFFEREQ(erck, KEY_SIZE, step1.receivingchain.chainkey, KEY_SIZE);
@@ -640,7 +640,7 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 	mr_ecdh_setprivatekey(nkey, _nkey, KEY_SIZE);
 
 	_mr_ratchet_state step0;
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
 		nrk, KEY_SIZE,
 		0, rhk, KEY_SIZE,
 		nrhk, KEY_SIZE,
@@ -655,7 +655,7 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 	mr_ecdh_generate(_k, _p, SIZEOF(_p));
 
 	_mr_ratchet_state step1;
-	EXPECT_EQ(E_SUCCESS, ratchet_ratchet(mr_ctx, &step0, &step1,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_ratchet(mr_ctx, &step0, &step1,
 		rpk, KEY_SIZE, nkey));
 
 	EXPECT_BUFFEREQ(esck, KEY_SIZE, step1.sendingchain.chainkey, KEY_SIZE);
@@ -738,7 +738,7 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 	mr_ecdh_getpublickey(ckey1, cpub1, KEY_SIZE);
 
 	_mr_ratchet_state secdhstep;
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_server(mr_ctx, &secdhstep,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_server(mr_ctx, &secdhstep,
 		skey1,
 		rk, KEY_SIZE,
 		cpub1, KEY_SIZE,
@@ -748,7 +748,7 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 
 	_mr_ratchet_state cecdhstep1;
 	_mr_ratchet_state cecdhstep2;
-	EXPECT_EQ(E_SUCCESS, ratchet_initialize_client(mr_ctx, &cecdhstep1, &cecdhstep2,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize_client(mr_ctx, &cecdhstep1, &cecdhstep2,
 		rk, KEY_SIZE,
 		spub1, KEY_SIZE,
 		spub2, KEY_SIZE,
