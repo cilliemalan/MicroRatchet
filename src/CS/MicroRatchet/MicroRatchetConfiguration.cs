@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
+#pragma warning disable CA1819 // Properties should not return arrays
 namespace MicroRatchet
 {
     public class MicroRatchetConfiguration

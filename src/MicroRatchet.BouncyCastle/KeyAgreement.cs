@@ -13,13 +13,14 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
+#pragma warning disable CA1810 // Initialize reference type static fields inline
 
 namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
     /// ECDH key agreement using secp256r1/NIST P-256
     /// </summary>
-    public class KeyAgreement : IDisposable, IKeyAgreement
+    public sealed class KeyAgreement : IDisposable, IKeyAgreement
     {
         private static readonly ECDomainParameters domainParms;
         private static readonly Func<int, BigInteger, ECPoint> _decompress;
@@ -27,9 +28,6 @@ namespace MicroRatchet.BouncyCastle
         private byte[] _publicKey;
         private ECPrivateKeyParameters _pk;
         private Sha256Digest _sha = new Sha256Digest();
-
-        public int PublicKeySize => 32;
-        public int PrivateKeySize => 32;
 
         public int Id { get; }
 
@@ -135,12 +133,16 @@ namespace MicroRatchet.BouncyCastle
 
         public void Serialize(Stream stream)
         {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+
             if (_privateKey.Length != 32) throw new InvalidOperationException("Private key must be 32 bytes");
             stream.Write(_privateKey, 0, 32);
         }
 
         public static KeyAgreement Deserialize(Stream stream)
         {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+
             byte[] pri = new byte[32];
             stream.Read(pri, 0, 32);
             return new KeyAgreement(pri);

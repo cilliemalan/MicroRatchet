@@ -14,12 +14,13 @@ using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 using System.Diagnostics;
+#pragma warning disable CA1810 // Initialize reference type static fields inline
 
 namespace MicroRatchet.BouncyCastle
 {
-    public class Signature : ISignature
+    public sealed class Signature : ISignature
     {
-        protected static readonly ECDomainParameters domainParms;
+        private static readonly ECDomainParameters domainParms;
 
         static Signature()
         {
@@ -29,9 +30,10 @@ namespace MicroRatchet.BouncyCastle
 
         private readonly SecureRandom _random;
         private BigInteger _key;
+        private readonly byte[] _publicKey;
         private IVerifier _verifier;
 
-        public byte[] PublicKey { get; }
+        public byte[] GetPublicKey() => _publicKey.ToArray();
 
         public int SignatureSize => 64;
 
@@ -41,8 +43,8 @@ namespace MicroRatchet.BouncyCastle
 
         public Signature(ArraySegment<byte> key, SecureRandom random)
         {
-            PublicKey = KeyGeneration.GetPublicKeyFromPrivateKey(key);
-            _verifier = new Verifier(new ArraySegment<byte>(PublicKey));
+            _publicKey = KeyGeneration.GetPublicKeyFromPrivateKey(key);
+            _verifier = new Verifier(new ArraySegment<byte>(_publicKey));
             _key = new BigInteger(key.Array, key.Offset, key.Count);
             _random = random;
         }

@@ -33,7 +33,7 @@ namespace MicroRatchet.BouncyCastle
         {
             int IKeyAgreementFactory.PublicKeySize => 32;
             int IVerifierFactory.SignatureSize => 64;
-            int[] IAesFactory.AcceptedKeySizes { get; } = new int[] { 16, 32 };
+            int[] IAesFactory.GetAcceptedKeySizes() => new int[] { 16, 32 };
             int IAesFactory.BlockSize => 16;
 
             public IVerifier Create(ArraySegment<byte> publicKey) => new Verifier(publicKey);

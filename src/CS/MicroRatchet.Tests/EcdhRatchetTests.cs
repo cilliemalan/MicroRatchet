@@ -152,7 +152,7 @@ namespace MicroRatchet.Tests
                 rk, spub1, spub2, ckey1, shk, rhk, ckey2);
 
             // client sends new ECDH to server
-            var secdhstep2 = secdhstep1.Ratchet(kaf, kdf, digest,
+            var secdhstep2 = secdhstep1.Ratchet(kdf, digest,
                 cpub2, skey3);
 
             // which means the client now can send using its latest step
@@ -184,11 +184,11 @@ namespace MicroRatchet.Tests
                 skey1, rk, cpub1, skey2, rhk, shk);
             var cecdhsteps = EcdhRatchetStep.InitializeClient(kdf, digest,
                 rk, spub1, spub2, ckey1, shk, rhk, ckey2);
-            var secdhstep2 = secdhstep1.Ratchet(kaf, kdf, digest,
+            var secdhstep2 = secdhstep1.Ratchet(kdf, digest,
                 cpub2, skey3);
 
             // and the server sends back
-            var cecdhstep3 = cecdhsteps[1].Ratchet(kaf, kdf, digest,
+            var cecdhstep3 = cecdhsteps[1].Ratchet(kdf, digest,
                 spub3, ckey3);
 
             var serverkeys = secdhstep2.SendingChain.RatchetForSending(kdf);
@@ -238,7 +238,7 @@ namespace MicroRatchet.Tests
                 0, rhk, nrhk, rck,
                 0, shk, nshk, sck);
 
-            var step1 = step0.Ratchet(kaf, kdf, digest, rpk, new KeyAgreement(KeyGeneration.GeneratePrivateKey()));
+            var step1 = step0.Ratchet(kdf, digest, rpk, new KeyAgreement(KeyGeneration.GeneratePrivateKey()));
 
             Assert.Equal(erck, step1.ReceivingChain.ChainKey);
         }
@@ -255,7 +255,7 @@ namespace MicroRatchet.Tests
                 0, rhk, nrhk, rck,
                 0, shk, nshk, sck);
 
-            var step1 = step0.Ratchet(kaf, kdf, digest, rpk, nkey);
+            var step1 = step0.Ratchet(kdf, digest, rpk, nkey);
 
             Assert.Equal(esck, step1.SendingChain.ChainKey);
         }

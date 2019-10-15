@@ -7,12 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+#pragma warning disable CA1810 // Initialize reference type static fields inline
+#pragma warning disable CA1031 // Do not catch general exception types
 
 namespace MicroRatchet.BouncyCastle
 {
-    public class Verifier : IVerifier
+    public sealed class Verifier : IVerifier
     {
-        protected static readonly ECDomainParameters domainParms;
+        private static readonly ECDomainParameters domainParms;
 
         static Verifier()
         {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Dbg = System.Diagnostics.Debug;
@@ -70,7 +71,7 @@ namespace MicroRatchet
                 var result = new uint[256];
                 for (int i = 0; i < 256; i++)
                 {
-                    string s = i.ToString("X2");
+                    string s = i.ToString("X2", CultureInfo.InvariantCulture);
                     if (BitConverter.IsLittleEndian)
                         result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
                     else
@@ -81,7 +82,7 @@ namespace MicroRatchet
 
             public static string ByteArrayToHexViaLookup32(byte[] bytes, int offset, int cnt)
             {
-                if (offset + cnt > bytes.Length) throw new ArgumentOutOfRangeException();
+                if (offset + cnt > bytes.Length) throw new ArgumentOutOfRangeException(nameof(offset));
 
                 var lookupP = _lookup32UnsafeP;
                 var result = new string((char)0, cnt * 2);

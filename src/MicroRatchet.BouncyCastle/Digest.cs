@@ -9,7 +9,7 @@ namespace MicroRatchet.BouncyCastle
     /// <summary>
     /// SHA256 Digest.
     /// </summary>
-    public class Digest : IDisposable, IDigest
+    public sealed class Digest : IDisposable, IDigest
     {
         Sha256Digest _sha = new Sha256Digest();
 

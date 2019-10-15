@@ -90,16 +90,17 @@ namespace MicroRatchet
         private void VerifyServices()
         {
             // check that the block cipher supports all the key sizes we need
-            bool hasAcceptedKeySizes = Services.AesFactory.AcceptedKeySizes.Length >= ExpectedBlockCipherKeySizes.Length;
+            var keySizes = Services.AesFactory.GetAcceptedKeySizes();
+            bool hasAcceptedKeySizes = keySizes.Length >= ExpectedBlockCipherKeySizes.Length;
             if (hasAcceptedKeySizes)
             {
                 for (int i = 0; i < ExpectedBlockCipherKeySizes.Length; i++)
                 {
                     var keysize = ExpectedBlockCipherKeySizes[i];
                     bool found = false;
-                    for (int j = 0; j < Services.AesFactory.AcceptedKeySizes.Length; j++)
+                    for (int j = 0; j < keySizes.Length; j++)
                     {
-                        if (Services.AesFactory.AcceptedKeySizes[j] == keysize)
+                        if (keySizes[j] == keysize)
                         {
                             found = true;
                             break;
@@ -147,7 +148,7 @@ namespace MicroRatchet
             clientState.InitializationNonce = RandomNumberGenerator.Generate(InitializationNonceSize);
 
             // get the public key
-            var pubkey = Signature.PublicKey;
+            var pubkey = Signature.GetPublicKey();
 
             // generate new ECDH keypair for init message and root key
             IKeyAgreement clientEcdh = KeyAgreementFactory.GenerateNew();
@@ -284,7 +285,7 @@ namespace MicroRatchet
             var rre0 = serverEcdhRatchet0.GetPublicKey();
             var rre1 = serverEcdhRatchet1.GetPublicKey();
             Array.Copy(initializationNonce.Array, initializationNonce.Offset, message, encryptedPayloadOffset, InitializationNonceSize);
-            Array.Copy(Signature.PublicKey, 0, message, encryptedPayloadOffset + InitializationNonceSize, EcPntSize);
+            Array.Copy(Signature.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize, EcPntSize);
             Array.Copy(rre0, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize, EcPntSize);
             Array.Copy(rre1, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 2, EcPntSize);
 
@@ -484,7 +485,7 @@ namespace MicroRatchet
             Array.Copy(nonce, header, NonceSize);
             if (includeEcdh)
             {
-                var ratchetPublicKey = step.GetPublicKey(KeyAgreementFactory);
+                var ratchetPublicKey = step.GetPublicKey();
                 Array.Copy(ratchetPublicKey, 0, header, nonce.Length, ratchetPublicKey.Length);
 
                 // set the has ecdh bit
@@ -651,7 +652,7 @@ namespace MicroRatchet
                         IKeyAgreement newEcdh = KeyAgreementFactory.GenerateNew();
 
                         // this is the hottest line in the deconstruct process:
-                        EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyAgreementFactory, KeyDerivation, Digest, clientEcdhPublic, newEcdh);
+                        EcdhRatchetStep newRatchet = ratchetUsed.Ratchet(KeyDerivation, Digest, clientEcdhPublic, newEcdh);
                         state.Ratchets.Add(newRatchet);
                         ratchetUsed = newRatchet;
                     }
@@ -780,6 +781,9 @@ namespace MicroRatchet
 
         public ReceiveResult Receive(byte[] data)
         {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (data.Length < MinimumMessageSize) throw new ArgumentException("The message is too small", nameof(data));
+
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
 
             State state = LoadState();

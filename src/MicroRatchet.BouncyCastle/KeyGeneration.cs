@@ -13,6 +13,7 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
+#pragma warning disable CA1810 // Initialize reference type static fields inline
 
 namespace MicroRatchet.BouncyCastle
 {

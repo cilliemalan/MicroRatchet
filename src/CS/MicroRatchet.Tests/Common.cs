@@ -48,7 +48,7 @@ namespace MicroRatchet.Tests
 
         private class _AesFactory : IAesFactory
         {
-            public int[] AcceptedKeySizes { get; } = new[] { 16, 32 };
+            public int[] GetAcceptedKeySizes() => new[] { 16, 32 };
 
             public int BlockSize => 16;
 

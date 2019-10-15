@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MicroRatchet.BouncyCastle
 {
-    public class RandomNumberGenerator : IRandomNumberGenerator
+    public sealed class RandomNumberGenerator : IRandomNumberGenerator
     {
         private SecureRandom sr = new SecureRandom();
 

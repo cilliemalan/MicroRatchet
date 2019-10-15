@@ -75,7 +75,7 @@ namespace MicroRatchet
             return e;
         }
 
-        public byte[] GetPublicKey(IKeyAgreementFactory kexfac) => EcdhKey.GetPublicKey();
+        public byte[] GetPublicKey() => EcdhKey.GetPublicKey();
 
         public static EcdhRatchetStep[] InitializeClient(IKeyDerivation kdf, IDigest digest,
             byte[] rootKey, ArraySegment<byte> remotePublicKey0, ArraySegment<byte> remotePublicKey1, IKeyAgreement keyPair,
@@ -123,7 +123,7 @@ namespace MicroRatchet
             return new[] { e0, e1 };
         }
 
-        public EcdhRatchetStep Ratchet(IKeyAgreementFactory factory, IKeyDerivation kdf, IDigest digest, ArraySegment<byte> remotePublicKey, IKeyAgreement keyPair)
+        public EcdhRatchetStep Ratchet(IKeyDerivation kdf, IDigest digest, ArraySegment<byte> remotePublicKey, IKeyAgreement keyPair)
         {
             var nextStep = InitializeServer(kdf, digest,
                 EcdhKey,
