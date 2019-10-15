@@ -52,7 +52,7 @@
     <ClCompile Include="aes.cpp" />
     <ClCompile Include="aesctr.cpp" />
     <ClCompile Include="aeskdf.cpp" />
-    <ClCompile Include="client.cpp" />
+    <ClCompile Include="context.cpp" />
     <ClCompile Include="ecdh.cpp" />
     <ClCompile Include="ecdhratchet.cpp" />
     <ClCompile Include="ecdsa.cpp" />

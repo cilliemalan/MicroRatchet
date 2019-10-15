@@ -46,14 +46,14 @@ ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nul
 ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
 ASSERT_EQ(E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
 
-TEST(Client, Create) {
+TEST(Context, Create) {
 	mr_config cfg{ true };
 	auto mr_ctx = mr_ctx_create(&cfg);
 	EXPECT_NE(nullptr, mr_ctx);
 	mr_ctx_destroy(mr_ctx);
 }
 
-TEST(Client, ClientInitialization1) {
+TEST(Context, ClientInitialization1) {
 	TEST_PREAMBLE;
 
 	auto result = mr_ctx_initiate_initialization(client, buffer, buffersize, false);
@@ -63,7 +63,7 @@ TEST(Client, ClientInitialization1) {
 	EXPECT_NOT_OVERFLOWED(buffer);
 }
 
-TEST(Client, ClientInitialization2) {
+TEST(Context, ClientInitialization2) {
 	TEST_PREAMBLE;
 
 	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
@@ -73,30 +73,30 @@ TEST(Client, ClientInitialization2) {
 	EXPECT_NOT_OVERFLOWED(buffer);
 }
 
-TEST(Client, ClientInitialization3) {
-	TEST_PREAMBLE;
-
-	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
-TEST(Client, ClientInitialization4) {
+TEST(Context, ClientInitialization3) {
 	TEST_PREAMBLE;
 
 	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
 	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
 	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+
+	EXPECT_NOT_EMPTY(buffer);
+	EXPECT_NOT_OVERFLOWED(buffer);
+}
+
+TEST(Context, ClientInitialization4) {
+	TEST_PREAMBLE;
+
+	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
 	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
 
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
 }
 
-TEST(Client, ClientInitialization5) {
+TEST(Context, ClientInitialization5) {
 	TEST_PREAMBLE;
 
 	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
@@ -109,7 +109,7 @@ TEST(Client, ClientInitialization5) {
 	EXPECT_NOT_OVERFLOWED(buffer);
 }
 
-TEST(Client, ClientCommunicationClientToServerWithExchange) {
+TEST(Context, ClientCommunicationClientToServerWithExchange) {
 	TEST_PREAMBLE_CLIENT_SERVER;
 
 	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -125,7 +125,7 @@ TEST(Client, ClientCommunicationClientToServerWithExchange) {
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
 }
 
-TEST(Client, ClientCommunicationServerToClientWithExchange) {
+TEST(Context, ClientCommunicationServerToClientWithExchange) {
 	TEST_PREAMBLE_CLIENT_SERVER;
 
 	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -141,7 +141,7 @@ TEST(Client, ClientCommunicationServerToClientWithExchange) {
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
 }
 
-TEST(Client, ClientCommunicationClientToServerWithoutExchange) {
+TEST(Context, ClientCommunicationClientToServerWithoutExchange) {
 	TEST_PREAMBLE_CLIENT_SERVER;
 
 	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -157,7 +157,7 @@ TEST(Client, ClientCommunicationClientToServerWithoutExchange) {
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
 }
 
-TEST(Client, ClientCommunicationServerToClientWithoutExchange) {
+TEST(Context, ClientCommunicationServerToClientWithoutExchange) {
 	TEST_PREAMBLE_CLIENT_SERVER;
 
 	uint8_t content[16] = { 1, 2, 3, 4, 5, 6, 7, 8 };
