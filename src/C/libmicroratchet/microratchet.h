@@ -3,38 +3,73 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-	// structures
-	typedef void* mr_ctx;
-	typedef void* mr_sha_ctx;
-	typedef void* mr_aes_ctx;
-	typedef void* mr_poly_ctx;
-	typedef void* mr_ecdh_ctx;
-	typedef void* mr_ecdsa_ctx;
-	typedef void* mr_rng_ctx;
+// structures
+typedef void* mr_ctx;
+typedef void* mr_sha_ctx;
+typedef void* mr_aes_ctx;
+typedef void* mr_poly_ctx;
+typedef void* mr_ecdh_ctx;
+typedef void* mr_ecdsa_ctx;
+typedef void* mr_rng_ctx;
 
-	// defines and constants
-	typedef enum mr_result_e {
-		MR_E_SUCCESS = 0,
-		MR_E_SENDBACK = 1,
-		MR_E_INVALIDARG = -1,
-		MR_E_INVALIDSIZE = -2,
-		MR_E_INVALIDOP = -3,
-		MR_E_NOMEM = -4,
-		MR_E_VERIFYFAIL = -5,
-		MR_E_NOTFOUND = -6
-	} mr_result;
+// main configuration
+typedef struct t_mr_config {
 
-#define MR_MIN_PAYLOAD_SIZE 16
+	// true if this instance is a client. False if this instance is a server. The difference is that only a client can initiate a session.
+	bool is_client;
+
+	// the application key. Must match the key for the server.
+	uint8_t applicationKey[32];
+} mr_config;
+
+// constants
+typedef enum mr_result_e {
+	MR_E_SUCCESS = 0,
+	MR_E_SENDBACK = 1,
+	MR_E_INVALIDARG = -1,
+	MR_E_INVALIDSIZE = -2,
+	MR_E_INVALIDOP = -3,
+	MR_E_NOMEM = -4,
+	MR_E_VERIFYFAIL = -5,
+	MR_E_NOTFOUND = -6
+} mr_result;
+
+// the minimum amount of overhead. The message space
+// available must be at least this much larger than
+// the message payload.
+#define MR_OVERHEAD_WITHOUT_ECDH 16
+
+// the maximum amount of overhead. If the message
+// space avaialble minus the payload size is larger
+// than or equal to this, ECDH parameters will be
+// included in the message.
+#define MR_OVERHEAD_WITH_ECDH 48
+
+// the minimum message size after encryption.
+// when encrypting a message, at least this amount
+// of space must be available.
 #define MR_MIN_MESSAGE_SIZE 32
+
+// the minimum message size after encryption when
+// including ECDH parameters.
 #define MR_MIN_MESSAGE_SIZE_WITH_ECDH 64
 
+// the safe minimum message space needed for initialization
+// messages. While initializing, provide messages at least
+// this size. If at any point during the initialization
+// process there is not enough space available, a function
+// called will return MR_E_INVALIDSIZE.
+#define MR_MAX_INITIALIZATION_MESSAGE_SIZE 256
 
 #ifdef __cplusplus
 	extern "C" {
 #endif
 
-	// these functions must be supplied by the integrating application.
-	// The project will fail to link if they are not implemented.
+	// portable functions
+
+	// these functions must be supplied by the integrating application by
+	// providing a custom implementation or by linking one of the supported
+	// third-party integrated libraries (e.g. microratchetwolfssl)
 
 
 	///// SHA 256
@@ -100,40 +135,59 @@
 
 	///// Memory
 
-	// allocate some memory (i.e. malloc).
 	mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer);
-
-	// free some memory previously allocated with mr_allocate.
 	void mr_free(mr_ctx ctx, void* pointer);
 
 
-	// these functions and structures are the public interface for MicroRatchet
 
-	// main configuration
-	typedef struct t_mr_config {
-
-		// true if this instance is a client. False if this instance is a server. The difference is that only a client can initiate a session.
-		bool is_client;
-
-		// the application key. Must match the key for the server.
-		uint8_t applicationKey[32];
-	} mr_config;
+	
 
 
 
 
 
-	// implementation functions
 
-	// create a new MicroRatchet client with the provided configuration. the client will hold a reference to the configuration.
+	// implementation functions. Call these functions from your application.
+
+	// create a new MicroRatchet context with the provided configuration. the client will hold a reference to the configuration.
 	mr_ctx mr_ctx_create(const mr_config* config);
+
+	// set the identity of a context. Must be done before initialization but need not be done
+	// if initialization has already taken place. The identity ECDH object will not be freed
+	// when the context is destroyed.
 	mr_result mr_ctx_set_identity(mr_ctx ctx, mr_ecdsa_ctx identity);
+
+	// initiate initialization. If the context is a client, this will create the first initialization message to
+	// be sent to a server. The message will be created in message, which must provide at least
+	// This call will fail if the context is already initialized. To force it to re-initialize, set the force argument to true.
 	mr_result mr_ctx_initiate_initialization(mr_ctx ctx, uint8_t* message, uint32_t spaceavailable, bool force);
-	mr_result mr_ctx_receive(mr_ctx ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** paylod, uint32_t* paylodsize);
+
+	// receive and decrypt data received from the other end. The message will be decrypted
+	// in place and a pointer to the payload, as well as the payload size set. Note that
+	// the payload size includes any padding that was added.
+	// If a message is received which forms part of the initialization process, a response
+	// will be provided in payload to be sent back. In this case the return code will be
+	// MR_E_SENDBACK. Once initialization is complete, mr_ctx_receive will return E_SUCCESS with
+	// no payload.
+	mr_result mr_ctx_receive(mr_ctx ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* paylodsize);
+
+	// encrypt a payload for sending. The payload will be encrypted in place to fill up to messagesize.
+	// messagesize must be at least MR_OVERHEAD_WITHOUT_ECDH bytes larger than payloadsize and be at least
+	// MR_MIN_MESSAGE_SIZE. If the message size is MR_OVERHEAD_WITH_ECDH bytes larger than the payload and
+	// at least 64 bytes total, ECDH parameters for key exchange will be included.
 	mr_result mr_ctx_send(mr_ctx ctx, uint8_t* payload, uint32_t payloadsize, uint32_t messagesize);
+
+	// reports the amount of space needed to store the context.
 	uint32_t mr_ctx_state_size_needed(mr_ctx ctx);
+
+	// stores the state for later loading in a memory buffer.
 	mr_result mr_ctx_state_store(mr_ctx ctx, uint8_t* destination, uint32_t spaceavailable);
+
+	// loads state for a context from a memory buffer.
 	mr_result mr_ctx_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount);
+
+	// destroys a context and frees all related memory. The identity ECDH object
+	// will not be destroyed.
 	void mr_ctx_destroy(mr_ctx ctx);
 
 

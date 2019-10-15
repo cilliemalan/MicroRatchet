@@ -53,62 +53,6 @@ TEST(Context, Create) {
 	mr_ctx_destroy(mr_ctx);
 }
 
-TEST(Context, ClientInitialization1) {
-	TEST_PREAMBLE;
-
-	auto result = mr_ctx_initiate_initialization(client, buffer, buffersize, false);
-	ASSERT_EQ(MR_E_SENDBACK, result);
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
-TEST(Context, ClientInitialization2) {
-	TEST_PREAMBLE;
-
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
-TEST(Context, ClientInitialization3) {
-	TEST_PREAMBLE;
-
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
-TEST(Context, ClientInitialization4) {
-	TEST_PREAMBLE;
-
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
-TEST(Context, ClientInitialization5) {
-	TEST_PREAMBLE;
-
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-
-	EXPECT_NOT_EMPTY(buffer);
-	EXPECT_NOT_OVERFLOWED(buffer);
-}
-
 TEST(Context, ClientCommunicationClientToServerWithExchange) {
 	TEST_PREAMBLE_CLIENT_SERVER;
 
