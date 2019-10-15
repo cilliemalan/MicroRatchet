@@ -178,6 +178,7 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 	FAILIF(!ctx->config.is_client, E_INVALIDOP, "Only the client can send an initialization request")
 	FAILIF(spaceavail < INIT_REQ_MSG_SIZE, E_INVALIDSIZE, "The space avaialble was less than the minimum init request message size")
 	FAILIF(!ctx->identity, E_INVALIDOP, "The session does not have an identity")
+	FAILIF(!ctx->init.client, E_INVALIDOP, "Client initialization state is null")
 
 	LOG("--send_initialization_request");
 
@@ -185,8 +186,8 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
 
 	// 16 bytes nonce
-	_C(mr_rng_generate(ctx->rng_ctx, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE));
-	LOGD("Initialization Nonce  ", ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
+	_C(mr_rng_generate(ctx->rng_ctx, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE));
+	LOGD("Initialization Nonce  ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// get the public key
 	uint8_t pubkey[ECNUM_SIZE];
@@ -195,15 +196,15 @@ static mr_result_t send_initialization_request(_mr_ctx* ctx, uint8_t* output, ui
 
 	// generate new ECDH keypair for init message and root key
 	uint8_t clientEcdhPub[ECNUM_SIZE];
-	if (ctx->init.client.localecdhforinit) mr_ecdh_destroy(ctx->init.client.localecdhforinit);
-	ctx->init.client.localecdhforinit = mr_ecdh_create(ctx);
-	_C(mr_ecdh_generate(ctx->init.client.localecdhforinit, clientEcdhPub, sizeof(clientEcdhPub)));
+	if (ctx->init.client->localecdhforinit) mr_ecdh_destroy(ctx->init.client->localecdhforinit);
+	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
+	_C(mr_ecdh_generate(ctx->init.client->localecdhforinit, clientEcdhPub, sizeof(clientEcdhPub)));
 	LOGD("client ecdh           ", clientEcdhPub, sizeof(clientEcdhPub));
 
 	// nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
 	uint32_t macOffset = spaceavail - MAC_SIZE;
 	uint32_t signatureOffset = spaceavail - MAC_SIZE - SIGNATURE_SIZE;
-	memcpy(output, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
+	memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 	memcpy(output + INITIALIZATION_NONCE_SIZE, pubkey, ECNUM_SIZE);
 	memcpy(output + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE, clientEcdhPub, ECNUM_SIZE);
 
@@ -235,6 +236,7 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 	FAILIF(amount < INIT_REQ_MSG_SIZE, E_INVALIDSIZE, "The space amount of data was less than the minimum init request message size");
 	FAILIF(ctx->config.is_client, E_INVALIDOP, "Only the server can receive an init request");
 	FAILIF(!ctx->identity, E_INVALIDOP, "The session does not have an identity");
+	FAILIF(!ctx->init.server, E_INVALIDOP, "Server initialization state is null")
 
 	LOG("--receive_initialization_request");
 
@@ -256,15 +258,16 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 	uint32_t remoteEcdhOffset = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint32_t clientPublicKeyOffset = INITIALIZATION_NONCE_SIZE;
 
-	if (!allzeroes(ctx->init.server.clientpublickey, ECNUM_SIZE))
+	if (!allzeroes(ctx->init.server->clientpublickey, ECNUM_SIZE))
 	{
-		if (memcmp(ctx->init.server.clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE) != 0)
+		if (memcmp(ctx->init.server->clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE) != 0)
 		{
 			return E_INVALIDOP;
 		}
 		else
 		{
 			// the client wants to reinitialize. Reset state.
+			if (ctx->init.server) mr_free(ctx, ctx->init.server);
 			ctx->init = (_mr_initialization_state){ 0 };
 		}
 	}
@@ -277,7 +280,7 @@ static mr_result_t receive_initialization_request(_mr_ctx* ctx, uint8_t* data, u
 		&sigvalid));
 
 	// store the client public key
-	memcpy(ctx->init.server.clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE);
+	memcpy(ctx->init.server->clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE);
 
 	// set all the pointers
 	*initializationnonce = data;
@@ -298,6 +301,7 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	FAILIF(initializationnoncesize != INITIALIZATION_NONCE_SIZE, E_INVALIDSIZE, "The initialization nonce size was invalid")
 	FAILIF(remoteecdhforinitsize != ECNUM_SIZE, E_INVALIDSIZE, "The ECDH public key was of an incorrect size")
 	FAILIF(spaceavail < INIT_RES_MSG_SIZE, E_INVALIDSIZE, "The amount of space available is less than the minimum space required for an initialization response")
+	FAILIF(!ctx->init.server, E_INVALIDOP, "Server initialization state is null")
 
 	LOG("--send_initialization_response");
 
@@ -315,8 +319,8 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	// new ecdh pubkey(32) x2, Padding(...), signature(64)>, mac(12) = 236 bytes
 
 	// generate a nonce and new ecdh parms
-	uint8_t* serverNonce = ctx->init.server.nextinitializationnonce;
-	uint8_t* rootKey = ctx->init.server.rootkey;
+	uint8_t* serverNonce = ctx->init.server->nextinitializationnonce;
+	uint8_t* rootKey = ctx->init.server->rootkey;
 	_C(mr_rng_generate(ctx->rng_ctx, serverNonce, INITIALIZATION_NONCE_SIZE));
 	LOGD("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
@@ -335,9 +339,9 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 		serverNonce, INITIALIZATION_NONCE_SIZE,
 		rootKey, KEY_SIZE * 3)); //rootkey, firstsendheaderkey, firstreceiveheaderkey
 	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
-	LOGD("root key              ", ctx->init.server.rootkey, KEY_SIZE);
-	LOGD("first send header k   ", ctx->init.server.firstsendheaderkey, KEY_SIZE);
-	LOGD("first recv header k   ", ctx->init.server.firstreceiveheaderkey, KEY_SIZE);
+	LOGD("root key              ", ctx->init.server->rootkey, KEY_SIZE);
+	LOGD("first send header k   ", ctx->init.server->firstsendheaderkey, KEY_SIZE);
+	LOGD("first recv header k   ", ctx->init.server->firstreceiveheaderkey, KEY_SIZE);
 
 	mr_ecdh_destroy(rootPreEcdh);
 	_C(result);
@@ -346,14 +350,14 @@ static mr_result_t send_initialization_response(_mr_ctx* ctx,
 	// this is enough for the server to generate a receiving chain key and sending
 	// chain key as soon as the client sends a sending chain key
 	uint8_t rre0[ECNUM_SIZE];
-	ctx->init.server.localratchetstep0 = mr_ecdh_create(ctx);
-	FAILIF(!ctx->init.server.localratchetstep0, E_NOMEM, "Could not allocate ECDH parameters")
-	_C(mr_ecdh_generate(ctx->init.server.localratchetstep0, rre0, sizeof(rre0)));
+	ctx->init.server->localratchetstep0 = mr_ecdh_create(ctx);
+	FAILIF(!ctx->init.server->localratchetstep0, E_NOMEM, "Could not allocate ECDH parameters")
+	_C(mr_ecdh_generate(ctx->init.server->localratchetstep0, rre0, sizeof(rre0)));
 	LOGD("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
-	ctx->init.server.localratchetstep1 = mr_ecdh_create(ctx);
-	FAILIF(!ctx->init.server.localratchetstep1, E_NOMEM, "Could not allocate ECDH parameters")
-	_C(mr_ecdh_generate(ctx->init.server.localratchetstep1, rre1, sizeof(rre1)));
+	ctx->init.server->localratchetstep1 = mr_ecdh_create(ctx);
+	FAILIF(!ctx->init.server->localratchetstep1, E_NOMEM, "Could not allocate ECDH parameters")
+	_C(mr_ecdh_generate(ctx->init.server->localratchetstep1, rre1, sizeof(rre1)));
 	LOGD("rre1                  ", rre1, ECNUM_SIZE);
 
 	uint32_t minimumMessageSize = INITIALIZATION_NONCE_SIZE * 2 + ECNUM_SIZE * 6 + MAC_SIZE;
@@ -410,6 +414,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	FAILIF(!ctx || !data, E_INVALIDARGUMENT, "Some of the required arguments were null")
 	FAILIF(!ctx->config.is_client, E_INVALIDOP, "Only the client can receive an initialization response")
 	FAILIF(amount < INIT_RES_MSG_SIZE, E_INVALIDARGUMENT, "The message was smaller than the minimum init response message size")
+	FAILIF(!ctx->init.client, E_INVALIDOP, "Client initialization state is null")
 
 	uint32_t macOffset = amount - MAC_SIZE;
 	uint32_t ecdhOffset = INITIALIZATION_NONCE_SIZE;
@@ -431,7 +436,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 
 	// decrypt payload
 	uint8_t rootPreKey[KEY_SIZE];
-	_C(mr_ecdh_derivekey(ctx->init.client.localecdhforinit,
+	_C(mr_ecdh_derivekey(ctx->init.client->localecdhforinit,
 		data + ecdhOffset, ECNUM_SIZE,
 		rootPreKey, sizeof(rootPreKey)));
 	_C(digest(ctx, rootPreKey, sizeof(rootPreKey), rootPreKey, sizeof(rootPreKey)));
@@ -443,10 +448,10 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 		data, INITIALIZATION_NONCE_SIZE));
 
 	LOGD("sent init nonce       ", payload, INITIALIZATION_NONCE_SIZE);
-	LOGD("client init nonce     ", ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
+	LOGD("client init nonce     ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// ensure the nonce matches
-	if (memcmp(payload, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
+	if (memcmp(payload, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
 		return E_INVALIDOP;
 	}
@@ -463,7 +468,7 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 	}
 
 	// store the nonce we got from the server
-	memcpy(ctx->init.client.initializationnonce, data, INITIALIZATION_NONCE_SIZE);
+	memcpy(ctx->init.client->initializationnonce, data, INITIALIZATION_NONCE_SIZE);
 	LOGD("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
 
 	// we now have enough information to construct our double ratchet
@@ -522,11 +527,12 @@ static mr_result_t receive_initialization_response(_mr_ctx* ctx,
 static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
 	FAILIF(!ctx->config.is_client, E_INVALIDOP, "Only the client can send the first message")
+	FAILIF(!ctx->init.client, E_INVALIDOP, "Client initialization state is null")
 
 	_mr_ratchet_state* secondToLast;
 	_C(ratchet_getsecondtolast(ctx, &secondToLast));
 
-	memcpy(output, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE);
+	memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	return construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, true, secondToLast);
 }
@@ -534,24 +540,20 @@ static mr_result_t send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint
 static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint32_t amount)
 {
 	FAILIF(ctx->config.is_client, E_INVALIDOP, "Only the server can receive the first client message")
+	FAILIF(!ctx->init.server, E_INVALIDOP, "Server initialization state is null")
+
 	uint8_t* payload = 0;
 	uint32_t payloadSize = 0;
 	_C(deconstruct_message(ctx,
 		data, amount,
 		&payload, &payloadSize,
-		ctx->init.server.firstreceiveheaderkey, KEY_SIZE,
+		ctx->init.server->firstreceiveheaderkey, KEY_SIZE,
 		0, false));
 
-	if (payloadSize < INITIALIZATION_NONCE_SIZE || memcmp(payload, ctx->init.server.nextinitializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
+	if (payloadSize < INITIALIZATION_NONCE_SIZE || memcmp(payload, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
 		return E_INVALIDOP;
 	}
-
-	memset(ctx->init.server.firstsendheaderkey, 0, sizeof(ctx->init.server.firstsendheaderkey));
-	memset(ctx->init.server.firstreceiveheaderkey, 0, sizeof(ctx->init.server.firstreceiveheaderkey));
-	ctx->init.server.localratchetstep0 = 0;
-	ctx->init.server.localratchetstep1 = 0;
-	ctx->init.initialized = true;
 
 	return E_SUCCESS;
 }
@@ -559,11 +561,14 @@ static mr_result_t receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uin
 static mr_result_t send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
 	FAILIF(ctx->config.is_client, E_INVALIDOP, "Only the server can send the first server response")
+	FAILIF(!ctx->init.server, E_INVALIDOP, "Server initialization state is null")
 
-	memcpy(output, ctx->init.server.nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
+	memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
 	_mr_ratchet_state *laststep;
 	_C(ratchet_getlast(ctx, &laststep));
-	return construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, false, laststep);
+	_C(construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, false, laststep));
+
+	return E_SUCCESS;
 }
 
 static mr_result_t receive_first_server_response(_mr_ctx* ctx, uint8_t* data, uint32_t amount,
@@ -571,6 +576,8 @@ static mr_result_t receive_first_server_response(_mr_ctx* ctx, uint8_t* data, ui
 	_mr_ratchet_state* step)
 {
 	FAILIF(!ctx->config.is_client, E_INVALIDOP, "Only the client can receive the first server response")
+	FAILIF(!ctx->init.client, E_INVALIDOP, "Client initialization state is null")
+
 
 	uint8_t* payload = 0;
 	uint32_t payloadsize = 0;
@@ -580,13 +587,10 @@ static mr_result_t receive_first_server_response(_mr_ctx* ctx, uint8_t* data, ui
 		headerkey, headerkeysize,
 		step, false));
 	if (!payload || payloadsize < INITIALIZATION_NONCE_SIZE ||
-		memcmp(payload, ctx->init.client.initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
+		memcmp(payload, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
 		return E_INVALIDOP;
 	}
-
-	memset(ctx->init.client.initializationnonce, 0, sizeof(ctx->init.client.initializationnonce));
-	ctx->init.initialized = true;
 
 	return E_SUCCESS;
 }
@@ -710,12 +714,12 @@ static mr_result_t interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t 
 	}
 	else if (!ctx->config.is_client)
 	{
-		if (!ctx->init.initialized && ctx->ratchets[0].num == 0 && !allzeroes(ctx->init.server.firstreceiveheaderkey, KEY_SIZE))
+		if (!ctx->init.initialized && ctx->ratchets[0].num == 0 && ctx->init.server && !allzeroes(ctx->init.server->firstreceiveheaderkey, KEY_SIZE))
 		{
-			_C(verifymac(ctx, message, amount, ctx->init.server.firstreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+			_C(verifymac(ctx, message, amount, ctx->init.server->firstreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 			if (macmatches)
 			{
-				*headerKeyUsed = ctx->init.server.firstreceiveheaderkey;
+				*headerKeyUsed = ctx->init.server->firstreceiveheaderkey;
 				return E_SUCCESS;
 			}
 		}
@@ -779,21 +783,20 @@ static mr_result_t deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t 
 		{
 			// an override header key was used.
 			// this means we have to initialize the ratchet
-			if (ctx->config.is_client)
-			{
-				// Only the server can initialize a ratchet
-				return E_INVALIDOP;
-			}
+			FAILIF(ctx->config.is_client, E_INVALIDOP, "Only the server can initialize a ratchet using an override header key");
+			FAILIF(!ctx->init.server, E_INVALIDOP, "The session is not in the state to process this message");
 
 			_C(ratchet_initialize_server(ctx, &_step,
-				ctx->init.server.localratchetstep0,
-				ctx->init.server.rootkey, KEY_SIZE,
+				ctx->init.server->localratchetstep0,
+				ctx->init.server->rootkey, KEY_SIZE,
 				message + ecdhOffset, ECNUM_SIZE,
-				ctx->init.server.localratchetstep1,
-				ctx->init.server.firstreceiveheaderkey, KEY_SIZE,
-				ctx->init.server.firstsendheaderkey, KEY_SIZE));
-			mr_ecdh_destroy(ctx->init.server.localratchetstep0);
+				ctx->init.server->localratchetstep1,
+				ctx->init.server->firstreceiveheaderkey, KEY_SIZE,
+				ctx->init.server->firstsendheaderkey, KEY_SIZE));
 			_C(ratchet_add(ctx, &_step));
+			mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+			ctx->init.server->localratchetstep0 = 0;
+			ctx->init.server->localratchetstep1 = 0;
 			step = &_step;
 		}
 		else
@@ -851,6 +854,12 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 	{
 		if (!amount)
 		{
+			if (!ctx->init.client)
+			{
+				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), &ctx->init.client));
+				*ctx->init.client = (_mr_initialization_state_client){ 0 };
+			}
+
 			// step 1: send first init request from client
 			_C(send_initialization_request(ctx, message, spaceavail));
 			return E_SENDBACK;
@@ -875,7 +884,17 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 			{
 				// step 3: receive first message from server
 				_C(receive_first_server_response(ctx, message, amount, headerkey, headerkeysize, step));
-					return E_SUCCESS;
+
+				// initialization complete
+				if (ctx->init.client->localecdhforinit)
+				{
+					mr_ecdh_destroy(ctx->init.client->localecdhforinit);
+				}
+				mr_free(ctx, ctx->init.client);
+				ctx->init.client = 0;
+				ctx->init.initialized = true;
+
+				return E_SUCCESS;
 			}
 		}
 	}
@@ -901,11 +920,12 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 				message, spaceavail));
 			return E_SENDBACK;
 		}
-		else if (headerkey == ctx->init.server.firstreceiveheaderkey)
+		else if (ctx->init.server && headerkey == ctx->init.server->firstreceiveheaderkey)
 		{
 			// step 2: first message from client
 			_C(receive_first_client_message(ctx, message, amount));
 			_C(send_first_server_response(ctx, message, spaceavail));
+			ctx->init.initialized = true;
 			return E_SENDBACK;
 		}
 	}
@@ -956,6 +976,12 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	}
 	else if (headerkeyused == ctx->config.applicationKey || !ctx->init.initialized)
 	{
+		if (!ctx->init.server)
+		{
+			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), &ctx->init.server));
+			*ctx->init.server = (_mr_initialization_state_server){ 0 };
+		}
+
 		// if the application key was used this is an initialization message
 		return process_initialization(ctx,
 			message, messagesize, spaceavailable,
@@ -964,12 +990,21 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	}
 	else if (stepused)
 	{
-		return deconstruct_message(ctx, message, messagesize, payload, payloadsize, headerkeyused, KEY_SIZE, stepused, usednextheaderkey);
+		_C(deconstruct_message(ctx, message, messagesize, payload, payloadsize, headerkeyused, KEY_SIZE, stepused, usednextheaderkey));
+
+		// received first normal message, free init state
+		if (!ctx->config.is_client && ctx->init.server)
+		{
+			mr_free(ctx, ctx->init.server);
+			ctx->init.server = 0;
+		}
 	}
 	else
 	{
 		return E_INVALIDOP;
 	}
+
+	return E_SUCCESS;
 }
 
 mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
@@ -1043,23 +1078,30 @@ void mrclient_destroy(mr_ctx _ctx)
 			}
 		}
 
-		if (ctx->config.is_client)
+		if (ctx->config.is_client && ctx->init.client)
 		{
-			if (ctx->init.client.localecdhforinit)
+			if (ctx->init.client->localecdhforinit)
 			{
-				mr_ecdh_destroy(ctx->init.client.localecdhforinit);
+				mr_ecdh_destroy(ctx->init.client->localecdhforinit);
 			}
+
+			mr_free(ctx, ctx->init.client);
+			ctx->init.client = 0;
 		}
-		else
+
+		if (!ctx->config.is_client && ctx->init.server)
 		{
-			if (ctx->init.server.localratchetstep0)
+			if (ctx->init.server->localratchetstep0)
 			{
-				mr_ecdh_destroy(ctx->init.server.localratchetstep0);
+				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
 			}
-			if (ctx->init.server.localratchetstep1)
+			if (ctx->init.server->localratchetstep1)
 			{
-				mr_ecdh_destroy(ctx->init.server.localratchetstep1);
+				mr_ecdh_destroy(ctx->init.server->localratchetstep1);
 			}
+
+			mr_free(ctx, ctx->init.server);
+			ctx->init.server = 0;
 		}
 
 		*ctx = (_mr_ctx){ 0 };

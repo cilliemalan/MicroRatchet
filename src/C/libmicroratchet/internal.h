@@ -52,26 +52,30 @@ extern "C" {
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
 #endif
 
+	typedef struct _mr_initialization_state_server {
+		uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
+		// the order of these is important
+		uint8_t rootkey[KEY_SIZE];
+		uint8_t firstsendheaderkey[KEY_SIZE];
+		uint8_t firstreceiveheaderkey[KEY_SIZE];
+
+		mr_ecdh_ctx localratchetstep0;
+		mr_ecdh_ctx localratchetstep1;
+		uint8_t clientpublickey[ECNUM_SIZE];
+	} _mr_initialization_state_server;
+
+	typedef struct _mr_initialization_state_client {
+		uint8_t initializationnonce[INITIALIZATION_NONCE_SIZE];
+		mr_ecdh_ctx localecdhforinit;
+	} _mr_initialization_state_client;
+
 	typedef struct _mr_initialization_state {
 		bool initialized;
 		union {
 #ifdef HAS_SERVER
-			struct server {
-				uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
-				// the order of these is important
-				uint8_t rootkey[KEY_SIZE];
-				uint8_t firstsendheaderkey[KEY_SIZE];
-				uint8_t firstreceiveheaderkey[KEY_SIZE];
-
-				mr_ecdh_ctx localratchetstep0;
-				mr_ecdh_ctx localratchetstep1;
-				uint8_t clientpublickey[ECNUM_SIZE];
-			} server;
+			_mr_initialization_state_server* server;
 #endif
-			struct client {
-				uint8_t initializationnonce[INITIALIZATION_NONCE_SIZE];
-				mr_ecdh_ctx localecdhforinit;
-			} client;
+			_mr_initialization_state_client* client;
 		};
 	} _mr_initialization_state;
 
