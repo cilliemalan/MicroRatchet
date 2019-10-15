@@ -122,13 +122,13 @@ extern "C" {
 	int aesctr_process(_mr_aesctr_ctx* ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
 
 	// ratchetings
-	mr_result_t ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes);
-	mr_result_t ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result_t ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result_t ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result_t ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
+	mr_result ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes);
+	mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
 	bool ratchet_destroy(_mr_ctx* ctx, int num);
-	mr_result_t ratchet_initialize_server(mr_ctx mr_ctx,
+	mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		mr_ecdh_ctx previouskeypair,
 		const uint8_t* rootkey, uint32_t rootkeysize,
@@ -136,7 +136,7 @@ extern "C" {
 		mr_ecdh_ctx keypair,
 		const uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
 		const uint8_t* sendheaderkey, uint32_t sendheaderkeysize);
-	mr_result_t ratchet_initialize_client(mr_ctx mr_ctx,
+	mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet1,
 		_mr_ratchet_state* ratchet2,
 		const uint8_t* rootkey, uint32_t rootkeysize,
@@ -146,7 +146,7 @@ extern "C" {
 		const uint8_t* receiveheaderkey, uint32_t receiveheaderkeysize,
 		const uint8_t* sendheaderkey, uint32_t sendheaderkeysize,
 		mr_ecdh_ctx nextkeypair);
-	mr_result_t ratchet_initialize(
+	mr_result ratchet_initialize(
 		mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		uint32_t num,
@@ -160,10 +160,10 @@ extern "C" {
 		const uint8_t* sendingheaderkey, uint32_t sendingheaderkeysize,
 		const uint8_t* sendingnextheaderkey, uint32_t sendingnextheaderkeysize,
 		const uint8_t* sendingchainkey, uint32_t sendingchainkeysize);
-	mr_result_t ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, const uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair);
-	mr_result_t chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* chainkey, uint32_t chainkeysize);
-	mr_result_t chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
-	mr_result_t chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
+	mr_result ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, const uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair);
+	mr_result chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* chainkey, uint32_t chainkeysize);
+	mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
+	mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
 
 

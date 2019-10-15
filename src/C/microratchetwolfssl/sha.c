@@ -18,7 +18,7 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-mr_result_t mr_sha_init(mr_sha_ctx ctx)
+mr_result mr_sha_init(mr_sha_ctx ctx)
 {
 	FAILIF(!ctx, MR_E_INVALIDARG, "!ctx")
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
@@ -28,7 +28,7 @@ mr_result_t mr_sha_init(mr_sha_ctx ctx)
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_sha_process(mr_sha_ctx ctx, const uint8_t* data, uint32_t howmuch)
+mr_result mr_sha_process(mr_sha_ctx ctx, const uint8_t* data, uint32_t howmuch)
 {
 	FAILIF(!ctx || !data, MR_E_INVALIDARG, "!ctx || !data")
 	FAILIF(!howmuch, MR_E_SUCCESS, "!howmuch")
@@ -39,7 +39,7 @@ mr_result_t mr_sha_process(mr_sha_ctx ctx, const uint8_t* data, uint32_t howmuch
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_sha_compute(mr_sha_ctx ctx, uint8_t* output, uint32_t spaceavail)
+mr_result mr_sha_compute(mr_sha_ctx ctx, uint8_t* output, uint32_t spaceavail)
 {
 	FAILIF(!ctx || !output, MR_E_INVALIDARG, "!ctx || !output")
 	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32")

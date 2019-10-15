@@ -39,7 +39,7 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-mr_result_t mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
+mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 {
 	_mr_rng_ctx* ctx = _ctx;
 	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1")

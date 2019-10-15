@@ -12,7 +12,7 @@ static size_t allocated_memory = 0;
 static size_t max_allocated_memory = 0;
 #endif
 
-mr_result_t mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
+mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 {
 	if (pointer != nullptr)
 	{

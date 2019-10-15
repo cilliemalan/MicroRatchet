@@ -3,7 +3,7 @@
 #include "internal.h"
 
 
-mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, uint32_t ivsize)
+mr_result aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, uint32_t ivsize)
 {
 	FAILIF(!iv || !ctx || !aes, MR_E_INVALIDARG, "!iv || !ctx || !aes")
 
@@ -13,7 +13,7 @@ mr_result_t aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, 
 	return MR_E_SUCCESS;
 }
 
-mr_result_t aesctr_process(_mr_aesctr_ctx *ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
+mr_result aesctr_process(_mr_aesctr_ctx *ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail)
 {
 	FAILIF(!data || !ctx || !output, MR_E_INVALIDARG, "!data || !ctx || !output")
 	FAILIF(amount == 0, MR_E_SUCCESS, "amount == 0")

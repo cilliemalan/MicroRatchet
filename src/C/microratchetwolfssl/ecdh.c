@@ -20,7 +20,7 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-mr_result_t mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
+mr_result mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 
@@ -29,7 +29,7 @@ mr_result_t mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publ
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
+mr_result mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
@@ -38,7 +38,7 @@ mr_result_t mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
+mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	FAILIF(!ctx || !otherpublickey || !derivedkey, MR_E_INVALIDARG, "!ctx || !otherpublickey || !derivedkey")
@@ -61,7 +61,7 @@ uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
 	return ecc_store_size_needed(&ctx->key.k);
 }
 
-mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
+mr_result mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key.k);
@@ -71,7 +71,7 @@ mr_result_t mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 }
 
 
-mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uint32_t privatekeysize)
+mr_result mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uint32_t privatekeysize)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	FAILIF(privatekeysize < 32, MR_E_INVALIDSIZE, "privatekeysize < 32")
@@ -83,7 +83,7 @@ mr_result_t mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, u
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_ecdh_getpublickey(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
+mr_result mr_ecdh_getpublickey(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	FAILIF(publickeyspaceavail < 32, MR_E_INVALIDSIZE, "publickeyspaceavail < 32")

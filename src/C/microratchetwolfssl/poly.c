@@ -22,7 +22,7 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	return ctx;
 }
 
-mr_result_t mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
+mr_result mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	FAILIF(keysize != 32, MR_E_INVALIDSIZE, "keysize != 32")
@@ -41,7 +41,7 @@ mr_result_t mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize,
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_poly_process(mr_poly_ctx _ctx, const uint8_t* data, uint32_t amount)
+mr_result mr_poly_process(mr_poly_ctx _ctx, const uint8_t* data, uint32_t amount)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	FAILIF(!amount, MR_E_INVALIDSIZE, "!amount")
@@ -52,7 +52,7 @@ mr_result_t mr_poly_process(mr_poly_ctx _ctx, const uint8_t* data, uint32_t amou
 	return MR_E_SUCCESS;
 }
 
-mr_result_t mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail)
+mr_result mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail)
 {
 	_mr_poly_ctx* ctx = _ctx;
 	FAILIF(!spaceavail, MR_E_INVALIDSIZE, "!spaceavail")
