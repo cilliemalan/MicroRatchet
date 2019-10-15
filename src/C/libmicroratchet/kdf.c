@@ -16,8 +16,7 @@ mr_result kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const 
 	if (r != MR_E_SUCCESS) goto exit;
 
 	// initialization phase. Pass all the bytes of info into AES in kind-of CBC mode.
-	uint8_t ctr[16];
-	memset(ctr, 0, sizeof(ctr));
+	uint8_t ctr[16] = { 0 };
 	int info_offset = 0;
 	if (info && infolen)
 	{

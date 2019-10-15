@@ -106,7 +106,7 @@ mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspace
 
 mr_result ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 {
-	memset(key, 0, sizeof(ecc_key));
+	*key = (ecc_key){ 0 };
 
 	int result = wc_ecc_import_private_key_ex(data, spaceavail, 0, 0, key, ECC_SECP256R1);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0")

@@ -13,8 +13,10 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_sha_ctx), &ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	ctx->mr_ctx = mr_ctx;
-	memset(&ctx->wc_sha, 0, sizeof(ctx->wc_sha));
+	*ctx = (_mr_sha_ctx){
+		.mr_ctx = mr_ctx,
+		.wc_sha = (wc_Sha256){ 0 }
+	};
 	return ctx;
 }
 

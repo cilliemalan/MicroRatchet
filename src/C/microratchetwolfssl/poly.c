@@ -17,8 +17,10 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_poly_ctx), &ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	ctx->mr_ctx = mr_ctx;
-	memset(&ctx->wc_poly, 0, sizeof(ctx->wc_poly));
+	*ctx = (_mr_poly_ctx){
+		.mr_ctx = mr_ctx,
+		.wc_poly = (Poly1305){ 0 }
+	};
 	return ctx;
 }
 

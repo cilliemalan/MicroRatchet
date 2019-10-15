@@ -12,9 +12,10 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	_mr_aes_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_aes_ctx), &ctx);
 	if (r != MR_E_SUCCESS) return 0;
-
-	ctx->mr_ctx = mr_ctx;
-	memset(&ctx->wc_aes, 0, sizeof(ctx->wc_aes));
+	*ctx = (_mr_aes_ctx){
+		.mr_ctx = mr_ctx,
+		.wc_aes = (Aes){ 0 }
+	};
 	return ctx;
 }
 

@@ -200,10 +200,11 @@ mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 	LOGD("Receive Header Key: ", receiveheaderkey, KEY_SIZE);
 	LOGD("Send Header Key:    ", sendheaderkey, KEY_SIZE);
 	LOGD("ECDH Public:        ", remotepubickey, KEY_SIZE);
-
-	memset(ratchet, 0, sizeof(_mr_ratchet_state));
-	ratchet->ecdhkey = keypair; // note: pointer aliased here
-	ratchet->num = 1;
+	
+	*ratchet = (_mr_ratchet_state){
+		.num = 1,
+		.ecdhkey = keypair
+	};
 	if (receiveheaderkey) memcpy(ratchet->receiveheaderkey, receiveheaderkey, KEY_SIZE);
 	else memset(ratchet->receiveheaderkey, 0, KEY_SIZE);
 	if (sendheaderkey) memcpy(ratchet->sendheaderkey, sendheaderkey, KEY_SIZE);
@@ -275,10 +276,11 @@ mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 	LOGD("ECDH Public 0:      ", remotepubickey0, KEY_SIZE);
 	LOGD("ECDH Public 1:      ", remotepubickey1, KEY_SIZE);
 
-	memset(ratchet1, 0, sizeof(_mr_ratchet_state));
-	memset(ratchet2, 0, sizeof(_mr_ratchet_state));
-	ratchet1->ecdhkey = keypair;
-	ratchet1->num = 1;
+	*ratchet2 = (_mr_ratchet_state){ 0 };
+	*ratchet1 = (_mr_ratchet_state){
+		.num = 1,
+		.ecdhkey = keypair
+	};
 	memcpy(ratchet1->sendheaderkey, sendheaderkey, KEY_SIZE);
 
 	uint8_t tmp[KEY_SIZE * 3];
