@@ -38,7 +38,8 @@ static constexpr size_t buffersize_overhead = buffersize_total - buffersize;
 		mr_ecdsa_destroy(serveridentity); \
 	}};
 
-#define TEST_PREAMBLE_CLIENT_SERVER TEST_PREAMBLE \
+#define TEST_PREAMBLE_CLIENT_SERVER \
+TEST_PREAMBLE \
 ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false)); \
 ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
 ASSERT_EQ(E_SENDBACK, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
