@@ -284,7 +284,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aesctr.c" />
-    <ClCompile Include="client.c" />
+    <ClCompile Include="context.c" />
     <ClCompile Include="internal.c" />
     <ClCompile Include="kdf.c" />
     <ClCompile Include="pch.c">
