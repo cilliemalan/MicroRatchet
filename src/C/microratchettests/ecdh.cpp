@@ -106,14 +106,15 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	EXPECT_BUFFERNE(derived1, sizeof(derived1), derived3, sizeof(derived3));
 
 	// store the first two ecdhes
-	uint8_t storage1[100];
-	uint8_t storage2[100];
+	uint8_t storageA[100];
+	uint8_t storageB[100];
 
-	uint32_t store_size = mr_ecdh_store_size_needed(ecdh1);
+	uint32_t store_size1 = mr_ecdh_store_size_needed(ecdh1);
+	uint32_t store_size2 = mr_ecdh_store_size_needed(ecdh2);
 
-	result = mr_ecdh_store(ecdh1, storage1, SIZEOF(storage1));
+	result = mr_ecdh_store(ecdh1, storageB, SIZEOF(storageB));
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	result = mr_ecdh_store(ecdh2, storage2, SIZEOF(storage2));
+	result = mr_ecdh_store(ecdh2, storageA, SIZEOF(storageA));
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// destroy the first two ecdhes
@@ -121,20 +122,31 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 	mr_ecdh_destroy(ecdh2);
 
 	// load the stored params into 3&4
-	result = mr_ecdh_load(ecdh3, storage1, store_size);
+	result = mr_ecdh_load(ecdh3, storageB, store_size1);
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	result = mr_ecdh_load(ecdh4, storage2, store_size);
+	result = mr_ecdh_load(ecdh4, storageA, store_size2);
 	EXPECT_EQ(MR_E_SUCCESS, result);
+
+	// make sure the public keys still match
+	uint8_t lpubkey1[32];
+	uint8_t lpubkey2[32];
+	result = mr_ecdh_getpublickey(ecdh3, lpubkey1, sizeof(lpubkey1));
+	EXPECT_EQ(MR_E_SUCCESS, result);
+	result = mr_ecdh_getpublickey(ecdh4, lpubkey2, sizeof(lpubkey2));
+	EXPECT_EQ(MR_E_SUCCESS, result);
+	EXPECT_BUFFEREQ(lpubkey1, sizeof(lpubkey1), pubkey1, sizeof(pubkey1));
+	EXPECT_BUFFEREQ(lpubkey2, sizeof(lpubkey2), pubkey2, sizeof(pubkey2));
 
 	// now generate keys again
 	uint8_t derived5[32];
 	uint8_t derived6[32];
-	result = mr_ecdh_derivekey(ecdh3, (const uint8_t*)pubkey2, SIZEOF(pubkey2), derived5, SIZEOF(derived5));
-	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_ecdh_derivekey(ecdh4, (const uint8_t*)pubkey1, SIZEOF(pubkey1), derived6, SIZEOF(derived6));
+	EXPECT_EQ(MR_E_SUCCESS, result);
+	result = mr_ecdh_derivekey(ecdh3, (const uint8_t*)pubkey2, SIZEOF(pubkey2), derived5, SIZEOF(derived5));
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	// and check them
+	EXPECT_BUFFEREQ(derived5, sizeof(derived5), derived6, sizeof(derived6));
 	EXPECT_BUFFEREQ(derived1, sizeof(derived1), derived5, sizeof(derived5));
 	EXPECT_BUFFEREQ(derived2, sizeof(derived2), derived6, sizeof(derived6));
 	EXPECT_BUFFERNE(derived3, sizeof(derived3), derived6, sizeof(derived6));
