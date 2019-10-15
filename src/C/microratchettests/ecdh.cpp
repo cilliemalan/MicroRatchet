@@ -5,19 +5,19 @@
 static mr_config _cfg{ true };
 
 TEST(Ecdh, Create) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
 	EXPECT_NE(nullptr, ecdh);
 
 	mr_ecdh_destroy(ecdh);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdh, Generate) {
 	uint8_t pubkey[32];
 	memset(pubkey, 0xCC, sizeof(pubkey));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
 	auto result = mr_ecdh_generate(ecdh, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -30,11 +30,11 @@ TEST(Ecdh, Generate) {
 	EXPECT_FALSE(allcc);
 
 	mr_ecdh_destroy(ecdh);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdh, Derive) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh1 = mr_ecdh_create(mr_ctx);
 	auto ecdh2 = mr_ecdh_create(mr_ctx);
 	EXPECT_NE(nullptr, ecdh1);
@@ -58,11 +58,11 @@ TEST(Ecdh, Derive) {
 
 	mr_ecdh_destroy(ecdh1);
 	mr_ecdh_destroy(ecdh2);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdh, StoreLoadDeriveTest) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh1 = mr_ecdh_create(mr_ctx);
 	auto ecdh2 = mr_ecdh_create(mr_ctx);
 	auto ecdh3 = mr_ecdh_create(mr_ctx);
@@ -142,12 +142,12 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 
 	mr_ecdh_destroy(ecdh3);
 	mr_ecdh_destroy(ecdh4);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 void  TestReference(const uint8_t* privatekey, uint32_t privatekeysize, const uint8_t* publickey, uint32_t publickeysize, const uint8_t* expected, uint32_t expectedsize)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdh = mr_ecdh_create(mr_ctx);
 	int r = mr_ecdh_setprivatekey(ecdh, privatekey, privatekeysize);
 	EXPECT_EQ(E_SUCCESS, r);
@@ -158,7 +158,7 @@ void  TestReference(const uint8_t* privatekey, uint32_t privatekeysize, const ui
 	EXPECT_BUFFEREQ(derived, sizeof(derived), expected, expectedsize);
 
 	mr_ecdh_destroy(ecdh);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdh, ReferenceTest1)

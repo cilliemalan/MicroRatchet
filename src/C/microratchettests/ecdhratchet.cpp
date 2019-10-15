@@ -14,7 +14,7 @@ TEST(EcdhRatchet, ServerInitializeTest) {
 	uint8_t spub2[32];
 	uint8_t cpub[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -52,7 +52,7 @@ TEST(EcdhRatchet, ServerInitializeTest) {
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ClientInitializeTest) {
@@ -64,7 +64,7 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	uint8_t cpub1[32];
 	uint8_t cpub2[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -118,7 +118,7 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryTest1) {
@@ -130,7 +130,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 	uint8_t cpub1[32];
 	uint8_t cpub2[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -180,7 +180,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest1) {
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryTest2) {
@@ -193,7 +193,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 	uint8_t cpub1[32];
 	uint8_t cpub2[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -246,7 +246,7 @@ TEST(EcdhRatchet, InitialChainSymmetryTest2) {
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainRatchetTest) {
@@ -259,7 +259,7 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 	uint8_t cpub1[32];
 	uint8_t cpub2[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -319,7 +319,7 @@ TEST(EcdhRatchet, InitialChainRatchetTest) {
 	// mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, SecondChainRatchetTest) {
@@ -333,7 +333,7 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 	uint8_t cpub2[32];
 	uint8_t cpub3[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -403,14 +403,14 @@ TEST(EcdhRatchet, SecondChainRatchetTest) {
 	//mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 
 void _ServerInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const uint8_t* shk,
 	const uint8_t* _skey1, const uint8_t* _skey2, const uint8_t* cpub, const uint8_t* rckey, const uint8_t* sckey)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	auto skey2 = mr_ecdh_create(mr_ctx);
 	mr_ecdh_setprivatekey(skey1, _skey1, KEY_SIZE);
@@ -430,7 +430,7 @@ void _ServerInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ServerInitializeReferenceTest1) {
@@ -477,7 +477,7 @@ TEST(EcdhRatchet, ServerInitializeReferenceTest3) {
 void _ClientInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const uint8_t* shk,
 	const uint8_t* _ckey1, const uint8_t* _ckey2, const uint8_t* spub1, const uint8_t* spub2, const uint8_t* rckey, const uint8_t* sckey)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ckey1 = mr_ecdh_create(mr_ctx);
 	auto ckey2 = mr_ecdh_create(mr_ctx);
 	mr_ecdh_setprivatekey(ckey1, _ckey1, KEY_SIZE);
@@ -499,7 +499,7 @@ void _ClientInitializeReferenceTest(const uint8_t* rk, const uint8_t* rhk, const
 
 	mr_ecdh_destroy(ckey2);
 	mr_ecdh_destroy(ckey1);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, ClientInitializeReferenceTest1) {
@@ -551,7 +551,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 	const uint8_t* rck, const uint8_t* shk, const uint8_t* nshk, const uint8_t* sck,
 	const uint8_t* _key, const uint8_t* rpk, const uint8_t* erck)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto key = mr_ecdh_create(mr_ctx);
 	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 
@@ -578,7 +578,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 
 	mr_ecdh_destroy(_k);
 	//mr_ecdh_destroy(key);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, RatchetReferenceTest1) {
@@ -633,7 +633,7 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 	const uint8_t* rck, const uint8_t* shk, const uint8_t* nshk, const uint8_t* sck,
 	const uint8_t* _key, const uint8_t* rpk, const uint8_t* _nkey, const uint8_t* esck)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto key = mr_ecdh_create(mr_ctx);
 	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 	auto nkey = mr_ecdh_create(mr_ctx);
@@ -663,7 +663,7 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 	mr_ecdh_destroy(_k);
 	//mr_ecdh_destroy(key);
 	mr_ecdh_destroy(nkey);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, SecondRatchetReferenceTest1) {
@@ -721,7 +721,7 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 	const uint8_t* _skey1, const uint8_t* _skey2, const uint8_t* _ckey1, const uint8_t* _ckey2,
 	const uint8_t* rckey, const uint8_t* sckey)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto skey1 = mr_ecdh_create(mr_ctx);
 	mr_ecdh_setprivatekey(skey1, _skey1, KEY_SIZE);
 	auto skey2 = mr_ecdh_create(mr_ctx);
@@ -766,7 +766,7 @@ void InitialChainSymmetryReferenceTest(const uint8_t* rk, const uint8_t* rhk, co
 	mr_ecdh_destroy(ckey1);
 	mr_ecdh_destroy(skey2);
 	mr_ecdh_destroy(skey1);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(EcdhRatchet, InitialChainSymmetryReferenceTest1) {

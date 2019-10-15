@@ -16,12 +16,12 @@ TEST(AesKdf, Init128) {
 	};
 	uint8_t output[16];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, sizeof(key), iv, sizeof(iv), output, sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(AesKdf, Init256) {
@@ -37,25 +37,25 @@ TEST(AesKdf, Init256) {
 	};
 	uint8_t output[16];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, sizeof(key), iv, sizeof(iv), output, sizeof(output));
 	EXPECT_EQ(E_SUCCESS, result);
 
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 void test_process(const uint8_t* key, uint32_t keysize, const uint8_t* info, uint32_t infosize, const uint8_t* expected, uint32_t expectedsize)
 {
 	uint8_t* output = new uint8_t[expectedsize];
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 
 	auto result = kdf_compute(mr_ctx, key, keysize, info, infosize, output, expectedsize);
 	EXPECT_EQ(E_SUCCESS, result);
 	EXPECT_BUFFEREQ(output, expectedsize, expected, expectedsize);
 
 	delete[] output;
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(AesKdf, ReferenceTest1) {

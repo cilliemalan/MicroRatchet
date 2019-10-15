@@ -8,7 +8,7 @@
 static mr_config _cfg{ true };
 
 TEST(SymmetricRatchet, Initialize) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -26,11 +26,11 @@ TEST(SymmetricRatchet, Initialize) {
 	EXPECT_BUFFEREQ(zeroes, sizeof(zeroes), chain.oldchainkey, sizeof(chain.oldchainkey));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicSend) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[KEY_SIZE];
@@ -51,11 +51,11 @@ TEST(SymmetricRatchet, BasicSend) {
 	ASSERT_BUFFERNE(key, sizeof(key), zeroes, sizeof(zeroes));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, ChainKeyModulation) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -74,11 +74,11 @@ TEST(SymmetricRatchet, ChainKeyModulation) {
 	EXPECT_BUFFERNE(ck, sizeof(ck), chain.chainkey, sizeof(chain.chainkey));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiSend) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -106,11 +106,11 @@ TEST(SymmetricRatchet, MultiSend) {
 	ASSERT_BUFFERNE(key1, sizeof(key1), key2, sizeof(key2));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicReceive) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -135,11 +135,11 @@ TEST(SymmetricRatchet, BasicReceive) {
 	ASSERT_BUFFEREQ(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiReceive) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -169,11 +169,11 @@ TEST(SymmetricRatchet, MultiReceive) {
 	EXPECT_BUFFEREQ(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, SkipReceive) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -200,11 +200,11 @@ TEST(SymmetricRatchet, SkipReceive) {
 	EXPECT_EQ(chain.oldgeneration, 1);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, OooReceive) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -238,11 +238,11 @@ TEST(SymmetricRatchet, OooReceive) {
 	EXPECT_EQ(chain.oldgeneration, 2);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, BasicSymmetry) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -269,11 +269,11 @@ TEST(SymmetricRatchet, BasicSymmetry) {
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb, sizeof(keyb));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, MultiSymmetry) {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -311,12 +311,12 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	EXPECT_NE(gen1, gen2);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 void deepsymmetrytest(int depth) 
 {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -347,7 +347,7 @@ void deepsymmetrytest(int depth)
 	EXPECT_BUFFERNE(zeroes, sizeof(zeroes), keyb, sizeof(keyb));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, DeepSymmetry10) { deepsymmetrytest(10); }
@@ -357,7 +357,7 @@ TEST(SymmetricRatchet, DeepSymmetry10000) { deepsymmetrytest(10000); }
 
 void receivetest(int depth)
 {
-	mr_ctx ctx = mrclient_create(&_cfg);
+	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);
 
 	unsigned char ck[32];
@@ -382,7 +382,7 @@ void receivetest(int depth)
 	ASSERT_BUFFERNE(zeroes32, sizeof(zeroes32), chain.oldchainkey, sizeof(chain.oldchainkey));
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, RatchetForReceivingMany10) { receivetest(10); }
@@ -394,7 +394,7 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	unsigned int generation,
 	const unsigned char expectedkey[], size_t expectedkeysize)
 {
-	auto ctx = mrclient_create(&_cfg);
+	auto ctx = mr_ctx_create(&_cfg);
 	_mr_chain_state chain{};
 	
 	auto r = chain_initialize(ctx, &chain, chainkey, (uint32_t)chainkeysize);
@@ -405,7 +405,7 @@ void testratchet(const unsigned char chainkey[], size_t chainkeysize,
 	ASSERT_EQ(E_SUCCESS, r);
 	ASSERT_BUFFEREQ(key, sizeof(key), expectedkey, (unsigned int)expectedkeysize);
 
-	mrclient_destroy(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(SymmetricRatchet, Reference1) {

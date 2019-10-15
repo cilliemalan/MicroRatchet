@@ -20,43 +20,43 @@ static constexpr size_t buffersize_overhead = buffersize_total - buffersize;
 #define TEST_PREAMBLE \
 	uint8_t buffer[buffersize_total]{}; \
 	mr_config clientcfg{ true }; \
-	auto client = mrclient_create(&clientcfg); \
+	auto client = mr_ctx_create(&clientcfg); \
 	uint8_t clientpubkey[32]; \
 	auto clientidentity = mr_ecdsa_create(client); \
 	ASSERT_EQ(E_SUCCESS, mr_ecdsa_generate(clientidentity, clientpubkey, sizeof(clientpubkey))); \
-	ASSERT_EQ(E_SUCCESS, mrclient_set_identity(client, clientidentity)); \
+	ASSERT_EQ(E_SUCCESS, mr_ctx_set_identity(client, clientidentity)); \
 	mr_config servercfg{ false }; \
-	auto server = mrclient_create(&servercfg); \
+	auto server = mr_ctx_create(&servercfg); \
 	uint8_t serverpubkey[32]; \
 	auto serveridentity = mr_ecdsa_create(server); \
 	ASSERT_EQ(E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey))); \
-	ASSERT_EQ(E_SUCCESS, mrclient_set_identity(server, serveridentity)); \
+	ASSERT_EQ(E_SUCCESS, mr_ctx_set_identity(server, serveridentity)); \
 	run_on_exit _a{[client, server, clientidentity, serveridentity] { \
-		mrclient_destroy(client); \
-		mrclient_destroy(server); \
+		mr_ctx_destroy(client); \
+		mr_ctx_destroy(server); \
 		mr_ecdsa_destroy(clientidentity); \
 		mr_ecdsa_destroy(serveridentity); \
 	}};
 
 #define TEST_PREAMBLE_CLIENT_SERVER \
 TEST_PREAMBLE \
-ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false)); \
-ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
-ASSERT_EQ(E_SENDBACK, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
-ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
-ASSERT_EQ(E_SUCCESS, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
+ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false)); \
+ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
+ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
+ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0)); \
+ASSERT_EQ(E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0)); \
 
 TEST(Client, Create) {
 	mr_config cfg{ true };
-	auto mr_ctx = mrclient_create(&cfg);
+	auto mr_ctx = mr_ctx_create(&cfg);
 	EXPECT_NE(nullptr, mr_ctx);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Client, ClientInitialization1) {
 	TEST_PREAMBLE;
 
-	auto result = mrclient_initiate_initialization(client, buffer, buffersize, false);
+	auto result = mr_ctx_initiate_initialization(client, buffer, buffersize, false);
 	ASSERT_EQ(E_SENDBACK, result);
 
 	EXPECT_NOT_EMPTY(buffer);
@@ -66,8 +66,8 @@ TEST(Client, ClientInitialization1) {
 TEST(Client, ClientInitialization2) {
 	TEST_PREAMBLE;
 
-	ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
 
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
@@ -76,9 +76,9 @@ TEST(Client, ClientInitialization2) {
 TEST(Client, ClientInitialization3) {
 	TEST_PREAMBLE;
 
-	ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
 
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
@@ -87,10 +87,10 @@ TEST(Client, ClientInitialization3) {
 TEST(Client, ClientInitialization4) {
 	TEST_PREAMBLE;
 
-	ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
 
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
@@ -99,11 +99,11 @@ TEST(Client, ClientInitialization4) {
 TEST(Client, ClientInitialization5) {
 	TEST_PREAMBLE;
 
-	ASSERT_EQ(E_SENDBACK, mrclient_initiate_initialization(client, buffer, buffersize, false));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SENDBACK, mrclient_receive(server, buffer, buffersize, buffersize, nullptr, 0));
-	ASSERT_EQ(E_SUCCESS, mrclient_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	ASSERT_EQ(E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
 
 	EXPECT_NOT_EMPTY(buffer);
 	EXPECT_NOT_OVERFLOWED(buffer);
@@ -118,8 +118,8 @@ TEST(Client, ClientCommunicationClientToServerWithExchange) {
 	uint8_t* output = nullptr;
 	uint32_t size = 0;
 
-	EXPECT_EQ(E_SUCCESS, mrclient_send(client, msg, sizeof(content), sizeof(msg)));
-	EXPECT_EQ(E_SUCCESS, mrclient_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_send(client, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
 
 	ASSERT_TRUE(size > sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
@@ -134,8 +134,8 @@ TEST(Client, ClientCommunicationServerToClientWithExchange) {
 	uint8_t* output = nullptr;
 	uint32_t size = 0;
 
-	EXPECT_EQ(E_SUCCESS, mrclient_send(server, msg, sizeof(content), sizeof(msg)));
-	EXPECT_EQ(E_SUCCESS, mrclient_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_send(server, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
 
 	ASSERT_TRUE(size > sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
@@ -150,8 +150,8 @@ TEST(Client, ClientCommunicationClientToServerWithoutExchange) {
 	uint8_t* output = nullptr;
 	uint32_t size = 0;
 
-	EXPECT_EQ(E_SUCCESS, mrclient_send(client, msg, sizeof(content), sizeof(msg)));
-	EXPECT_EQ(E_SUCCESS, mrclient_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_send(client, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_receive(server, msg, sizeof(msg), sizeof(msg), &output, &size));
 
 	ASSERT_TRUE(size == sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));
@@ -166,8 +166,8 @@ TEST(Client, ClientCommunicationServerToClientWithoutExchange) {
 	uint8_t* output = nullptr;
 	uint32_t size = 0;
 
-	EXPECT_EQ(E_SUCCESS, mrclient_send(server, msg, sizeof(content), sizeof(msg)));
-	EXPECT_EQ(E_SUCCESS, mrclient_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_send(server, msg, sizeof(content), sizeof(msg)));
+	EXPECT_EQ(E_SUCCESS, mr_ctx_receive(client, msg, sizeof(msg), sizeof(msg), &output, &size));
 
 	ASSERT_TRUE(size == sizeof(content));
 	EXPECT_BUFFEREQ(content, sizeof(content), output, sizeof(content));

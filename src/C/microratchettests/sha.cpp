@@ -5,35 +5,35 @@
 static mr_config _cfg{ true };
 
 TEST(Sha, Create) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	EXPECT_NE(nullptr, sha);
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Sha, Init) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Sha, Process) {
 	const uint8_t data[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	result = mr_sha_process(sha, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 template<uint32_t L1, uint32_t L2>
@@ -41,7 +41,7 @@ void testsha(const uint8_t (&data)[L1], const uint8_t(&expected_output)[L2])
 {
 	uint8_t output[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
@@ -52,7 +52,7 @@ void testsha(const uint8_t (&data)[L1], const uint8_t(&expected_output)[L2])
 	EXPECT_BUFFEREQ(expected_output, sizeof(expected_output), output, sizeof(output));
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Sha, ReferenceTestEmpty) {
@@ -64,7 +64,7 @@ TEST(Sha, ReferenceTestEmpty) {
 		0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55
 	};
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
@@ -73,7 +73,7 @@ TEST(Sha, ReferenceTestEmpty) {
 	EXPECT_BUFFEREQ(expected, sizeof(expected), output, sizeof(output));
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Sha, ReferenceTestShort1) {
@@ -148,7 +148,7 @@ TEST(Sha, ReferenceTestTwice) {
 	};
 	uint8_t output[32];
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	EXPECT_EQ(E_SUCCESS, result);
@@ -164,5 +164,5 @@ TEST(Sha, ReferenceTestTwice) {
 	EXPECT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
 
 	mr_sha_destroy(sha);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }

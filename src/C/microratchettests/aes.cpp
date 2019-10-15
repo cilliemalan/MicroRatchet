@@ -5,12 +5,12 @@
 static mr_config _cfg{ true };
 
 TEST(Aes, Create) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 
 	mr_aes_destroy(aes);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Aes, Init256) {
@@ -21,14 +21,14 @@ TEST(Aes, Init256) {
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
 	};
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Aes, Init128) {
@@ -37,14 +37,14 @@ TEST(Aes, Init128) {
 		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
 	};
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, SIZEOF(key));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 void processTest(
@@ -54,7 +54,7 @@ void processTest(
 {
 	uint8_t* output = new uint8_t[inputsize];
 	uint32_t outputsize = inputsize;
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
 	int result = mr_aes_init(aes, key, keysize);
@@ -64,7 +64,7 @@ void processTest(
 	EXPECT_BUFFEREQ(output, sizeof(output), expected, sizeof(expected));
 
 	mr_aes_destroy(aes);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 	delete[] output;
 }
 

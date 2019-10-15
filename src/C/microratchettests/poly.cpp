@@ -5,7 +5,7 @@
 static mr_config _cfg{ true };
 
 TEST(Poly, Init) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto poly = mr_poly_create(mr_ctx);
 	const uint8_t key[] = {
 		 0,  1,  2,  3,  4,  5,  6,  7,
@@ -22,11 +22,11 @@ TEST(Poly, Init) {
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_poly_destroy(poly);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Poly, Process) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto poly = mr_poly_create(mr_ctx);
 	const uint8_t key[] = {
 		 0,  1,  2,  3,  4,  5,  6,  7,
@@ -50,7 +50,7 @@ TEST(Poly, Process) {
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_poly_destroy(poly);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 void computetest(
@@ -59,7 +59,7 @@ void computetest(
 	const uint8_t* info, uint32_t infosize,
 	const uint8_t* expected, uint32_t expectedsize)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto poly = mr_poly_create(mr_ctx);
 	uint8_t *output = new uint8_t[expectedsize];
 
@@ -74,7 +74,7 @@ void computetest(
 
 	EXPECT_BUFFEREQ(output, expectedsize, expected, expectedsize);
 	mr_poly_destroy(poly);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 	delete[] output;
 }
 TEST(Poly, ReferenceTest1) {

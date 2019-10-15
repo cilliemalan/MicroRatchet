@@ -145,7 +145,7 @@ static mr_result_t crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const u
 	return E_SUCCESS;
 }
 
-mr_ctx mrclient_create(const mr_config* config)
+mr_ctx mr_ctx_create(const mr_config* config)
 {
 	if (!config) return 0;
 
@@ -162,7 +162,7 @@ mr_ctx mrclient_create(const mr_config* config)
 	return ctx;
 }
 
-mr_result_t mrclient_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
+mr_result_t mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, E_INVALIDARGUMENT, "The context given was null")
@@ -933,7 +933,7 @@ static mr_result_t process_initialization(_mr_ctx* ctx, uint8_t* message, uint32
 	return E_INVALIDOP;
 }
 
-mr_result_t mrclient_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t spaceavailable, bool force)
+mr_result_t mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t spaceavailable, bool force)
 {
 	_mr_ctx* ctx = _ctx;
 	if (ctx->init.initialized && !force)
@@ -949,7 +949,7 @@ mr_result_t mrclient_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint
 	return process_initialization(ctx, message, 0, spaceavailable, 0, 0, 0);
 }
 
-mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
+mr_result_t mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
 {
 	_mr_ctx* ctx = _ctx;
 	FAILIF(!ctx, E_INVALIDARGUMENT, "Context must be provided")
@@ -1007,7 +1007,7 @@ mr_result_t mrclient_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize
 	return E_SUCCESS;
 }
 
-mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
+mr_result_t mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
 {
 	_mr_ctx* ctx = _ctx;
 	FAILIF(!ctx, E_INVALIDARGUMENT, "The context must be provided")
@@ -1035,25 +1035,25 @@ mr_result_t mrclient_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, u
 	return E_SUCCESS;
 }
 
-uint32_t mrclient_state_size_needed(mr_ctx _ctx)
+uint32_t mr_ctx_state_size_needed(mr_ctx _ctx)
 {
 	_mr_ctx* ctx = _ctx;
 	return 0;
 }
 
-mr_result_t mrclient_state_store(mr_ctx _ctx, uint8_t* destination, uint32_t spaceavailable)
+mr_result_t mr_ctx_state_store(mr_ctx _ctx, uint8_t* destination, uint32_t spaceavailable)
 {
 	_mr_ctx* ctx = _ctx;
 	return E_INVALIDOP;
 }
 
-mr_result_t mrclient_state_load(mr_ctx _ctx, const uint8_t* data, uint32_t amount)
+mr_result_t mr_ctx_state_load(mr_ctx _ctx, const uint8_t* data, uint32_t amount)
 {
 	_mr_ctx* ctx = _ctx;
 	return E_INVALIDOP;
 }
 
-void mrclient_destroy(mr_ctx _ctx)
+void mr_ctx_destroy(mr_ctx _ctx)
 {
 	_mr_ctx* ctx = _ctx;
 	if (ctx)

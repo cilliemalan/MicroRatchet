@@ -5,19 +5,19 @@
 static mr_config _cfg{ true };
 
 TEST(Ecdsa, Create) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	EXPECT_NE(nullptr, ecdsa);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdsa, Generate) {
 	uint8_t pubkey[32];
 	memset(pubkey, 0xCC, sizeof(pubkey));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -30,7 +30,7 @@ TEST(Ecdsa, Generate) {
 	EXPECT_FALSE(allcc);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdsa, Sign) {
@@ -45,7 +45,7 @@ TEST(Ecdsa, Sign) {
 	memset(pubkey, 0xCC, sizeof(pubkey));
 	memset(signature, 0xCC, sizeof(signature));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -61,7 +61,7 @@ TEST(Ecdsa, Sign) {
 	EXPECT_FALSE(allz);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdsa, Verify) {
@@ -76,7 +76,7 @@ TEST(Ecdsa, Verify) {
 	memset(pubkey, 0xCC, sizeof(pubkey));
 	memset(signature, 0xCC, sizeof(signature));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -90,7 +90,7 @@ TEST(Ecdsa, Verify) {
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdsa, VerifyOther) {
@@ -105,7 +105,7 @@ TEST(Ecdsa, VerifyOther) {
 	memset(pubkey, 0xCC, sizeof(pubkey));
 	memset(signature, 0xCC, sizeof(signature));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -119,14 +119,14 @@ TEST(Ecdsa, VerifyOther) {
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 void test_verify_ecdsa(const uint8_t* pubkey, uint32_t sizeofpubkey,
 	const uint8_t* digest, uint32_t sizeofdigest,
 	const uint8_t* signature, uint32_t sizeofsignature)
 {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto ecdsa = mr_ecdsa_create(mr_ctx);
 
 	uint32_t res;
@@ -135,7 +135,7 @@ void test_verify_ecdsa(const uint8_t* pubkey, uint32_t sizeofpubkey,
 	EXPECT_EQ(1, res);
 
 	mr_ecdsa_destroy(ecdsa);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Ecdsa, ReferenceTest1) {

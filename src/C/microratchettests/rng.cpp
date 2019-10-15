@@ -5,19 +5,19 @@
 static mr_config _cfg{ true };
 
 TEST(Rng, Create) {
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	EXPECT_NE(nullptr, rng);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, Generate) {
 	uint8_t data[32];
 	memset(data, 0xCC, sizeof(data));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -30,7 +30,7 @@ TEST(Rng, Generate) {
 	EXPECT_FALSE(allcc);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, GenerateTwice) {
@@ -39,7 +39,7 @@ TEST(Rng, GenerateTwice) {
 	memset(data1, 0xCC, sizeof(data1));
 	memset(data2, 0xCC, sizeof(data2));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data1, SIZEOF(data1));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -58,7 +58,7 @@ TEST(Rng, GenerateTwice) {
 	EXPECT_FALSE(allsame);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, GenerateTwiceReinit) {
@@ -67,7 +67,7 @@ TEST(Rng, GenerateTwiceReinit) {
 	memset(data1, 0xCC, sizeof(data1));
 	memset(data2, 0xCC, sizeof(data2));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng1 = mr_rng_create(mr_ctx);
 	auto rng2 = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng1, data1, SIZEOF(data1));
@@ -88,27 +88,27 @@ TEST(Rng, GenerateTwiceReinit) {
 
 	mr_rng_destroy(rng1);
 	mr_rng_destroy(rng2);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, GenerateTiny) {
 	uint8_t data[1];
 	memset(data, 0xCC, sizeof(data));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, GenerateSmall) {
 	uint8_t data[4];
 	memset(data, 0xCC, sizeof(data));
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -122,7 +122,7 @@ TEST(Rng, GenerateSmall) {
 	EXPECT_FALSE(allcc);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
 
 TEST(Rng, GenerateHuge) {
@@ -130,7 +130,7 @@ TEST(Rng, GenerateHuge) {
 	uint8_t *data = new uint8_t[size];
 	memset(data, 0xCC, size);
 
-	auto mr_ctx = mrclient_create(&_cfg);
+	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto rng = mr_rng_create(mr_ctx);
 	int result = mr_rng_generate(rng, data, SIZEOF(data));
 	EXPECT_EQ(E_SUCCESS, result);
@@ -144,5 +144,5 @@ TEST(Rng, GenerateHuge) {
 	EXPECT_FALSE(allcc);
 
 	mr_rng_destroy(rng);
-	mrclient_destroy(mr_ctx);
+	mr_ctx_destroy(mr_ctx);
 }
