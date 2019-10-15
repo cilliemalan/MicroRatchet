@@ -440,7 +440,7 @@ mr_result_t chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state * chain, ui
 		}
 		else
 		{
-			return E_KEYLOST;
+			return E_NOTFOUND;
 		}
 	}
 

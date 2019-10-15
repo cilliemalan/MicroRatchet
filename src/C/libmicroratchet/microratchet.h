@@ -15,16 +15,13 @@
 	// defines and constants
 	typedef enum mr_result_e {
 		E_SUCCESS = 0,
-		E_MORE = 1,
 		E_SENDBACK = 1,
 		E_INVALIDARGUMENT = -1,
 		E_INVALIDSIZE = -2,
 		E_INVALIDOP = -3,
 		E_NOMEM = -4,
-		E_HARDWAREFAIL = -5,
-		E_VERIFYFAIL = -6,
-		E_KEYLOST = -7,
-		E_NOTFOUND = -7
+		E_VERIFYFAIL = -5,
+		E_NOTFOUND = -6
 	} mr_result_t;
 
 #define MR_MIN_PAYLOAD_SIZE 16
