@@ -91,7 +91,7 @@ namespace MicroRatchet
 
                 if (hasInit)
                 {
-                    if (ClientInitializationNonce == null || ClientInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) ClientInitializationNonce = new byte[KeySizeInBytes];
+                    if (ClientInitializationNonce == null || ClientInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) ClientInitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
                     if (RootKey == null || RootKey.Length != KeySizeInBytes) RootKey = new byte[KeySizeInBytes];
                     if (FirstSendHeaderKey == null || FirstSendHeaderKey.Length != KeySizeInBytes) FirstSendHeaderKey = new byte[KeySizeInBytes];
                     if (FirstReceiveHeaderKey == null || FirstReceiveHeaderKey.Length != KeySizeInBytes) FirstReceiveHeaderKey = new byte[KeySizeInBytes];
