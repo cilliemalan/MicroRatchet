@@ -117,20 +117,6 @@ extern "C" {
 	int aesctr_init(_mr_aesctr_ctx* ctx, mr_aes_ctx aes, const uint8_t* iv, uint32_t ivsize);
 	int aesctr_process(_mr_aesctr_ctx* ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
 
-	// some bit movings
-	void be_pack64(long long value, uint8_t* target);
-	void be_pack32(int value, uint8_t* target);
-	void be_pack16(short value, uint8_t* target);
-	void le_pack64(long long value, uint8_t* target);
-	void le_pack32(int value, uint8_t* target);
-	void le_pack16(short value, uint8_t* target);
-	long long be_unpack64(const uint8_t* d);
-	int be_unpack32(const uint8_t* d);
-	short be_unpack16(const uint8_t* d);
-	long long le_unpack64(const uint8_t* d);
-	int le_unpack32(const uint8_t* d);
-	short le_unpack16(const uint8_t* d);
-
 	// ratchetings
 	mr_result_t ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes);
 	mr_result_t ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);

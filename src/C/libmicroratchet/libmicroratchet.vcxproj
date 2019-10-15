@@ -284,7 +284,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aesctr.c" />
-    <ClCompile Include="bitconverter.c" />
     <ClCompile Include="client.c" />
     <ClCompile Include="internal.c" />
     <ClCompile Include="kdf.c" />

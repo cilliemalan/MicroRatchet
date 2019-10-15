@@ -38,9 +38,6 @@
     <ClCompile Include="aesctr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="bitconverter.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ratchet.c">
       <Filter>Source Files</Filter>
     </ClCompile>
