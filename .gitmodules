@@ -6,3 +6,7 @@
 	path = thirdparty/googletest
 	url = https://github.com/google/googletest
 	branch = master
+[submodule "thirdparty/mbed-crypto"]
+	path = thirdparty/mbed-crypto
+	url = https://github.com/ARMmbed/mbed-crypto
+	branch = master
