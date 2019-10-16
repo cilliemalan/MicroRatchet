@@ -483,3 +483,285 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithDrops50Percent) {
 		}
 	}
 }
+
+TEST(Context, MultiMessagesManyInterleavedRandomSizeWithCorruption10Percent) {
+	TEST_PREAMBLE_CLIENT_SERVER;
+
+	uint8_t buff[128] = {};
+	constexpr uint32_t smallmsg = sizeof(buff) - MR_OVERHEAD_WITH_ECDH;
+	constexpr uint32_t largemsg = sizeof(buff) - MR_OVERHEAD_WITHOUT_ECDH;
+	uint8_t msg[largemsg] = {};
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+	uint32_t msgsize = 0;
+	bool corrupt = false;
+
+	for (int i = 0; i < 50; i++)
+	{
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg, sizeof(msg)));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		corrupt = msg[1] < 25;
+		memcpy(buff, msg, msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff, msgsize, sizeof(buff)));
+		if (corrupt)
+		{
+			buff[msg[2] % sizeof(buff)] -= 1;
+			EXPECT_NE(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+		}
+		else
+		{
+			EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+			ASSERT_BUFFEREQ(msg, msgsize, payload, msgsize);
+		}
+
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg, sizeof(msg)));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		corrupt = msg[1] < 25;
+		memcpy(buff, msg, msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff, msgsize, sizeof(buff)));
+		if (corrupt)
+		{
+			buff[msg[2] % sizeof(buff)] += 1;
+			EXPECT_NE(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+		}
+		else
+		{
+			EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+			ASSERT_BUFFEREQ(msg, msgsize, payload, msgsize);
+		}
+	}
+}
+
+TEST(Context, MultiMessagesManyInterleavedRandomSizeWithCorruption50Percent) {
+	TEST_PREAMBLE_CLIENT_SERVER;
+
+	uint8_t buff[128] = {};
+	constexpr uint32_t smallmsg = sizeof(buff) - MR_OVERHEAD_WITH_ECDH;
+	constexpr uint32_t largemsg = sizeof(buff) - MR_OVERHEAD_WITHOUT_ECDH;
+	uint8_t msg[largemsg] = {};
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+	uint32_t msgsize = 0;
+	bool corrupt = false;
+
+	for (int i = 0; i < 50; i++)
+	{
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg, sizeof(msg)));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		corrupt = msg[1] < 128;
+		memcpy(buff, msg, msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff, msgsize, sizeof(buff)));
+		if (corrupt)
+		{
+			buff[msg[2] % sizeof(buff)] -= 1;
+			EXPECT_NE(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+		}
+		else
+		{
+			EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+			ASSERT_BUFFEREQ(msg, msgsize, payload, msgsize);
+		}
+
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg, sizeof(msg)));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		corrupt = msg[1] < 128;
+		memcpy(buff, msg, msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff, msgsize, sizeof(buff)));
+		if (corrupt)
+		{
+			buff[msg[2] % sizeof(buff)] += 1;
+			EXPECT_NE(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+		}
+		else
+		{
+			EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+			ASSERT_BUFFEREQ(msg, msgsize, payload, msgsize);
+		}
+	}
+}
+
+TEST(Context, MultiMessagesManyInterleavedRandomSizeWithDelays) {
+	TEST_PREAMBLE_CLIENT_SERVER;
+
+	constexpr uint32_t buffsize = 128;
+	constexpr uint32_t smallmsg = buffsize - MR_OVERHEAD_WITH_ECDH;
+	constexpr uint32_t largemsg = buffsize - MR_OVERHEAD_WITHOUT_ECDH;
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+	uint32_t msgsize = 0;
+	bool wait = false;
+	std::queue<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> servermessages;
+	std::queue<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> clientmessages;
+
+	std::array<uint8_t, largemsg> msg{};
+	std::array<uint8_t, buffsize> buff{};
+
+	for (int i = 0; i < 50; i++)
+	{
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		servermessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!servermessages.empty())
+			{
+				auto& _buf = std::get<0>(servermessages.front());
+				auto& _msg = std::get<1>(servermessages.front());
+				auto& _msgsize = std::get<2>(servermessages.front());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				servermessages.pop();
+			}
+		}
+
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		clientmessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!clientmessages.empty())
+			{
+				auto& _buf = std::get<0>(clientmessages.front());
+				auto& _msg = std::get<1>(clientmessages.front());
+				auto& _msgsize = std::get<2>(clientmessages.front());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				clientmessages.pop();
+			}
+		}
+	}
+}
+
+TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReorders) {
+	TEST_PREAMBLE_CLIENT_SERVER;
+
+	constexpr uint32_t buffsize = 128;
+	constexpr uint32_t smallmsg = buffsize - MR_OVERHEAD_WITH_ECDH;
+	constexpr uint32_t largemsg = buffsize - MR_OVERHEAD_WITHOUT_ECDH;
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+	uint32_t msgsize = 0;
+	bool wait = false;
+	std::stack<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> servermessages;
+	std::stack<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> clientmessages;
+
+	std::array<uint8_t, largemsg> msg{};
+	std::array<uint8_t, buffsize> buff{};
+
+	for (int i = 0; i < 50; i++)
+	{
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		servermessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!servermessages.empty())
+			{
+				auto& _buf = std::get<0>(servermessages.top());
+				auto& _msg = std::get<1>(servermessages.top());
+				auto& _msgsize = std::get<2>(servermessages.top());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				servermessages.pop();
+			}
+		}
+
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		clientmessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!clientmessages.empty())
+			{
+				auto& _buf = std::get<0>(clientmessages.top());
+				auto& _msg = std::get<1>(clientmessages.top());
+				auto& _msgsize = std::get<2>(clientmessages.top());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				clientmessages.pop();
+			}
+		}
+	}
+}
+TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
+	TEST_PREAMBLE_CLIENT_SERVER;
+
+	constexpr uint32_t buffsize = 128;
+	constexpr uint32_t smallmsg = buffsize - MR_OVERHEAD_WITH_ECDH;
+	constexpr uint32_t largemsg = buffsize - MR_OVERHEAD_WITHOUT_ECDH;
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+	uint32_t msgsize = 0;
+	bool wait = false;
+	bool drop = false;
+	std::stack<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> servermessages;
+	std::stack<std::tuple<std::array<uint8_t, buffsize>, std::array<uint8_t, largemsg>, uint32_t>> clientmessages;
+
+	std::array<uint8_t, largemsg> msg{};
+	std::array<uint8_t, buffsize> buff{};
+	uint32_t sp = 0;
+	uint32_t cp = 0;
+	uint32_t cs = 0;
+	uint32_t ss = 0;
+
+	for (int i = 0; i < 100; i++)
+	{
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		drop = msg[5] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		if (!drop) servermessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!servermessages.empty())
+			{
+				auto& _buf = std::get<0>(servermessages.top());
+				auto& _msg = std::get<1>(servermessages.top());
+				auto& _msgsize = std::get<2>(servermessages.top());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				servermessages.pop();
+			}
+		}
+
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		msgsize = msg[0] < 128 ? largemsg : smallmsg;
+		wait = msg[1] < 128;
+		drop = msg[5] < 128;
+		memcpy(buff.data(), msg.data(), msgsize);
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		if (!drop) clientmessages.push(std::make_tuple(buff, msg, msgsize));
+		if (!wait)
+		{
+			while (!clientmessages.empty())
+			{
+				auto& _buf = std::get<0>(clientmessages.top());
+				auto& _msg = std::get<1>(clientmessages.top());
+				auto& _msgsize = std::get<2>(clientmessages.top());
+
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
+				clientmessages.pop();
+			}
+		}
+	}
+}
