@@ -210,6 +210,7 @@ INCPTR(amt);
 	uint32_t __amtneeded = mr_ecdh_store_size_needed(ecdh); \
 	if (space < __amtneeded) return MR_E_INVALIDSIZE; \
 	_C(mr_ecdh_store(ecdh, ptr, space)); \
+	INCPTR(__amtneeded); \
 }
 
 #define WRITEUINT32(thing) \

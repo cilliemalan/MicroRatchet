@@ -127,6 +127,9 @@ void allocate_and_clear(mr_ctx ctx, T** ptr)
 	**ptr = {};
 }
 
+#define FILLRANDOM(wut) mr_rng_generate(ctx->rng_ctx, wut, sizeof(wut))
+#define CREATEECDH(wut) wut = mr_ecdh_create(ctx); mr_ecdh_generate(wut, nullptr, 0);
+
 TEST(Storage, StoreLoadEmptyClient) {
 	mr_config cfg{ true };
 	auto ctx = mr_ctx_create(&cfg);
@@ -147,8 +150,7 @@ TEST(Storage, StoreLoadInitClient1) {
 	auto ctx = (_mr_ctx*)mrctx;
 
 	allocate_and_clear(ctx, &ctx->init.client);
-	ctx->init.client->initializationnonce[0] = 1;
-	ctx->init.client->initializationnonce[15] = 2;
+	FILLRANDOM(ctx->init.client->initializationnonce);
 
 	store_and_load(mrctx);
 	mr_ctx_destroy(mrctx);
@@ -160,8 +162,7 @@ TEST(Storage, StoreLoadInitClient2) {
 	auto ctx = (_mr_ctx*)mrctx;
 
 	allocate_and_clear(ctx, &ctx->init.client);
-	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
-	mr_ecdh_generate(ctx->init.client->localecdhforinit, nullptr, 0);
+	CREATEECDH(ctx->init.client->localecdhforinit);
 
 	store_and_load(mrctx);
 	mr_ctx_destroy(mrctx);
@@ -173,10 +174,84 @@ TEST(Storage, StoreLoadInitClient3) {
 	auto ctx = (_mr_ctx*)mrctx;
 
 	allocate_and_clear(ctx, &ctx->init.client);
-	ctx->init.client->initializationnonce[0] = 1;
-	ctx->init.client->initializationnonce[15] = 2;
-	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
-	mr_ecdh_generate(ctx->init.client->localecdhforinit, nullptr, 0);
+	FILLRANDOM(ctx->init.client->initializationnonce);
+	CREATEECDH(ctx->init.client->localecdhforinit);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitServer1) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	FILLRANDOM(ctx->init.server->clientpublickey);
+	FILLRANDOM(ctx->init.server->firstreceiveheaderkey);
+	FILLRANDOM(ctx->init.server->firstsendheaderkey);
+	FILLRANDOM(ctx->init.server->nextinitializationnonce);
+	FILLRANDOM(ctx->init.server->rootkey);
+	CREATEECDH(ctx->init.server->localratchetstep0);
+	CREATEECDH(ctx->init.server->localratchetstep1);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitServer2) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	FILLRANDOM(ctx->init.server->clientpublickey);
+	FILLRANDOM(ctx->init.server->firstsendheaderkey);
+	FILLRANDOM(ctx->init.server->rootkey);
+	CREATEECDH(ctx->init.server->localratchetstep1);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitServer3) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	FILLRANDOM(ctx->init.server->firstreceiveheaderkey);
+	FILLRANDOM(ctx->init.server->nextinitializationnonce);
+	CREATEECDH(ctx->init.server->localratchetstep0);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitServer4) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	CREATEECDH(ctx->init.server->localratchetstep0);
+	CREATEECDH(ctx->init.server->localratchetstep1);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitServer5) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	FILLRANDOM(ctx->init.server->clientpublickey);
+	FILLRANDOM(ctx->init.server->firstreceiveheaderkey);
+	FILLRANDOM(ctx->init.server->firstsendheaderkey);
+	FILLRANDOM(ctx->init.server->nextinitializationnonce);
+	FILLRANDOM(ctx->init.server->rootkey);
 
 	store_and_load(mrctx);
 	mr_ctx_destroy(mrctx);
