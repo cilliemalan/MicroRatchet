@@ -215,7 +215,11 @@ INCPTR(amt);
 
 #define WRITEUINT32(thing) \
 if (space < 4) return MR_E_INVALIDSIZE; \
-*((uint32_t*)ptr) = thing; \
+STATIC_ASSERT(sizeof(thing) == 4, "sizeof(thing) == 4"); \
+ptr[0] = (thing) & 0xff; \
+ptr[1] = ((thing) >> 8) & 0xff; \
+ptr[2] = ((thing) >> 16) & 0xff; \
+ptr[3] = (thing) >> 24; \
 INCPTR(4);
 
 mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
@@ -383,7 +387,8 @@ INCPTR(amt);
 
 #define READUINT32(thing) \
 if (space < 4) return MR_E_INVALIDSIZE; \
-thing = *((uint32_t*)ptr); \
+STATIC_ASSERT(sizeof(thing) == 4, "sizeof(thing) == 4"); \
+thing = ((ptr)[3] << 24) | ((ptr)[2] << 16) | ((ptr)[1] << 8) | ((ptr)[0]); \
 INCPTR(4);
 
 mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uint32_t* amountread)
