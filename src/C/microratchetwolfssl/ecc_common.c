@@ -104,29 +104,30 @@ mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspace
 	return MR_E_SUCCESS;
 }
 
-mr_result ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
+uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 {
 	*key = (ecc_key){ 0 };
 
-	int result = wc_ecc_import_private_key_ex(data, spaceavail, 0, 0, key, ECC_SECP256R1);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0")
-
-	return MR_E_SUCCESS;
+	if (spaceavail < 32) return 0;
+	int result = wc_ecc_import_private_key_ex(data, 32, 0, 0, key, ECC_SECP256R1);
+	if (result != 0) return 0;
+	return 32;
 }
 
 mr_result ecc_store_size_needed(const mp_int* key)
 {
-	return mp_unsigned_bin_size((mp_int*)key);
+	return 32;
 }
 
 mr_result ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 {
-	FAILIF(!key || !data, MR_E_INVALIDARG, "!key || !data")
-	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32")
+	FAILIF(!key || !data, MR_E_INVALIDARG, "!key || !data");
+	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32");
 
 	int len = mp_unsigned_bin_size((mp_int*)&key->k);
-	FAILIF(len < 0 || (uint32_t)len > 32, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > 32")
-	int r = mp_to_unsigned_bin((mp_int*)&key->k, data);
+	FAILIF(len < 0 || (uint32_t)len > 32, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > 32");
+	int offset = 32 - len;
+	int r = mp_to_unsigned_bin((mp_int*)&key->k, data + offset);
 	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
 	return MR_E_SUCCESS;
 }

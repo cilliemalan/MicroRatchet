@@ -29,13 +29,11 @@ mr_result mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t public
 	return MR_E_SUCCESS;
 }
 
-mr_result mr_ecdh_load(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
+uint32_t mr_ecdh_load(mr_ecdh_ctx _ctx, const uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
-	int result = ecc_load(key, data, spaceavail);
-	if (result != 0) return result;
-	return MR_E_SUCCESS;
+	return ecc_load(key, data, spaceavail);
 }
 
 mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)

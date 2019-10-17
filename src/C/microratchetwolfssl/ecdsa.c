@@ -50,13 +50,11 @@ mr_result mr_ecdsa_generate(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publ
 	return MR_E_SUCCESS;
 }
 
-mr_result mr_ecdsa_load(mr_ecdsa_ctx _ctx, uint8_t* data, uint32_t spaceavail)
+uint32_t mr_ecdsa_load(mr_ecdsa_ctx _ctx, const uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
-	int result = ecc_load(key, data, spaceavail);
-	if (result != 0) return result;
-	return MR_E_SUCCESS;
+	return ecc_load(key, data, spaceavail);
 }
 
 mr_result mr_ecdsa_sign(mr_ecdsa_ctx _ctx, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail)
