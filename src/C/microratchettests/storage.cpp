@@ -41,8 +41,11 @@ static inline void compare_ecdh(mr_ecdh_ctx a, mr_ecdh_ctx b)
 	}
 }
 
-static void compare_states(_mr_ctx& a, _mr_ctx& b)
+static void compare_states(mr_ctx _a, mr_ctx _b)
 {
+	_mr_ctx& a = *(_mr_ctx*)_a;
+	_mr_ctx& b = *(_mr_ctx*)_b;
+
 	EXPECT_EQ(a.config.is_client, b.config.is_client);
 	EXPECT_EQ(a.init.initialized, b.init.initialized);
 	if (!a.init.initialized && !b.init.initialized)
@@ -96,31 +99,85 @@ static void compare_states(_mr_ctx& a, _mr_ctx& b)
 	}
 }
 
-void store_and_load(_mr_ctx& ctx)
+void store_and_load(_mr_ctx *ctx)
 {
 	uint32_t amountread;
 	uint8_t storage[2048] = { 0 };
-	uint32_t spaceNeeded = mr_ctx_state_size_needed(&ctx);
+	uint32_t spaceNeeded = mr_ctx_state_size_needed(ctx);
 	EXPECT_GT(spaceNeeded, (uint32_t)0);
 
-	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_store(&ctx, storage, sizeof(storage)));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_store(ctx, storage, sizeof(storage)));
 
 	EXPECT_TRUE(is_empty_after(storage, sizeof(storage), spaceNeeded));
 
-	_mr_ctx ctxb{ ctx.config };
-	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_load(&ctxb, storage, sizeof(storage), &amountread));
+	_mr_ctx* ctxb = (_mr_ctx*)mr_ctx_create(&ctx->config);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_load(ctxb, storage, sizeof(storage), &amountread));
+
+	compare_states(ctx, ctxb);
+
+	mr_ctx_destroy(ctxb);
+}
+
+void store_and_load(mr_ctx ctx) { store_and_load((_mr_ctx*)ctx); }
+
+template<typename T>
+void allocate_and_clear(mr_ctx ctx, T** ptr)
+{
+	ASSERT_EQ(MR_E_SUCCESS, mr_allocate(ctx, sizeof(T), (void**)ptr));
+	**ptr = {};
 }
 
 TEST(Storage, StoreLoadEmptyClient) {
-	_mr_ctx ctx = { 0 };
-	ctx.config.is_client = true;
-
+	mr_config cfg{ true };
+	auto ctx = mr_ctx_create(&cfg);
 	store_and_load(ctx);
+	mr_ctx_destroy(ctx);
 }
 
 TEST(Storage, StoreLoadEmptyServer) {
-	_mr_ctx ctx = { 0 };
-	ctx.config.is_client = false;
-
+	mr_config cfg{ false };
+	auto ctx = mr_ctx_create(&cfg);
 	store_and_load(ctx);
+	mr_ctx_destroy(ctx);
+}
+
+TEST(Storage, StoreLoadInitClient1) {
+	mr_config cfg{ true };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.client);
+	ctx->init.client->initializationnonce[0] = 1;
+	ctx->init.client->initializationnonce[15] = 2;
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitClient2) {
+	mr_config cfg{ true };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.client);
+	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
+	mr_ecdh_generate(ctx->init.client->localecdhforinit, nullptr, 0);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, StoreLoadInitClient3) {
+	mr_config cfg{ true };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+
+	allocate_and_clear(ctx, &ctx->init.client);
+	ctx->init.client->initializationnonce[0] = 1;
+	ctx->init.client->initializationnonce[15] = 2;
+	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
+	mr_ecdh_generate(ctx->init.client->localecdhforinit, nullptr, 0);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
 }

@@ -28,7 +28,7 @@
 #define HAS_RATCHETS_BIT (1 << 1)
 
 // server state
-#define HAS_SERVER (1 << 2)
+#define HAS_ISERVER (1 << 2)
 #define HAS_NEXT_INITIALIZATION_NONCE_BIT (1 << 3)
 #define HAS_ROOTKEY_BIT (1 << 4)
 #define HAS_FIRSTSENDHEADERKEY_BIT (1 << 5)
@@ -253,7 +253,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 			_mr_initialization_state_server* c = ctx->init.server;
 			if (c)
 			{
-				*mainheader |= HAS_SERVER;
+				*mainheader |= HAS_ISERVER;
 				if (!allzeroes(c->nextinitializationnonce, INITIALIZATION_NONCE_SIZE))
 				{
 					WRITEDATA(c->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
@@ -403,10 +403,16 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 				{
 					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), &ctx->init.client));
 				}
+				else
+				{
+					if (ctx->init.client->localecdhforinit)
+					{
+						mr_ecdh_destroy(ctx->init.client->localecdhforinit);
+					}
+				}
 
 				_mr_initialization_state_client* c = ctx->init.client;
 
-				if (c->localecdhforinit) mr_ecdh_destroy(c->localecdhforinit);
 
 				*c = (_mr_initialization_state_client){ 0 };
 
@@ -430,17 +436,27 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 		}
 		else
 		{
-			if (mainheader & HAS_SERVER)
+			if (mainheader & HAS_ISERVER)
 			{
 				if (!ctx->init.server)
 				{
-					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), &ctx->init.server));
+					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), &ctx->init.server));
+					*ctx->init.server = (_mr_initialization_state_server){ 0 };
+				}
+				else
+				{
+					if (ctx->init.server->localratchetstep0)
+					{
+						mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+					}
+					if (ctx->init.server->localratchetstep1)
+					{
+						mr_ecdh_destroy(ctx->init.server->localratchetstep1);
+					}
 				}
 
 				_mr_initialization_state_server* c = ctx->init.server;
 
-				if (c->localratchetstep0) mr_ecdh_destroy(c->localratchetstep0);
-				if (c->localratchetstep1) mr_ecdh_destroy(c->localratchetstep1);
 
 				*c = (_mr_initialization_state_server){ 0 };
 
@@ -493,7 +509,10 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 	{
 		_mr_ratchet_state* r = &ctx->ratchets[i];
 
-		if (r->ecdhkey) mr_ecdh_destroy(r->ecdhkey);
+		if (r->ecdhkey)
+		{
+			mr_ecdh_destroy(r->ecdhkey);
+		}
 
 		*r = (_mr_ratchet_state){ 0 };
 
