@@ -262,7 +262,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 	{
 		if (memcmp(ctx->init.server->clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE) != 0)
 		{
-			return MR_E_INVALIDOP;
+			FAIL(MR_E_INVALIDOP, "The server was initialized before with a different public key");
 		}
 		else
 		{
@@ -453,7 +453,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	// ensure the nonce matches
 	if (memcmp(payload, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The received initialization nonce did not match the one sent earlier");
 	}
 
 	// verify the signature
@@ -464,7 +464,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 		&sigvalid));
 	if (!sigvalid)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The signature sent by the server was invalid.");
 	}
 
 	// store the nonce we got from the server
@@ -552,7 +552,7 @@ static mr_result receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint3
 
 	if (payloadSize < INITIALIZATION_NONCE_SIZE || memcmp(payload, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The nonce received did not match the one sent earlier");
 	}
 
 	return MR_E_SUCCESS;
@@ -589,7 +589,7 @@ static mr_result receive_first_server_response(_mr_ctx* ctx, uint8_t* data, uint
 	if (!payload || payloadsize < INITIALIZATION_NONCE_SIZE ||
 		memcmp(payload, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The nonce received did not match the one sent earlier");
 	}
 
 	return MR_E_SUCCESS;
@@ -621,7 +621,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	// the presence of new ECDH parameters
 	if (generation > 0x7fffffff)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The generation exceeded 2^31. ECDH key exchange needs to happen before another message can be sent.");
 	}
 
 	// calculate some sizes
@@ -724,9 +724,8 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 			}
 		}
 	}
-	
 
-	return MR_E_NOTFOUND;
+	FAIL(MR_E_NOTFOUND, "The message received had an unrecognized message authentication code.");
 }
 
 static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amount,
@@ -829,7 +828,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	if (!step)
 	{
 		// An override header key was used but the message did not contain ECDH parameters
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "An override header key was used but the message did not contain ECDH parameters");
 	}
 
 	// get the inner payload key from the receive chain
@@ -877,7 +876,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 				}
 				else
 				{
-					return MR_E_INVALIDOP;
+					FAIL(MR_E_INVALIDOP, "Received an unexpected or duplicate response from the server");
 				}
 			}
 			else if (step)
@@ -902,7 +901,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 	{
 		if (!amount)
 		{
-			return MR_E_INVALIDOP;
+			FAIL(MR_E_INVALIDOP, "The server cannot initiate initialization");
 		}
 		else if (headerkey == ctx->config.applicationKey)
 		{
@@ -930,7 +929,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 		}
 	}
 
-	return MR_E_INVALIDOP;
+	FAIL(MR_E_INVALIDOP, "Unexpected message received during initialization");
 }
 
 mr_result mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t spaceavailable, bool force)
@@ -938,12 +937,12 @@ mr_result mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t
 	_mr_ctx* ctx = _ctx;
 	if (ctx->init.initialized && !force)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "The context is already initialized. To re-initialize use the force argument");
 	}
 
 	if (!ctx->config.is_client)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "Only a client can initiate initialization");
 	}
 
 	return process_initialization(ctx, message, 0, spaceavailable, 0, 0, 0);
@@ -972,7 +971,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 
 	if (!headerkeyused)
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "Could not identify the header key used to send a message");
 	}
 	else if (headerkeyused == ctx->config.applicationKey || !ctx->init.initialized)
 	{
@@ -1001,7 +1000,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	}
 	else
 	{
-		return MR_E_INVALIDOP;
+		FAIL(MR_E_INVALIDOP, "Could not identify the ECDH step used to send a message");
 	}
 
 	return MR_E_SUCCESS;
