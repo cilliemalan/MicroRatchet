@@ -99,12 +99,13 @@ static void compare_states(mr_ctx _a, mr_ctx _b)
 	}
 }
 
-void store_and_load(_mr_ctx *ctx)
+void store_and_load(_mr_ctx* ctx)
 {
 	uint32_t amountread;
 	uint8_t storage[2048] = { 0 };
 	uint32_t spaceNeeded = mr_ctx_state_size_needed(ctx);
 	EXPECT_GT(spaceNeeded, (uint32_t)0);
+	EXPECT_LE(spaceNeeded, sizeof(storage));
 
 	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_store(ctx, storage, sizeof(storage)));
 
@@ -252,6 +253,173 @@ TEST(Storage, StoreLoadInitServer5) {
 	FILLRANDOM(ctx->init.server->firstsendheaderkey);
 	FILLRANDOM(ctx->init.server->nextinitializationnonce);
 	FILLRANDOM(ctx->init.server->rootkey);
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Initialized) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, FullServer) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	allocate_and_clear(ctx, &ctx->init.server);
+	FILLRANDOM(ctx->init.server->clientpublickey);
+	FILLRANDOM(ctx->init.server->firstreceiveheaderkey);
+	FILLRANDOM(ctx->init.server->firstsendheaderkey);
+	FILLRANDOM(ctx->init.server->nextinitializationnonce);
+	FILLRANDOM(ctx->init.server->rootkey);
+	CREATEECDH(ctx->init.server->localratchetstep0);
+	CREATEECDH(ctx->init.server->localratchetstep1);
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = 1;
+		CREATEECDH(ctx->ratchets[i].ecdhkey);
+		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
+		FILLRANDOM(ctx->ratchets[i].nextrootkey);
+		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
+		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
+		ctx->ratchets[i].receivingchain.generation = 5;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
+		ctx->ratchets[i].receivingchain.oldgeneration = 6;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
+		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
+		ctx->ratchets[i].sendingchain.generation = 7;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
+		ctx->ratchets[i].sendingchain.oldgeneration = 8;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+	}
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Ratchet1) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = i + 1;
+		CREATEECDH(ctx->ratchets[i].ecdhkey);
+		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
+		FILLRANDOM(ctx->ratchets[i].nextrootkey);
+		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
+		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
+		ctx->ratchets[i].receivingchain.generation = 5;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
+		ctx->ratchets[i].receivingchain.oldgeneration = 6;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
+		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
+		ctx->ratchets[i].sendingchain.generation = 7;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
+		ctx->ratchets[i].sendingchain.oldgeneration = 8;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+	}
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Ratchet2) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = i + 1;
+		CREATEECDH(ctx->ratchets[i].ecdhkey);
+		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
+		FILLRANDOM(ctx->ratchets[i].nextrootkey);
+		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
+		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
+	}
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Ratchet3) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = i + 1;
+		ctx->ratchets[i].receivingchain.generation = 5;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
+		ctx->ratchets[i].receivingchain.oldgeneration = 6;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
+		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
+		ctx->ratchets[i].sendingchain.generation = 7;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
+		ctx->ratchets[i].sendingchain.oldgeneration = 8;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+	}
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Ratchet4) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = i + 1;
+		CREATEECDH(ctx->ratchets[i].ecdhkey);
+		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
+		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
+		ctx->ratchets[i].receivingchain.generation = 5;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
+		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
+		ctx->ratchets[i].sendingchain.generation = 7;
+		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
+	}
+
+	store_and_load(mrctx);
+	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, Ratchet5) {
+	mr_config cfg{ false };
+	auto mrctx = mr_ctx_create(&cfg);
+	auto ctx = (_mr_ctx*)mrctx;
+	ctx->init.initialized = true;
+
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		ctx->ratchets[i].num = i + 1;
+		CREATEECDH(ctx->ratchets[i].ecdhkey);
+		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
+		FILLRANDOM(ctx->ratchets[i].nextrootkey);
+		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
+		ctx->ratchets[i].receivingchain.generation = 5;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
+		ctx->ratchets[i].receivingchain.oldgeneration = 6;
+		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
+	}
 
 	store_and_load(mrctx);
 	mr_ctx_destroy(mrctx);
