@@ -109,7 +109,7 @@ namespace MicroRatchet
                 var result = new uint[256];
                 for (int i = 0; i < 256; i++)
                 {
-                    string s=i.ToString("X2");
+                    string s=i.ToString("X2", CultureInfo.InvariantCulture);
                     result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
                 }
                 return result;
@@ -117,7 +117,7 @@ namespace MicroRatchet
 
             public static string ByteArrayToHexViaLookup32(byte[] bytes, int offset, int cnt)
             {
-                if (offset + cnt > bytes.Length) throw new ArgumentOutOfRangeException();
+                if (offset + cnt > bytes.Length) throw new ArgumentOutOfRangeException(nameof(bytes));
 
                 var lookup32 = _lookup32;
                 var result = new char[cnt * 2];
