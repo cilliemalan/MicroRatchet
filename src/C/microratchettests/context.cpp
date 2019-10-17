@@ -598,11 +598,11 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithDelays) {
 
 	for (int i = 0; i < 50; i++)
 	{
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, (uint32_t)buff.size()));
 		servermessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -612,17 +612,17 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithDelays) {
 				auto& _msg = std::get<1>(servermessages.front());
 				auto& _msgsize = std::get<2>(servermessages.front());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				servermessages.pop();
 			}
 		}
 
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, (uint32_t)buff.size()));
 		clientmessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -632,7 +632,7 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithDelays) {
 				auto& _msg = std::get<1>(clientmessages.front());
 				auto& _msgsize = std::get<2>(clientmessages.front());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				clientmessages.pop();
 			}
@@ -658,11 +658,11 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReorders) {
 
 	for (int i = 0; i < 50; i++)
 	{
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, (uint32_t)buff.size()));
 		servermessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -672,17 +672,17 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReorders) {
 				auto& _msg = std::get<1>(servermessages.top());
 				auto& _msgsize = std::get<2>(servermessages.top());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				servermessages.pop();
 			}
 		}
 
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, (uint32_t)buff.size()));
 		clientmessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -692,7 +692,7 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReorders) {
 				auto& _msg = std::get<1>(clientmessages.top());
 				auto& _msgsize = std::get<2>(clientmessages.top());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				clientmessages.pop();
 			}
@@ -722,12 +722,12 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
 
 	for (int i = 0; i < 100; i++)
 	{
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		drop = msg[5] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff.data(), msgsize, (uint32_t)buff.size()));
 		if (!drop) servermessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -737,18 +737,18 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
 				auto& _msg = std::get<1>(servermessages.top());
 				auto& _msgsize = std::get<2>(servermessages.top());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				servermessages.pop();
 			}
 		}
 
-		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), msg.size()));
+		ASSERT_EQ(MR_E_SUCCESS, mr_rng_generate(rng, msg.data(), (uint32_t)msg.size()));
 		msgsize = msg[0] < 128 ? largemsg : smallmsg;
 		wait = msg[1] < 128;
 		drop = msg[5] < 128;
 		memcpy(buff.data(), msg.data(), msgsize);
-		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, buff.size()));
+		EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff.data(), msgsize, (uint32_t)buff.size()));
 		if (!drop) clientmessages.push(std::make_tuple(buff, msg, msgsize));
 		if (!wait)
 		{
@@ -758,7 +758,7 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
 				auto& _msg = std::get<1>(clientmessages.top());
 				auto& _msgsize = std::get<2>(clientmessages.top());
 
-				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), _buf.size(), _buf.size(), &payload, &payloadsize));
+				EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, _buf.data(), (uint32_t)_buf.size(), (uint32_t)_buf.size(), &payload, &payloadsize));
 				ASSERT_BUFFEREQ(_msg.data(), _msgsize, payload, _msgsize);
 				clientmessages.pop();
 			}
