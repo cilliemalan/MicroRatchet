@@ -123,9 +123,9 @@ TEST(Ecdh, StoreLoadDeriveTest) {
 
 	// load the stored params into 3&4
 	result = mr_ecdh_load(ecdh3, storageB, store_size1);
-	EXPECT_EQ(MR_E_SUCCESS, result);
+	EXPECT_EQ(32, result);
 	result = mr_ecdh_load(ecdh4, storageA, store_size2);
-	EXPECT_EQ(MR_E_SUCCESS, result);
+	EXPECT_EQ(32, result);
 
 	// make sure the public keys still match
 	uint8_t lpubkey1[32];

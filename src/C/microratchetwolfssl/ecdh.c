@@ -77,7 +77,7 @@ mr_result mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uin
 
 	ecc_key* key = &ctx->key;
 	int result = ecc_load(key, privatekey, privatekeysize);
-	if (result != 0) return result;
+	if (result != 32) return result;
 	return MR_E_SUCCESS;
 }
 
