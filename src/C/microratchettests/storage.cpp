@@ -106,6 +106,8 @@ void store_and_load(_mr_ctx* ctx)
 	uint32_t spaceNeeded = mr_ctx_state_size_needed(ctx);
 	EXPECT_GT(spaceNeeded, (uint32_t)0);
 	EXPECT_LE(spaceNeeded, sizeof(storage));
+	
+	mr_rng_generate(ctx->rng_ctx, storage, spaceNeeded);
 
 	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_store(ctx, storage, sizeof(storage)));
 
@@ -113,6 +115,7 @@ void store_and_load(_mr_ctx* ctx)
 
 	_mr_ctx* ctxb = (_mr_ctx*)mr_ctx_create(&ctx->config);
 	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_load(ctxb, storage, sizeof(storage), &amountread));
+	EXPECT_EQ(amountread, spaceNeeded);
 
 	compare_states(ctx, ctxb);
 
