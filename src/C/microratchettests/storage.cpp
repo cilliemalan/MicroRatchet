@@ -133,6 +133,19 @@ void allocate_and_clear(mr_ctx ctx, T** ptr)
 
 #define FILLRANDOM(wut) mr_rng_generate(ctx->rng_ctx, wut, sizeof(wut))
 #define CREATEECDH(wut) wut = mr_ecdh_create(ctx); mr_ecdh_generate(wut, nullptr, 0);
+#define RANDOMDATA(variable, howmuch) uint8_t variable[howmuch]; mr_rng_generate(rng, variable, sizeof(variable));
+#define RECREATE(ctx) { \
+	uint8_t* __storage = new uint8_t[2048]; \
+	mr_config __cfg = ((_mr_ctx*)(ctx))->config; \
+	mr_ecdsa_ctx __identity = ((_mr_ctx*)(ctx))->identity; \
+	mr_ctx_state_store(ctx, __storage, 2048); \
+	mr_ctx_destroy(ctx); \
+	ctx = nullptr; \
+	ctx = mr_ctx_create(&__cfg); \
+	mr_ctx_state_load(ctx, __storage, 2048, nullptr); \
+	mr_ctx_set_identity(ctx, __identity); \
+	delete[] __storage; \
+}
 
 TEST(Storage, StoreLoadEmptyClient) {
 	mr_config cfg{ true };
@@ -426,4 +439,105 @@ TEST(Storage, Ratchet5) {
 
 	store_and_load(mrctx);
 	mr_ctx_destroy(mrctx);
+}
+
+TEST(Storage, FullProcess)
+{
+	constexpr size_t buffersize = 256;
+	uint8_t buffer[buffersize]{};
+	mr_config clientcfg{ true };
+	auto client = mr_ctx_create(&clientcfg);
+	mr_rng_ctx rng = mr_rng_create(client);
+	uint8_t clientpubkey[32];
+	auto clientidentity = mr_ecdsa_create(client);
+	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(clientidentity, clientpubkey, sizeof(clientpubkey)));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity));
+	mr_config servercfg{ false };
+	auto server = mr_ctx_create(&servercfg);
+	uint8_t serverpubkey[32];
+	auto serveridentity = mr_ecdsa_create(server);
+	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey)));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity));
+	run_on_exit _a{ [=] {
+		mr_rng_destroy(rng);
+		mr_ctx_destroy(client);
+		mr_ctx_destroy(server);
+		mr_ecdsa_destroy(clientidentity);
+		mr_ecdsa_destroy(serveridentity);
+	} };
+
+	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, false));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+	RECREATE(client);
+	RECREATE(server);
+
+	RANDOMDATA(msg1, 32);
+	RANDOMDATA(msg2, 32);
+	RANDOMDATA(msg3, 32);
+	RANDOMDATA(msg4, 32);
+	RANDOMDATA(msg5, 32);
+	RANDOMDATA(msg6, 32);
+
+	uint8_t buff[128] = {};
+	uint8_t* payload = 0;
+	uint32_t payloadsize = 0;
+
+	memcpy(buff, msg1, sizeof(msg1));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff, sizeof(msg1), sizeof(buff)));
+	RECREATE(client);
+	RECREATE(server);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_BUFFEREQ(msg1, sizeof(msg1), payload, sizeof(msg1));
+
+	memcpy(buff, msg2, sizeof(msg2));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff, sizeof(msg2), sizeof(buff)));
+	RECREATE(client);
+	RECREATE(server);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_BUFFEREQ(msg2, sizeof(msg2), payload, sizeof(msg2));
+
+	memcpy(buff, msg3, sizeof(msg3));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(server, buff, sizeof(msg3), sizeof(buff)));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	ASSERT_BUFFEREQ(msg3, sizeof(msg3), payload, sizeof(msg3));
+
+	memcpy(buff, msg4, sizeof(msg4));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff, sizeof(msg4), sizeof(buff)));
+	RECREATE(client);
+	RECREATE(server);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_BUFFEREQ(msg4, sizeof(msg4), payload, sizeof(msg4));
+
+	memcpy(buff, msg5, sizeof(msg5));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff, sizeof(msg5), sizeof(buff)));
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	ASSERT_BUFFEREQ(msg5, sizeof(msg5), payload, sizeof(msg5));
+
+	memcpy(buff, msg6, sizeof(msg6));
+	RECREATE(client);
+	RECREATE(server);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_send(client, buff, sizeof(msg6), sizeof(buff)));
+	RECREATE(client);
+	RECREATE(server);
+	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_receive(server, buff, sizeof(buff), sizeof(buff), &payload, &payloadsize));
+	RECREATE(client);
+	RECREATE(server);
+	ASSERT_BUFFEREQ(msg6, sizeof(msg6), payload, sizeof(msg6));
 }
