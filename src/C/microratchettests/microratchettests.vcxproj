@@ -61,6 +61,7 @@
     <ClCompile Include="reference.cpp" />
     <ClCompile Include="rng.cpp" />
     <ClCompile Include="sha.cpp" />
+    <ClCompile Include="storage.cpp" />
     <ClCompile Include="support.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

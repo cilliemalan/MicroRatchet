@@ -80,6 +80,10 @@ inline void buffer_to_string(const uint8_t* b, uint32_t l, char* ob)
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
+#define ASSERT_BUFFEREQS(b1, b2) ASSERT_BUFFEREQ(b1, sizeof(b1), b2, sizeof(b2))
+#define ASSERT_BUFFERNES(b1, b2) ASSERT_BUFFERNE(b1, sizeof(b1), b2, sizeof(b2))
+#define EXPECT_BUFFEREQS(b1, b2) ASSERT_BUFFEREQ(b1, sizeof(b1), b2, sizeof(b2))
+#define EXPECT_BUFFERNES(b1, b2) ASSERT_BUFFERNE(b1, sizeof(b1), b2, sizeof(b2))
 
 struct run_on_exit {
 	inline run_on_exit(std::function<void(void)> wut) : wut(wut) {}
