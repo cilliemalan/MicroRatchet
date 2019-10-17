@@ -44,5 +44,8 @@
     <ClCompile Include="context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="context_state.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -1035,24 +1035,6 @@ mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint3
 	return MR_E_SUCCESS;
 }
 
-uint32_t mr_ctx_state_size_needed(mr_ctx _ctx)
-{
-	_mr_ctx* ctx = _ctx;
-	return 0;
-}
-
-mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* destination, uint32_t spaceavailable)
-{
-	_mr_ctx* ctx = _ctx;
-	return MR_E_INVALIDOP;
-}
-
-mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* data, uint32_t amount)
-{
-	_mr_ctx* ctx = _ctx;
-	return MR_E_INVALIDOP;
-}
-
 void mr_ctx_destroy(mr_ctx _ctx)
 {
 	_mr_ctx* ctx = _ctx;

@@ -102,7 +102,7 @@ typedef enum mr_result_e {
 
 	mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx);
 	mr_result mr_ecdh_generate(mr_ecdh_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
-	mr_result mr_ecdh_load(mr_ecdh_ctx ctx, uint8_t* data, uint32_t spaceavail);
+	uint32_t mr_ecdh_load(mr_ecdh_ctx ctx, const uint8_t* data, uint32_t spaceavail);
 	mr_result mr_ecdh_derivekey(mr_ecdh_ctx ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail);
 	uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx ctx);
 	mr_result mr_ecdh_store(mr_ecdh_ctx ctx, uint8_t* data, uint32_t spaceavail);
@@ -117,7 +117,7 @@ typedef enum mr_result_e {
 	mr_result mr_ecdsa_setprivatekey(mr_ecdsa_ctx ctx, const uint8_t* privatekey, uint32_t privatekeysize);
 	mr_result mr_ecdsa_getpublickey(mr_ecdsa_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
 	mr_result mr_ecdsa_generate(mr_ecdsa_ctx ctx, uint8_t* publickey, uint32_t publickeyspaceavail);
-	mr_result mr_ecdsa_load(mr_ecdsa_ctx ctx, uint8_t* data, uint32_t spaceavail);
+	uint32_t mr_ecdsa_load(mr_ecdsa_ctx ctx, const uint8_t* data, uint32_t spaceavail);
 	mr_result mr_ecdsa_sign(mr_ecdsa_ctx ctx, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail);
 	mr_result mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result);
 	mr_result mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
@@ -184,7 +184,7 @@ typedef enum mr_result_e {
 	mr_result mr_ctx_state_store(mr_ctx ctx, uint8_t* destination, uint32_t spaceavailable);
 
 	// loads state for a context from a memory buffer.
-	mr_result mr_ctx_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount);
+	mr_result mr_ctx_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount, uint32_t* amountread);
 
 	// destroys a context and frees all related memory. The identity ECDH object
 	// will not be destroyed.
