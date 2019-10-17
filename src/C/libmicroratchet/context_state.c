@@ -226,7 +226,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 	bool client = ctx->config.is_client;
 
 	uint32_t* mainheader = (uint32_t*)ptr;
-	*mainheader |= STORAGE_VERSION << 24;
+	*mainheader = STORAGE_VERSION << 24;
 	INCPTR(4);
 	if (!initialized)
 	{
@@ -302,6 +302,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 		{
 			numratchets++;
 			uint32_t* ratchetheader = (uint32_t*)ptr;
+			*ratchetheader = 0;
 			INCPTR(4);
 			WRITEUINT32(r->num);
 			if (r->ecdhkey)
@@ -334,7 +335,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 				WRITEDATA(r->nextreceiveheaderkey, KEY_SIZE);
 				*ratchetheader |= HAS_NRHK_BIT;
 			}
-			if (r->sendingchain.generation != 0)
+			if (!allzeroes(r->sendingchain.chainkey, KEY_SIZE))
 			{
 				WRITEUINT32(r->sendingchain.generation);
 				WRITEDATA(r->sendingchain.chainkey, KEY_SIZE);
@@ -346,7 +347,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 					*ratchetheader |= HAS_SCHAIN_OK_BIT;
 				}
 			}
-			if (r->receivingchain.generation != 0)
+			if (!allzeroes(r->receivingchain.chainkey, KEY_SIZE))
 			{
 				WRITEUINT32(r->receivingchain.generation);
 				WRITEDATA(r->receivingchain.chainkey, KEY_SIZE);
