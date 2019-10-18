@@ -36,3 +36,8 @@ target_link_libraries(microratchettests
     gtest_main)
 
 target_compile_definitions(microratchettests PUBLIC GTEST_DONT_DEFINE_TEST)
+target_compile_options(microratchettests PUBLIC -Werror)
+
+if (USE_PCH)
+    target_precompile_headers(microratchettests PUBLIC pch.h)
+endif (USE_PCH)
