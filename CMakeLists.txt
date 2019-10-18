@@ -10,13 +10,19 @@ option(DEBUG "Produce a debug build" OFF)
 option(TRACE "include diagnostic logging (INSECURE)" OFF)
 option(HAVE_SERVER "Include microratchet server support" ON)
 
+enable_testing()
+
 
 add_compile_options(-Wall)
 
 if (DEBUG)
     add_definitions(-DDEBUG)
-    add_compile_options(-g0)
+    add_compile_options(-g0 -O0)
+else ()
+    add_compile_options(-O2)
+    add_definitions(-D_FORTIFY_SOURCE=2)
 endif (DEBUG)
+
 if (TRACE)
     add_definitions(-DTRACE)
 endif (TRACE)

@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
+include(GoogleTest)
+
 
 set(SOURCES
     aes.cpp
@@ -20,6 +22,7 @@ set(SOURCES
 
 add_executable(microratchettests ${SOURCES})
 
+gtest_discover_tests(microratchettests)
 
 include_directories(
     ../libmicroratchet
