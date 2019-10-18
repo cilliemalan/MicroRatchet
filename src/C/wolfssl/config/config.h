@@ -12,6 +12,10 @@
 #define WOLFSSL_AES_DIRECT
 #define WOLFSSL_LIB
 #define FP_MAX_BITS 1024
+#define NO_WOLFSSL_DIR 
+#define WOLFSSL_USER_IO
+#define SINGLE_THREADED
+#define NO_WRITEV
 
 #if defined(__x86_64__) || defined(_M_AMD64)
 #define HAVE_INTEL_RDSEED

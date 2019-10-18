@@ -120,7 +120,7 @@ typedef enum mr_result_e {
 	uint32_t mr_ecdsa_load(mr_ecdsa_ctx ctx, const uint8_t* data, uint32_t spaceavail);
 	mr_result mr_ecdsa_sign(mr_ecdsa_ctx ctx, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail);
 	mr_result mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result);
-	mr_result mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
+	uint32_t mr_ecdsa_store_size_needed(mr_ecdsa_ctx ctx);
 	mr_result mr_ecdsa_store(mr_ecdsa_ctx ctx, uint8_t* data, uint32_t spaceavail);
 	void mr_ecdsa_destroy(mr_ecdsa_ctx ctx);
 	mr_result mr_ecdsa_verify_other(const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, const uint8_t* publickey, uint32_t publickeysize, uint32_t* result);
