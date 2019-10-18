@@ -8,7 +8,6 @@ endif()
 
 option(DEBUG "Produce a debug build" OFF)
 option(TRACE "include diagnostic logging (INSECURE)" OFF)
-option(HAVE_SERVER "Include microratchet server support" ON)
 
 enable_testing()
 
