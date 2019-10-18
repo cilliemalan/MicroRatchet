@@ -849,7 +849,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			if (!ctx->init.client)
 			{
 				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
-				*ctx->init.client = (_mr_initialization_state_client){ 0 };
+				*ctx->init.client = (_mr_initialization_state_client){{ 0 }};
 			}
 
 			// step 1: send first init request from client
@@ -971,7 +971,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 		if (!ctx->init.server)
 		{
 			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
-			*ctx->init.server = (_mr_initialization_state_server){ 0 };
+			*ctx->init.server = (_mr_initialization_state_server){{ 0 }};
 		}
 
 		// if the application key was used this is an initialization message
@@ -1078,7 +1078,7 @@ void mr_ctx_destroy(mr_ctx _ctx)
 			ctx->init.server = 0;
 		}
 
-		*ctx = (_mr_ctx){ 0 };
+		*ctx = (_mr_ctx){{ 0 }};
 		mr_free(ctx, ctx);
 	}
 }

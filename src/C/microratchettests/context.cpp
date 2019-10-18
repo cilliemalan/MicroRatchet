@@ -7,7 +7,6 @@ static uint8_t emptybuffer[T] = {};
 
 static constexpr size_t buffersize = 256;
 static constexpr size_t buffersize_total = buffersize + 128;
-static constexpr size_t buffersize_overhead = buffersize_total - buffersize;
 
 #define EXPECT_NOT_EMPTY(b) EXPECT_BUFFERNE(emptybuffer<sizeof(b)>, sizeof(b), buffer, sizeof(b))
 #define EXPECT_NOT_OVERFLOWED(b) \
