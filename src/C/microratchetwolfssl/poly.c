@@ -19,7 +19,7 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 
 	*ctx = (_mr_poly_ctx){
 		.mr_ctx = mr_ctx,
-		.wc_poly = (Poly1305){ 0 }
+		.wc_poly = (Poly1305){{ 0 }}
 	};
 	return ctx;
 }

@@ -45,7 +45,7 @@ void testsha(const uint8_t (&data)[L1], const uint8_t(&expected_output)[L2])
 	auto sha = mr_sha_create(mr_ctx);
 	int result = mr_sha_init(sha);
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	if(data && sizeof(data) > 0) result = mr_sha_process(sha, data, SIZEOF(data));
+	if(sizeof(data) > 0) result = mr_sha_process(sha, data, SIZEOF(data));
 	EXPECT_EQ(MR_E_SUCCESS, result);
 	result = mr_sha_compute(sha, output, SIZEOF(output));
 	EXPECT_EQ(MR_E_SUCCESS, result);

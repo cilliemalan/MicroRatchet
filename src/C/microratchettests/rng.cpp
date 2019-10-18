@@ -54,7 +54,7 @@ TEST(Rng, GenerateTwice) {
 	EXPECT_FALSE(allcc);
 
 	bool allsame = true;
-	for (int i = 0; i < sizeof(data1); i++) if (data1[i] != data2[i]) { allsame = false; break; }
+	for (uint32_t i = 0; i < sizeof(data1); i++) if (data1[i] != data2[i]) { allsame = false; break; }
 	EXPECT_FALSE(allsame);
 
 	mr_rng_destroy(rng);
@@ -83,7 +83,7 @@ TEST(Rng, GenerateTwiceReinit) {
 	EXPECT_FALSE(allcc);
 
 	bool allsame = true;
-	for (int i = 0; i < sizeof(data1); i++) if (data1[i] != data2[i]) { allsame = false; break; }
+	for (uint32_t i = 0; i < sizeof(data1); i++) if (data1[i] != data2[i]) { allsame = false; break; }
 	EXPECT_FALSE(allsame);
 
 	mr_rng_destroy(rng1);
@@ -136,7 +136,7 @@ TEST(Rng, GenerateHuge) {
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	bool allcc = true;
-	for (int i = 0; i < size; i++) if (data[i] != 0xCC)
+	for (uint32_t i = 0; i < size; i++) if (data[i] != 0xCC)
 	{
 		allcc = false;
 		break;

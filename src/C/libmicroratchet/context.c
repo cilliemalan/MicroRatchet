@@ -96,7 +96,6 @@ static mr_result sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_c
 	FAILIF(datasize < SIGNATURE_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a signature and one byte extra")
 
 	uint8_t sha[DIGEST_SIZE];
-	uint32_t sigresult = 0;
 	_C(digest(ctx, data, datasize - SIGNATURE_SIZE, sha, sizeof(sha)));
 	_C(mr_ecdsa_sign(signer, sha, DIGEST_SIZE, data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE));
 	LOGD("signature hash        ", sha, DIGEST_SIZE);
@@ -203,7 +202,6 @@ static mr_result send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint
 
 	// nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
 	uint32_t macOffset = spaceavail - MAC_SIZE;
-	uint32_t signatureOffset = spaceavail - MAC_SIZE - SIGNATURE_SIZE;
 	memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 	memcpy(output + INITIALIZATION_NONCE_SIZE, pubkey, ECNUM_SIZE);
 	memcpy(output + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE, clientEcdhPub, ECNUM_SIZE);
@@ -254,8 +252,6 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 		data, INITIALIZATION_NONCE_SIZE));
 
 	uint32_t macOffset = amount - MAC_SIZE;
-	uint32_t signatureOffset = macOffset - SIGNATURE_SIZE;
-	uint32_t remoteEcdhOffset = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint32_t clientPublicKeyOffset = INITIALIZATION_NONCE_SIZE;
 
 	if (!allzeroes(ctx->init.server->clientpublickey, ECNUM_SIZE))
@@ -360,9 +356,7 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep1, rre1, sizeof(rre1)));
 	LOGD("rre1                  ", rre1, ECNUM_SIZE);
 
-	uint32_t minimumMessageSize = INITIALIZATION_NONCE_SIZE * 2 + ECNUM_SIZE * 6 + MAC_SIZE;
 	uint32_t macOffset = spaceavail - MAC_SIZE;
-	uint32_t entireMessageWithoutMacOrSignatureSize = macOffset - SIGNATURE_SIZE;
 	uint32_t encryptedPayloadOffset = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint32_t encryptedPayloadSize = macOffset - encryptedPayloadOffset;
 
@@ -626,7 +620,6 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 
 	// calculate some sizes
 	uint32_t headersize = NONCE_SIZE + (includeecdh ? ECNUM_SIZE : 0);
-	uint32_t overhead = headersize + MAC_SIZE;
 	uint32_t payloadSize = spaceavail - headersize - MAC_SIZE;
 	uint32_t amountAfterPayload = spaceavail - amount - headersize - MAC_SIZE;
 	uint32_t headerIvOffset = spaceavail - MAC_SIZE - HEADERIV_SIZE;

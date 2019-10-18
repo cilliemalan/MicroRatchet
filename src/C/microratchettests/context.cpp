@@ -715,10 +715,6 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
 
 	std::array<uint8_t, largemsg> msg{};
 	std::array<uint8_t, buffsize> buff{};
-	uint32_t sp = 0;
-	uint32_t cp = 0;
-	uint32_t cs = 0;
-	uint32_t ss = 0;
 
 	for (int i = 0; i < 100; i++)
 	{

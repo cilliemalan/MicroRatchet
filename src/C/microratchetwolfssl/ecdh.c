@@ -47,7 +47,7 @@ mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uin
 	int result = ecc_import_public(otherpublickey, otherpublickeysize, &pub);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0")
 
-	int dummy = derivedkeyspaceavail;
+	word32 dummy = derivedkeyspaceavail;
 	result = wc_ecc_shared_secret_ex(&ctx->key, &pub, derivedkey, &dummy);
 	FAILIF(result != 0 || dummy != 32, MR_E_INVALIDOP, "result != 0 || dummy != 32")
 	return MR_E_SUCCESS;
@@ -64,8 +64,8 @@ mr_result mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key.k);
 	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail")
-	int result = ecc_store(&ctx->key, data, spaceavail);
-	return MR_E_SUCCESS;
+	mr_result result = ecc_store(&ctx->key, data, spaceavail);
+	return result;
 }
 
 

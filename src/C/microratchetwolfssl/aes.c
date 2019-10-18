@@ -14,7 +14,7 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	if (r != MR_E_SUCCESS) return 0;
 	*ctx = (_mr_aes_ctx){
 		.mr_ctx = mr_ctx,
-		.wc_aes = (Aes){ 0 }
+		.wc_aes = (Aes){{ 0 }}
 	};
 	return ctx;
 }

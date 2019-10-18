@@ -173,8 +173,9 @@ mr_result ecc_verify(const ecc_key *key, const uint8_t* signature, uint32_t sign
 	res = mp_read_unsigned_bin(&s, signature + 32, 32);
 	FAILIF(res != 0, MR_E_INVALIDOP, "res != 0")
 
-
-	res = wc_ecc_verify_hash_ex(&r, &s, digest, digestsize, result, (ecc_key*)key);
+	int wcresult;
+	res = wc_ecc_verify_hash_ex(&r, &s, digest, digestsize, &wcresult, (ecc_key*)key);
+	if (result) *result = !!wcresult;
 	FAILIF(res != 0, MR_E_INVALIDOP, "res != 0")
 
 	return MR_E_SUCCESS;

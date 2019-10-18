@@ -314,7 +314,7 @@ TEST(SymmetricRatchet, MultiSymmetry) {
 	mr_ctx_destroy(ctx);
 }
 
-void deepsymmetrytest(int depth) 
+void deepsymmetrytest(uint32_t depth) 
 {
 	mr_ctx ctx = mr_ctx_create(&_cfg);
 	mr_rng_ctx rng = mr_rng_create(ctx);

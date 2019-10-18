@@ -15,7 +15,7 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 
 	*ctx = (_mr_sha_ctx){
 		.mr_ctx = mr_ctx,
-		.wc_sha = (wc_Sha256){ 0 }
+		.wc_sha = (wc_Sha256){{ 0 }}
 	};
 	return ctx;
 }
