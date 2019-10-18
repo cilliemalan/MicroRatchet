@@ -94,7 +94,7 @@ struct run_on_exit {
 size_t calculate_memory_used();
 void free_all();
 
-#define EXPECT_ALL_MEMORY_FREED() EXPECT_EQ(0, calculate_memory_used())
+#define EXPECT_ALL_MEMORY_FREED() EXPECT_EQ((size_t)0, calculate_memory_used())
 
 
 

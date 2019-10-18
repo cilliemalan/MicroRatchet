@@ -87,7 +87,7 @@ TEST(Ecdsa, Verify) {
 	uint32_t res;
 	result = mr_ecdsa_verify(ecdsa, (const uint8_t*)signature, SIZEOF(signature), digest, SIZEOF(digest), &res);
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_EQ(1, res);
+	EXPECT_EQ(true, res);
 
 	mr_ecdsa_destroy(ecdsa);
 	mr_ctx_destroy(mr_ctx);
@@ -116,7 +116,7 @@ TEST(Ecdsa, VerifyOther) {
 	uint32_t res;
 	result = mr_ecdsa_verify_other((const uint8_t*)signature, SIZEOF(signature), (const uint8_t*)digest, SIZEOF(digest), (const uint8_t*)pubkey, SIZEOF(pubkey), &res);
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_EQ(1, res);
+	EXPECT_EQ(true, res);
 
 	mr_ecdsa_destroy(ecdsa);
 	mr_ctx_destroy(mr_ctx);
@@ -132,7 +132,7 @@ void test_verify_ecdsa(const uint8_t* pubkey, uint32_t sizeofpubkey,
 	uint32_t res;
 	int result = mr_ecdsa_verify_other(signature, sizeofsignature, digest, sizeofdigest, pubkey, sizeofpubkey, &res);
 	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_EQ(1, res);
+	EXPECT_EQ(true, res);
 
 	mr_ecdsa_destroy(ecdsa);
 	mr_ctx_destroy(mr_ctx);

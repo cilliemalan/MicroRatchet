@@ -79,7 +79,7 @@ mr_result mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const uint8_t* signature, uint32_t 
 	return MR_E_SUCCESS;
 }
 
-int mr_ecdsa_store_size_needed(mr_ecdsa_ctx _ctx)
+uint32_t mr_ecdsa_store_size_needed(mr_ecdsa_ctx _ctx)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
 	return ecc_store_size_needed(&ctx->key.k);

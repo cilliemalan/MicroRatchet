@@ -43,9 +43,9 @@ TEST(EcdhRatchet, ServerInitializeTest) {
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.nextsendheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.receiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.sendheaderkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet.sendingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet.sendingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.sendingchain.chainkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet.receivingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet.receivingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet.receivingchain.chainkey, KEY_SIZE);
 
 	mr_ecdh_destroy(ckey);
@@ -99,9 +99,9 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	EXPECT_BUFFEREQ(b_empty, KEY_SIZE, ratchet1.receiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet1.sendheaderkey, KEY_SIZE);
 	EXPECT_BUFFEREQ(b_empty, KEY_SIZE, ratchet1.receivingchain.chainkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet1.receivingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet1.receivingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet1.sendingchain.chainkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet1.sendingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet1.sendingchain.generation);
 
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.nextreceiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.nextsendheaderkey, KEY_SIZE);
@@ -109,9 +109,9 @@ TEST(EcdhRatchet, ClientInitializeTest) {
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.receiveheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.sendheaderkey, KEY_SIZE);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.receivingchain.chainkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet2.receivingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet2.receivingchain.generation);
 	EXPECT_BUFFERNE(b_empty, KEY_SIZE, ratchet2.sendingchain.chainkey, KEY_SIZE);
-	EXPECT_EQ(0, ratchet2.sendingchain.generation);
+	EXPECT_EQ((uint32_t)0, ratchet2.sendingchain.generation);
 
 	mr_ecdh_destroy(ckey1);
 	mr_ecdh_destroy(ckey2);

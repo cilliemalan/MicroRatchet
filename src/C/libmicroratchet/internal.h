@@ -43,6 +43,11 @@ extern "C" {
 #define MIN_MESSAGE_SIZE (OVERHEAD_WITHOUT_ECDH + MIN_PAYLOAD_SIZE)
 #define MIN_MESSAGE_SIZE_WITH_ECDH (OVERHEAD_WITH_ECDH + MIN_PAYLOAD_SIZE)
 
+#ifdef _C
+#undef _C
+#endif
+
+
 #define _C(x) { int __r = x; if(__r != MR_E_SUCCESS) return __r; }
 #define _R(r, x) if (r == MR_E_SUCCESS) r = x;
 

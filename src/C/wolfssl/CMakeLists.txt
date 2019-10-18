@@ -14,8 +14,11 @@ set(WOLFSSL_SOURCES_BASE
 	md4.c md5.c memory.c pkcs7.c pkcs12.c poly1305.c
 	pwdbased.c rabbit.c random.c ripemd.c rsa.c
     sha.c sha256.c sha3.c sha512.c signature.c srp.c
-	tfm.c wc_encrypt.c wc_port.c wolfmath.c wolfevent.c
-	aes_asm.S)
+	tfm.c wc_encrypt.c wc_port.c wolfmath.c wolfevent.c)
+
+if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+	set(WOLFSSL_SOURCES_BASE ${WOLFSSL_SOURCES_BASE} aes_asm.S)
+endif()
 
 set_source_files_properties(aes_asm.s PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
@@ -31,4 +34,8 @@ include_directories(
 add_library(wolfssl STATIC ${WOLFSSL_SOURCES})
 
 target_compile_definitions(wolfssl PUBLIC HAVE_CONFIG_H)
+
+if (ARM_CORTEX)
+else ()
 target_compile_options(wolfssl PUBLIC -msse2 -msse -march=native -maes)
+endif (ARM_CORTEX)

@@ -20,15 +20,31 @@ set(SOURCES
     support.cpp
     symmetricratchet.cpp)
 
+if (ARM_CORTEX)
+    set(SOURCES ${SOURCES} port/syscalls.c)
+endif (ARM_CORTEX)
+
 add_executable(microratchettests ${SOURCES})
 
-gtest_discover_tests(microratchettests)
+if (NOT ARM_CORTEX)
+    gtest_discover_tests(microratchettests)
+endif ()
 
 include_directories(
     ../libmicroratchet
     ../../../thirdparty/googletest/googletest/include
     ../../../thirdparty/googletest/googlemock/include
 )
+
+set(LINKLIBS microratchet
+    wolfssl
+    microratchetwolfssl
+    gtest
+    gmock)
+
+if (NOT ARM_CORTEX)
+    set(LINKLIBS ${LINKLIBS} gtest_main)
+endif ()
 
 target_link_libraries(microratchettests
     microratchet
@@ -41,6 +57,8 @@ target_link_libraries(microratchettests
 target_compile_definitions(microratchettests PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_options(microratchettests PUBLIC -Werror)
 
-if (USE_PCH)
+
+
+if (USE_PCH AND NOT ARM_CORTEX)
     target_precompile_headers(microratchettests PUBLIC pch.h)
-endif (USE_PCH)
+endif (USE_PCH AND NOT ARM_CORTEX)
