@@ -42,6 +42,6 @@ target_compile_definitions(wolfssl PUBLIC HAVE_CONFIG_H)
 
 # specify args for compiling AES_NI
 if (NOT ARM_CORTEX)
-target_compile_options(wolfssl PUBLIC -msse2 -msse -march=native -maes)
-endif (ARM_CORTEX)
+	target_compile_options(wolfssl PUBLIC -msse2 -msse -march=native -maes)
+endif ()
 
