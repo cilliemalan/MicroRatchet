@@ -2,19 +2,9 @@
 #include <microratchet.h>
 #include <wolfssl/wolfcrypt/random.h>
 
-#ifdef CUSTOM_RNG
-extern const uint8_t* random_data;
-extern const uint32_t random_data_length;
-#endif
-
 typedef struct {
 	mr_ctx mr_ctx;
 	WC_RNG rng;
-#ifdef CUSTOM_RNG
-	const uint8_t* random_data;
-	uint32_t random_data_length;
-	uint32_t random_data_index;
-#endif
 } _mr_rng_ctx;
 
 // hack for os specific seeder
@@ -22,17 +12,6 @@ typedef struct {
 #define RNGSEEDHANDLEFIELD handle
 #else
 #define RNGSEEDHANDLEFIELD fd
-#endif
-
-#ifdef CUSTOM_RNG
-mr_rng_ctx mr_rng_create_custom(mr_ctx mr_ctx, const uint8_t* random_data, uint32_t random_data_length, uint32_t random_data_index)
-{
-	_mr_rng_ctx* rng = (_mr_rng_ctx*)mr_rng_create(mr_ctx);
-	rng->random_data = random_data;
-	rng->random_data_length = random_data_length;
-	rng->random_data_index = random_data_index;
-	return rng;
-}
 #endif
 
 mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
@@ -50,24 +29,6 @@ mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 	_mr_rng_ctx* ctx = _ctx;
 	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1")
 	FAILIF(!output, MR_E_INVALIDARG, "!output")
-
-#ifdef CUSTOM_RNG
-	if (ctx->random_data && ctx->random_data_length)
-	{
-		uint32_t amt = outputsize;
-		uint8_t* ptr = output;
-		while (amt > 0)
-		{
-			uint32_t cpy = min(amt, ctx->random_data_length - ctx->random_data_index);
-			memcpy(output, ctx->random_data + ctx->random_data_index, cpy);
-			amt -= cpy;
-			ptr += cpy;
-			ctx->random_data_index = (ctx->random_data_index + cpy) % ctx->random_data_length;
-		}
-
-		return MR_E_SUCCESS;
-	}
-#endif
 
 	if (ctx->rng.seed.RNGSEEDHANDLEFIELD == 0)
 	{

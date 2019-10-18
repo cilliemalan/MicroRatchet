@@ -18,7 +18,3 @@
 #define FORCE_FAILURE_RDSEED
 #define WOLFSSL_AESNI
 #endif
-
-#if defined(DEBUG) || defined(_DEBUG)
-#define CUSTOM_RNG
-#endif
