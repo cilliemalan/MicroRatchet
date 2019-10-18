@@ -14,9 +14,9 @@
 #if defined(_MSC_VER)
 #define STATIC_ASSERT(e, r) static_assert(e, r)
 #elif defined(__GNUC__)
-#define STATICASSERT(e,r) _Static_assert(e, r)
+#define STATIC_ASSERT(e,r) _Static_assert(e, r)
 #else
-#define STATICASSERT(e, r)
+#define STATIC_ASSERT(e, r)
 #endif
 
 

@@ -115,3 +115,5 @@ GTEST_TEST(test_suite_name, test_name) \
 	free_all(); \
 } \
 inline void test_suite_name##_##test_name##_Test_internal()
+
+

@@ -17,6 +17,12 @@ typedef struct {
 #endif
 } _mr_rng_ctx;
 
+// hack for os specific seeder
+#if defined(USE_WINDOWS_API) || defined(WIN32) || defined(_WIN32) || defined(_WIN64)
+#define RNGSEEDHANDLEFIELD handle
+#else
+#define RNGSEEDHANDLEFIELD fd
+#endif
 
 #ifdef CUSTOM_RNG
 mr_rng_ctx mr_rng_create_custom(mr_ctx mr_ctx, const uint8_t* random_data, uint32_t random_data_length, uint32_t random_data_index)
@@ -63,7 +69,7 @@ mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 	}
 #endif
 
-	if (ctx->rng.seed.handle == 0)
+	if (ctx->rng.seed.RNGSEEDHANDLEFIELD == 0)
 	{
 		int r = wc_InitRng(&ctx->rng);
 		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
