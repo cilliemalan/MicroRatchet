@@ -12,7 +12,7 @@ typedef struct {
 mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 {
 	_mr_ecdsa_ctx* ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_ecdsa_ctx), &ctx);
+	int r = mr_allocate(mr_ctx, sizeof(_mr_ecdsa_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
 	ctx->mr_ctx = mr_ctx;

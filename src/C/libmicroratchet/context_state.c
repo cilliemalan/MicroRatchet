@@ -408,7 +408,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 			{
 				if (!ctx->init.client)
 				{
-					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), &ctx->init.client));
+					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
 				}
 				else
 				{
@@ -447,7 +447,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 			{
 				if (!ctx->init.server)
 				{
-					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), &ctx->init.server));
+					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
 					*ctx->init.server = (_mr_initialization_state_server){ 0 };
 				}
 				else

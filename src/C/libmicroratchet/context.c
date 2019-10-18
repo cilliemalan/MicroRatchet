@@ -150,7 +150,7 @@ mr_ctx mr_ctx_create(const mr_config* config)
 	if (!config) return 0;
 
 	_mr_ctx* ctx;
-	int r = mr_allocate(0, sizeof(_mr_ctx), &ctx);
+	int r = mr_allocate(0, sizeof(_mr_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS || !ctx) return 0;
 
 	*ctx = (_mr_ctx){
@@ -668,7 +668,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 }
 
 static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t amount,
-	const uint8_t** headerKeyUsed, _mr_ratchet_state** stepUsed, bool* usedNextHeaderKey)
+	 uint8_t** headerKeyUsed, _mr_ratchet_state** stepUsed, bool* usedNextHeaderKey)
 {
 	*headerKeyUsed = 0;
 	*stepUsed = 0;
@@ -855,7 +855,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 		{
 			if (!ctx->init.client)
 			{
-				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), &ctx->init.client));
+				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
 				*ctx->init.client = (_mr_initialization_state_client){ 0 };
 			}
 
@@ -977,7 +977,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	{
 		if (!ctx->init.server)
 		{
-			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), &ctx->init.server));
+			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
 			*ctx->init.server = (_mr_initialization_state_server){ 0 };
 		}
 

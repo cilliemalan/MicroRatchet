@@ -38,7 +38,7 @@ mr_rng_ctx mr_rng_create_custom(mr_ctx mr_ctx, const uint8_t* random_data, uint3
 mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 {
 	_mr_rng_ctx* ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), &ctx);
+	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
 	*ctx = (_mr_rng_ctx){ mr_ctx };

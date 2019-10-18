@@ -10,7 +10,7 @@ typedef struct {
 mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 {
 	_mr_sha_ctx *ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_sha_ctx), &ctx);
+	int r = mr_allocate(mr_ctx, sizeof(_mr_sha_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
 	*ctx = (_mr_sha_ctx){
