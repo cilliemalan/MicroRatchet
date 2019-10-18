@@ -10,6 +10,7 @@ option(TRACE "include diagnostic logging (INSECURE)" OFF)
 option(ARM_CORTEX "Build for arm cortex targets. CC and CXX must already be set." OFF)
 
 
+# CC=arm-none-eabi-gcc CXX=arm-none-eabi-g++ cmake -DARM_CORTEX=ON
 if (ARM_CORTEX)
     set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
     set(CMAKE_SYSTEM_NAME Generic)
