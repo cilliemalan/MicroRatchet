@@ -1,3 +1,6 @@
+# microratchet unit tests
+# currently builds against wolfssl
+
 cmake_minimum_required(VERSION 3.0)
 include(GoogleTest)
 
@@ -20,12 +23,18 @@ set(SOURCES
     support.cpp
     symmetricratchet.cpp)
 
+# microcontrollers don't have linux so we need to provide
+# stub syscalls and memory routines
 if (ARM_CORTEX)
     set(SOURCES ${SOURCES} port/syscalls.c)
 endif (ARM_CORTEX)
 
+
+
 add_executable(microratchettests ${SOURCES})
 
+# with gtest cmake can discover tests automatically
+# (but not if we're cross compiling)
 if (NOT ARM_CORTEX)
     gtest_discover_tests(microratchettests)
 endif ()
@@ -36,16 +45,6 @@ include_directories(
     ../../../thirdparty/googletest/googlemock/include
 )
 
-set(LINKLIBS microratchet
-    wolfssl
-    microratchetwolfssl
-    gtest
-    gmock)
-
-if (NOT ARM_CORTEX)
-    set(LINKLIBS ${LINKLIBS} gtest_main)
-endif ()
-
 target_link_libraries(microratchettests
     microratchet
     wolfssl
@@ -54,11 +53,12 @@ target_link_libraries(microratchettests
     gmock
     gtest_main)
 
+# we have our own TEST definition that tracks memory allocations
+# so we prevent gtest from defining its own
 target_compile_definitions(microratchettests PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_options(microratchettests PUBLIC -Werror)
 
-
-
+# generate PCH (but not when cross compiling because it doesn't work for some reason)
 if (USE_PCH AND NOT ARM_CORTEX)
     target_precompile_headers(microratchettests PUBLIC pch.h)
 endif (USE_PCH AND NOT ARM_CORTEX)

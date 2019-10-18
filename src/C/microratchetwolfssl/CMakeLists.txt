@@ -1,3 +1,5 @@
+# provides crypto functions from wolfssl
+
 cmake_minimum_required(VERSION 3.0)
 
 set(SOURCES
@@ -9,7 +11,6 @@ set(SOURCES
 	poly.c
 	rng.c
 	sha.c)
-
 
 include_directories(
 	../libmicroratchet

@@ -1,3 +1,5 @@
+# main microratchet library files
+
 cmake_minimum_required(VERSION 3.0)
 
 project(libmicroratchet)

@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 2.9)
-
-add_subdirectory(libmicroratchet)
-add_subdirectory(microratchetwolfssl)
-add_subdirectory(microratchettests)
-add_subdirectory(wolfssl)
