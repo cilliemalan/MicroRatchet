@@ -19,11 +19,11 @@ set(WOLFSSL_SOURCES_BASE
 	tfm.c wc_encrypt.c wc_port.c wolfmath.c wolfevent.c)
 
 # we have AES_NI on x64 platform
-if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+if (NOT ARM AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 	set(WOLFSSL_SOURCES_BASE ${WOLFSSL_SOURCES_BASE} aes_asm.S)
+	set_source_files_properties(aes_asm.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 endif()
 
-set_source_files_properties(aes_asm.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
 # prefix all the sources with the wolfssl path
 set(WOLFSSL_SOURCES "")
@@ -41,7 +41,7 @@ add_library(wolfssl STATIC ${WOLFSSL_SOURCES})
 target_compile_definitions(wolfssl PUBLIC HAVE_CONFIG_H)
 
 # specify args for compiling AES_NI
-if (NOT ARM_CORTEX)
+if (NOT ARM)
 	target_compile_options(wolfssl PUBLIC -msse2 -msse -march=native -maes)
 endif ()
 

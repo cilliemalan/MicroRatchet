@@ -1,25 +1,34 @@
 // syscalls for embedded environments
-#include <stdlib.h>
-/* Includes */
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <signal.h>
 #include <time.h>
+#include <string.h>
+#include <memory.h>
 #include <sys/time.h>
 #include <sys/times.h>
 
-/* Variables */
-//#undef errno
 extern int errno;
-extern int __io_putchar(int ch) __attribute__((weak));
-extern int __io_getchar(void) __attribute__((weak));
+
+#define PUART0_DR ((volatile uint32_t *)0x09000000)
+
+int __io_getchar(void)
+{
+    volatile uint32_t *UART0_DR = PUART0_DR;
+    return *UART0_DR;
+}
+
+int __io_putchar(int c)
+{
+    volatile uint32_t *UART0_DR = PUART0_DR;
+    *UART0_DR = (uint32_t)(c);
+    return 0;
+}
 
 register char *stack_ptr asm("sp");
-
-char *__env[1] = {0};
-char **environ = __env;
 
 int _getpid(void)
 {
@@ -35,7 +44,9 @@ int _kill(int pid, int sig)
 void _exit(int status)
 {
     _kill(status, -1);
-    for(;;) {}
+    for (;;)
+    {
+    }
 }
 
 __attribute__((weak)) int _read(int file, char *ptr, int len)
@@ -126,14 +137,18 @@ int _execve(char *name, char **argv, char **env)
     return -1;
 }
 
-int mkdir(const char* blash, mode_t mode)
+int mkdir(const char *blash, mode_t mode)
 {
     return 0;
 }
 
 char *getcwd(char *buf, size_t size)
 {
-    return "/";
+    const char cwd[] = "/";
+    if (!buf || size < sizeof(cwd))
+        return NULL;
+    memcpy(buf, cwd, sizeof(cwd));
+    return buf;
 }
 
 int _gettimeofday(struct timeval *tv, struct timezone *tz)
@@ -143,27 +158,77 @@ int _gettimeofday(struct timeval *tv, struct timezone *tz)
 
 void __sync_synchronize()
 {
-    
 }
 
-// hardcoded for now
-#define RAMORIGIN ((unsigned int)0x20000000)
-#define RAMSIZE ((unsigned int)0x18000)
+extern const unsigned int _ebss;
+register char *stack_ptr asm("sp");
 
-static char *__heap_end = (char*)RAMORIGIN;
+static char *__heap_end = 0;
 
-void* _sbrk(int incr)
+void *_sbrk(int incr)
 {
-	char *prev_heap_end;
+    char *prev_heap_end;
 
-	prev_heap_end = __heap_end;
-	if (__heap_end + incr > (char*)((void*)(RAMORIGIN + RAMSIZE)))
-	{
-		errno = ENOMEM;
-		return (void*) -1;
-	}
+    if (!__heap_end)
+    {
+        __heap_end = (char *)&_ebss;
+    }
 
-	__heap_end += incr;
+    prev_heap_end = __heap_end;
+    if (__heap_end + incr > stack_ptr)
+    {
+        errno = ENOMEM;
+        return (void *)-1;
+    }
 
-	return (void*) prev_heap_end;
+    __heap_end += incr;
+
+    return (void *)prev_heap_end;
+}
+
+#define NUM_ENV_VARS 4
+char **environ;
+static char *__environblocku[NUM_ENV_VARS];
+static char __environblockc[128];
+
+// load environment before static initializers
+// because some module initializers expect them to be ready
+void __preinit()
+{
+    char *vars[NUM_ENV_VARS] = {
+        "TERM=xterm",
+        0
+    };
+
+    char* environblockc = __environblockc;
+    for (int i = 0; i < NUM_ENV_VARS; i++)
+    {
+        char* var = vars[i];
+        if (var)
+        {
+            size_t len = strlen(var);
+            if (environblockc + len > __environblockc + sizeof(__environblockc))
+            {
+                break;
+            }
+            __environblocku[i] = environblockc;
+            memcpy(environblockc, var, len);
+            environblockc += len;
+        }
+        else
+        {
+            __environblocku[i] = 0;
+        }
+    }
+
+    environ = __environblocku;
+}
+
+extern int main(int argc, char **argv);
+int __main()
+{
+    int argc = 1;
+    char *argv[] = {"/tests"};
+
+    return main(argc, argv);
 }
