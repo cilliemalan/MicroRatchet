@@ -9,14 +9,14 @@ endif()
 option(DEBUG "Produce a debug build" OFF)
 option(TRACE "include diagnostic logging (INSECURE)" OFF)
 option(BUILD_TESTS "build tests" ON)
-set(TARGET "" CACHE STRING "Which environment to target. Defaults to host system")
+set(TARGET "host" CACHE STRING "Which environment to target. Defaults to host system")
 set_property(CACHE TARGET PROPERTY STRINGS host embedded_arm linux_arm)
 
 
 # CC=arm-none-eabi-gcc CXX=arm-none-eabi-g++ cmake -DTARGET=embedded_arm ..
 # qemu-system-arm -cpu cortex-a15 -machine virt -nographic -semihosting -kernel bin/microratchettests
 # <NIY> CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++ cmake -DTARGET=linux_arm ..
-if ((${TARGET} STREQUAL "embedded_arm") OR (${TARGET} STREQUAL "linux_arm"))
+if (${TARGET} STREQUAL "embedded_arm" OR ${TARGET} STREQUAL "linux_arm")
     message("targetting ARM")
     set(ARM true)
 endif()

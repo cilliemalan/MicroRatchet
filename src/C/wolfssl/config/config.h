@@ -23,15 +23,11 @@
 #define WOLFSSL_AESNI
 #endif
 
-#ifdef EMBEDDED
+
+
 #include <stdint.h>
-#define CUSTOM_RAND_GENERATE_SEED __CustomGenerateSeed
-
-
+#define CUSTOM_RAND_GENERATE_SEED_OS __CustomGenerateSeedOs
 #ifdef __cplusplus
 extern "C"
 #endif
-int CUSTOM_RAND_GENERATE_SEED(uint8_t *output, uint32_t sz);
-
-
-#endif
+int CUSTOM_RAND_GENERATE_SEED_OS(void* os, uint8_t *output, uint32_t sz);

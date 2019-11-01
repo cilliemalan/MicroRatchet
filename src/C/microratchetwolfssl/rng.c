@@ -2,6 +2,17 @@
 #include <microratchet.h>
 #include <wolfssl/wolfcrypt/random.h>
 
+
+#ifdef __GNUC__
+static inline int _rdseed64_step(uint64_t* seed)
+{
+	unsigned char ok;
+	__asm__ volatile("rdseed %0; setc %1":"=r"(*seed), "=qm"(ok));
+	return (ok) ? 0 : -1;
+}
+#endif
+
+
 typedef struct
 {
 	mr_ctx mr_ctx;
@@ -54,11 +65,55 @@ void mr_rng_destroy(mr_rng_ctx _ctx)
 	}
 }
 
-// we might need to make up our own random seed
 
-#ifdef CUSTOM_RAND_GENERATE_SEED
-int CUSTOM_RAND_GENERATE_SEED(uint8_t *output, uint32_t sz)
+
+
+#ifdef HAVE_INTEL_RDSEED
+#include <immintrin.h>
+
+
+static inline int IntelRDseed64_r(word64* rnd)
 {
+    for (int i = 0; i < 128; i++)
+	{
+		unsigned char ok = _rdseed64_step(rnd);
+        if (ok == 0) return 0;
+    }
+    return -1;
+}
+
+#endif
+
+
+// we might need to make up our own random seed
+__attribute__((weak)) int mr_rng_seed(uint8_t *output, uint32_t sz)
+{
+#ifdef HAVE_INTEL_RDSEED
+
+    int ret;
+    uint64_t rndTmp;
+
+    for (; (sz / sizeof(uint64_t)) > 0; sz -= sizeof(uint64_t),
+                                                    output += sizeof(uint64_t)) {
+        ret = IntelRDseed64_r((uint64_t*)output);
+        if (ret != 0)
+            return ret;
+    }
+    if (sz == 0) return 0;
+
+    /* handle unaligned remainder */
+    ret = IntelRDseed64_r(&rndTmp);
+    if (ret != 0) return ret;
+
+    memcpy(output, &rndTmp, sz);
+    *(volatile uint64_t*)(&rndTmp) = 0;
+
+    return 0;
+
+
+#else
+
+
 	if ((sz % 4) == 0 && (((uint32_t)output) % 4) == 0)
 	{
 		uint32_t *uoutput = (uint32_t *)output;
@@ -77,5 +132,11 @@ int CUSTOM_RAND_GENERATE_SEED(uint8_t *output, uint32_t sz)
 	}
 
 	return 0;
-}
 #endif
+}
+
+
+int CUSTOM_RAND_GENERATE_SEED_OS(void* os, uint8_t *output, uint32_t sz)
+{
+	return mr_rng_seed(output, sz);
+}
