@@ -22,3 +22,16 @@
 #define FORCE_FAILURE_RDSEED
 #define WOLFSSL_AESNI
 #endif
+
+#ifdef EMBEDDED
+#include <stdint.h>
+#define CUSTOM_RAND_GENERATE_SEED __CustomGenerateSeed
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+int CUSTOM_RAND_GENERATE_SEED(uint8_t *output, uint32_t sz);
+
+
+#endif

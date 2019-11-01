@@ -23,6 +23,7 @@ endif()
 if (${TARGET} STREQUAL "embedded_arm")
     message("targetting EMBEDDED")
     set(EMBEDDED true)
+    add_compile_definitions(EMBEDDED)
 endif()
 
 

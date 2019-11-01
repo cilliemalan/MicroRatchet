@@ -2,7 +2,8 @@
 #include <microratchet.h>
 #include <wolfssl/wolfcrypt/random.h>
 
-typedef struct {
+typedef struct
+{
 	mr_ctx mr_ctx;
 	WC_RNG rng;
 } _mr_rng_ctx;
@@ -16,17 +17,18 @@ typedef struct {
 
 mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 {
-	_mr_rng_ctx* ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), (void**)&ctx);
-	if (r != MR_E_SUCCESS) return 0;
+	_mr_rng_ctx *ctx;
+	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), (void **)&ctx);
+	if (r != MR_E_SUCCESS)
+		return 0;
 
-	*ctx = (_mr_rng_ctx){ mr_ctx };
+	*ctx = (_mr_rng_ctx){mr_ctx};
 	return ctx;
 }
 
-mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
+mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t *output, uint32_t outputsize)
 {
-	_mr_rng_ctx* ctx = _ctx;
+	_mr_rng_ctx *ctx = _ctx;
 	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1")
 	FAILIF(!output, MR_E_INVALIDARG, "!output")
 
@@ -45,9 +47,35 @@ void mr_rng_destroy(mr_rng_ctx _ctx)
 {
 	if (_ctx)
 	{
-		_mr_rng_ctx* ctx = _ctx;
+		_mr_rng_ctx *ctx = _ctx;
 		wc_FreeRng(&ctx->rng);
-		*ctx = (_mr_rng_ctx){ 0 };
+		*ctx = (_mr_rng_ctx){0};
 		mr_free(ctx->mr_ctx, ctx);
 	}
 }
+
+// we might need to make up our own random seed
+
+#ifdef CUSTOM_RAND_GENERATE_SEED
+int CUSTOM_RAND_GENERATE_SEED(uint8_t *output, uint32_t sz)
+{
+	if ((sz % 4) == 0 && (((uint32_t)output) % 4) == 0)
+	{
+		uint32_t *uoutput = (uint32_t *)output;
+		sz /= 4;
+		for (int i = 0; i < sz; i++)
+		{
+			uoutput[i] = rand();
+		}
+	}
+	else
+	{
+		for (int i = 0; i < sz; i++)
+		{
+			output[i] = (uint8_t)rand();
+		}
+	}
+
+	return 0;
+}
+#endif
