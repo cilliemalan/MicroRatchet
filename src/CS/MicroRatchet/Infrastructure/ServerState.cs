@@ -132,5 +132,27 @@ namespace MicroRatchet
             state.LoadInternal(source, kexFac);
             return state;
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ClientInitializationNonce?.Shred();
+                ClientInitializationNonce = null;
+                RootKey?.Shred();
+                RootKey = null;
+                FirstSendHeaderKey?.Shred();
+                FirstSendHeaderKey = null;
+                FirstReceiveHeaderKey?.Shred();
+                FirstReceiveHeaderKey = null;
+                ClientPublicKey?.Shred();
+                ClientPublicKey = null;
+
+                (LocalEcdhRatchetStep0 as IDisposable)?.Dispose();
+                LocalEcdhRatchetStep0 = null;
+                (LocalEcdhRatchetStep1 as IDisposable)?.Dispose();
+                LocalEcdhRatchetStep1 = null;
+            }
+        }
     }
 }

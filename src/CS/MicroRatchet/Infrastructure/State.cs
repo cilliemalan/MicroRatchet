@@ -7,7 +7,7 @@ using System.Text;
 
 namespace MicroRatchet
 {
-    internal abstract class State
+    internal abstract class State : IDisposable
     {
         protected int KeySizeInBytes { get; }
 
@@ -258,6 +258,26 @@ namespace MicroRatchet
             {
                 stream.WriteByte(0);
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Ratchets?.Clear();
+                Ratchets = null;
+            }
+        }
+
+        ~State()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+             GC.SuppressFinalize(this);
         }
     }
 }

@@ -46,11 +46,48 @@ namespace MicroRatchet
         {
             if (_steps.Count > maxSteps)
             {
+                int cnt = _steps.Count - trimTo;
+                for (int i = 0; i < cnt; i++)
+                {
+                    ShredRatchet(_steps[i]);
+                }
+
                 _steps.RemoveRange(0, _steps.Count - trimTo);
             }
         }
 
-        public void Clear() => _steps.Clear();
+        public void Clear()
+        {
+            for (int i = 0; i < _steps.Count; i++)
+            {
+                ShredRatchet(_steps[i]);
+            }
+            _steps.Clear();
+        }
+
+        private static void ShredRatchet(EcdhRatchetStep r)
+        {
+            (r.EcdhKey as IDisposable)?.Dispose();
+            r.EcdhKey = null;
+            r.NextReceiveHeaderKey?.Shred();
+            r.NextReceiveHeaderKey = null;
+            r.NextRootKey?.Shred();
+            r.NextRootKey = null;
+            r.NextSendHeaderKey?.Shred();
+            r.NextSendHeaderKey = null;
+            r.ReceiveHeaderKey?.Shred();
+            r.ReceiveHeaderKey = null;
+            r.SendHeaderKey?.Shred();
+            r.SendHeaderKey = null;
+            r.ReceivingChain.ChainKey?.Shred();
+            r.ReceivingChain.ChainKey = null;
+            r.ReceivingChain.OldChainKey?.Shred();
+            r.ReceivingChain.OldChainKey = null;
+            r.SendingChain.ChainKey?.Shred();
+            r.SendingChain.ChainKey = null;
+            r.SendingChain.OldChainKey?.Shred();
+            r.SendingChain.OldChainKey = null;
+        }
 
         public IEnumerable<EcdhRatchetStep> Enumerate() =>
             _steps.Where(x => x.ReceiveHeaderKey != null)

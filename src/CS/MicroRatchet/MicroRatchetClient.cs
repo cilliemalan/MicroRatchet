@@ -4,7 +4,7 @@ using System.IO;
 
 namespace MicroRatchet
 {
-    public sealed class MicroRatchetClient
+    public sealed class MicroRatchetClient : IDisposable
     {
         public const int InitializationNonceSize = 16;
         public const int NonceSize = 4;
@@ -933,6 +933,12 @@ namespace MicroRatchet
 
                 return MatchMessageWithMac(message, aesfac, keys) >= 0;
             }
+        }
+
+        public void Dispose()
+        {
+            _state?.Dispose();
+            _state = null;
         }
     }
 }

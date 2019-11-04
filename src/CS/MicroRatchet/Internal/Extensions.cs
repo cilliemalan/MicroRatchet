@@ -153,5 +153,15 @@ namespace MicroRatchet
 
         public static void Initialize(this IAes aes, bool forEncryption, byte[] key) =>
             aes.Initialize(forEncryption, new ArraySegment<byte>(key));
+
+        public static void Shred(this byte[] data)
+        {
+            for (int i = 0; i < data.Length; i++) data[i] = 0;
+        }
+
+        public static void Shred(this ArraySegment<byte> data)
+        {
+            for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = 0;
+        }
     }
 }
