@@ -44,7 +44,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -53,7 +53,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage, kex, ks).Store(sstorage, 5);
+                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
                 Assert.Equal(oldState, sstorage.memory);
             }
 
@@ -63,7 +63,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -72,7 +72,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage, kex, ks).Store(sstorage, 5);
+                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
                 Assert.Equal(oldState, sstorage.memory);
             }
 
@@ -81,7 +81,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -91,7 +91,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -100,7 +100,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -109,7 +109,7 @@ namespace MicroRatchet.Tests
             client.SaveState();
             {
                 var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage, kex, ks).Store(cstorage, 5);
+                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
                 Assert.Equal(oldState, cstorage.memory);
             }
 
@@ -119,7 +119,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage, kex, ks).Store(sstorage, 5);
+                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
                 Assert.Equal(oldState, sstorage.memory);
             }
 
@@ -128,7 +128,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage, kex, ks).Store(sstorage, 5);
+                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
                 Assert.Equal(oldState, sstorage.memory);
             }
 
@@ -137,7 +137,7 @@ namespace MicroRatchet.Tests
             server.SaveState();
             {
                 var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage, kex, ks).Store(sstorage, 5);
+                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
                 Assert.Equal(oldState, sstorage.memory);
             }
 
@@ -147,6 +147,15 @@ namespace MicroRatchet.Tests
             Assert.Equal(message3, r3);
 
             Assert.Null(lastResult);
+        }
+    }
+
+    internal static class StateExtensions
+    {
+        public static void Store(this State state, IStorageProvider storage, int nr)
+        {
+            using var stream = storage.Lock();
+            state.Store(stream, nr);
         }
     }
 }

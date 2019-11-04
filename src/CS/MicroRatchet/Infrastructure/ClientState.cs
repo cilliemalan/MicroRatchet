@@ -27,88 +27,81 @@ namespace MicroRatchet
         // used twice
         public IKeyAgreement LocalEcdhForInit;
 
-        private long StoreInternal(IStorageProvider storage, int numberOfRatchetsToStore)
+        public override void Store(Stream memory, int numberOfRatchetsToStore)
         {
-            using (var memory = storage.Lock())
+            byte versionByte = (byte)Version;
+
+            bool hasInit = InitializationNonce != null;
+            bool hasRatchet = Ratchets != null && Ratchets.Count != 0;
+            bool hasEcdh = LocalEcdhForInit != null;
+
+            if (hasInit) versionByte |= 0b0001_0000;
+            if (hasRatchet) versionByte |= 0b0010_0000;
+            if (hasEcdh) versionByte |= 0b0100_0000;
+            memory.WriteByte(versionByte);
+
+            if (hasInit)
             {
-                byte versionByte = (byte)Version;
+                if (InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
 
-                bool hasInit = InitializationNonce != null;
-                bool hasRatchet = Ratchets != null && Ratchets.Count != 0;
-                bool hasEcdh = LocalEcdhForInit != null;
-
-                if (hasInit) versionByte |= 0b0001_0000;
-                if (hasRatchet) versionByte |= 0b0010_0000;
-                if (hasEcdh) versionByte |= 0b0100_0000;
-                memory.WriteByte(versionByte);
-
-                if (hasInit)
-                {
-                    if (InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
-
-                    if (InitializationNonce != null) memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
-                }
-
-                if (hasEcdh)
-                {
-                    LocalEcdhForInit.Serialize(memory);
-                }
-
-                if (hasRatchet)
-                {
-                    WriteRatchet(memory, numberOfRatchetsToStore);
-                }
-
-                Log.Verbose($"Wrote {memory.Position} bytes of client state");
-                return memory.Position;
+                if (InitializationNonce != null) memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
             }
-        }
 
-        public override void Store(IStorageProvider storage, int numberOfRatchetsToStore)
-        {
-            StoreInternal(storage, numberOfRatchetsToStore);
-        }
-
-        private long LoadInternal(IStorageProvider storage, IKeyAgreementFactory kexFac)
-        {
-            using (var memory = storage.Lock())
+            if (hasEcdh)
             {
-                var versionInt = memory.ReadByte();
-                if (versionInt < 0) throw new EndOfStreamException();
-                var versionByte = (byte)versionInt;
+                LocalEcdhForInit.Serialize(memory);
+            }
 
-                bool hasInit = (versionByte & 0b0001_0000) != 0;
-                bool hasRatchet = (versionByte & 0b0010_0000) != 0;
-                bool hasEcdh = (versionByte & 0b0100_0000) != 0;
+            if (hasRatchet)
+            {
+                WriteRatchet(memory, numberOfRatchetsToStore);
+            }
 
-                if (hasInit)
-                {
-                    if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) InitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
+            Log.Verbose($"Wrote {memory.Position} bytes of client state");
+        }
 
-                    memory.Read(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
-                }
+        private void LoadInternal(Stream memory, IKeyAgreementFactory kexFac)
+        {
+            var versionInt = memory.ReadByte();
+            if (versionInt < 0) throw new EndOfStreamException();
+            var versionByte = (byte)versionInt;
 
-                if (hasEcdh)
-                {
+            bool hasInit = (versionByte & 0b0001_0000) != 0;
+            bool hasRatchet = (versionByte & 0b0010_0000) != 0;
+            bool hasEcdh = (versionByte & 0b0100_0000) != 0;
+
+            if (hasInit)
+            {
+                if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) InitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
+
+                memory.Read(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
+            }
+
+            if (hasEcdh)
+            {
                     
-                    LocalEcdhForInit = kexFac.Deserialize(memory);
-                }
-
-                if (hasRatchet)
-                {
-                    ReadRatchet(memory, kexFac);
-                }
-
-                Log.Verbose($"Read {memory.Position} bytes of client state");
-                return memory.Position;
+                LocalEcdhForInit = kexFac.Deserialize(memory);
             }
+
+            if (hasRatchet)
+            {
+                ReadRatchet(memory, kexFac);
+            }
+
+            Log.Verbose($"Read {memory.Position} bytes of client state");
         }
 
-        public static ClientState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize = 32)
+        internal static ClientState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize = 32)
+        {
+            using var mem = storage.Lock();
+            return Load(mem, kexFac, keySize);
+        }
+
+        public static ClientState Load(Stream source, IKeyAgreementFactory kexFac, int keySize = 32)
         {
             if (keySize != 32) throw new InvalidOperationException("Invalid key size");
             var state = new ClientState(keySize);
-            state.LoadInternal(storage, kexFac);
+            state.LoadInternal(source, kexFac);
             return state;
         }
     }

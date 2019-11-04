@@ -36,7 +36,7 @@ namespace MicroRatchet
             }
         }
 
-        public abstract void Store(IStorageProvider storage, int numberOfRatchetsToStore);
+        public abstract void Store(Stream destination, int numberOfRatchetsToStore);
 
         protected void ReadRatchet(Stream stream, IKeyAgreementFactory kexFac)
         {

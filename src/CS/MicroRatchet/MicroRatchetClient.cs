@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace MicroRatchet
 {
@@ -747,9 +748,10 @@ namespace MicroRatchet
         {
             if (_state == null)
             {
+                using var mem = Storage.Lock();
                 _state = Configuration.IsClient
-                    ? (State)ClientState.Load(Storage, KeyAgreementFactory, 32)
-                    : ServerState.Load(Storage, KeyAgreementFactory, 32);
+                    ? (State)ClientState.Load(mem, KeyAgreementFactory, 32)
+                    : ServerState.Load(mem, KeyAgreementFactory, 32);
             }
             return _state;
         }
@@ -856,17 +858,19 @@ namespace MicroRatchet
             }
         }
 
-        public void SaveState()
+        public void SaveState(Stream destination = null)
         {
-            if (_state != null)
+            if (destination == null)
             {
-                _state.Store(Storage, Configuration.NumberOfRatchetsToKeep);
+                using var dest = Storage.Lock();
+                SaveState(dest);
             }
             else
             {
-                System.IO.Stream storage = Storage.Lock();
-                var bytes = new byte[storage.Length];
-                storage.Write(bytes, 0, bytes.Length);
+                if (_state != null)
+                {
+                    _state.Store(destination, Configuration.NumberOfRatchetsToKeep);
+                }
             }
         }
 
@@ -903,7 +907,14 @@ namespace MicroRatchet
 
         public static bool MatchMessageToSession(ArraySegment<byte> message, IAesFactory aesfac, IKeyAgreementFactory kexfac, IStorageProvider storage)
         {
-            var s = ClientState.Load(storage, kexfac, 32);
+            if (message == null) throw new ArgumentNullException(nameof(message));
+            if (aesfac == null) throw new ArgumentNullException(nameof(aesfac));
+            if (kexfac == null) throw new ArgumentNullException(nameof(kexfac));
+            if (storage == null) throw new ArgumentNullException(nameof(storage));
+            if (message.Count < MinimumMessageSize) throw new ArgumentException("The message is too small to be a valid message", nameof(message));
+
+            using var mem = storage.Lock();
+            var s = ClientState.Load(mem, kexfac, 32);
             if (s == null || s.Ratchets == null || s.Ratchets.IsEmpty)
             {
                 return false;

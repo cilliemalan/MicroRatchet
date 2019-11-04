@@ -27,7 +27,7 @@ namespace MicroRatchet
         IRandomNumberGenerator RandomNumberGenerator { get; }
 
         /// <summary>
-        /// Storage for state
+        /// Storage for reading state
         /// </summary>
         IStorageProvider Storage { get; }
 
