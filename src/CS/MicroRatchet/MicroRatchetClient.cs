@@ -8,11 +8,11 @@ namespace MicroRatchet
         public const int InitializationNonceSize = 16;
         public const int NonceSize = 4;
         public const int MacSize = 12;
-        public const int EcPntSize = 32;
-        public const int SignatureSize = EcPntSize * 2;
+        public const int EcNumSize = 32;
+        public const int SignatureSize = EcNumSize * 2;
         public const int MinimumPayloadSize = InitializationNonceSize;
         public const int MinimumOverhead = NonceSize + MacSize; // 16
-        public const int OverheadWithEcdh = MinimumOverhead + EcPntSize; // 48
+        public const int OverheadWithEcdh = MinimumOverhead + EcNumSize; // 48
         public const int MinimumMessageSize = MinimumPayloadSize + MinimumOverhead;
         public const int MinimumMaximumMessageSize = OverheadWithEcdh + MinimumPayloadSize;
         public const int HeaderIVSize = 16;
@@ -155,15 +155,15 @@ namespace MicroRatchet
             clientState.LocalEcdhForInit = clientEcdh;
 
             // nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
-            var initializationMessageSize = InitializationNonceSize + EcPntSize * 4 + MacSize;
+            var initializationMessageSize = InitializationNonceSize + EcNumSize * 4 + MacSize;
             var messageSize = Math.Max(Configuration.MinimumMessageSize, initializationMessageSize);
             var initializationMessageSizeWithSignature = messageSize - MacSize;
             var initializationMessageSizeWithoutSignature = messageSize - MacSize - SignatureSize;
             var signatureOffset = messageSize - MacSize - SignatureSize;
             var message = new byte[messageSize];
             Array.Copy(clientState.InitializationNonce, 0, message, 0, InitializationNonceSize);
-            Array.Copy(pubkey, 0, message, InitializationNonceSize, EcPntSize);
-            Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcPntSize, EcPntSize);
+            Array.Copy(pubkey, 0, message, InitializationNonceSize, EcNumSize);
+            Array.Copy(clientEcdh.GetPublicKey(), 0, message, InitializationNonceSize + EcNumSize, EcNumSize);
 
             // sign the message
             var digest = Digest.ComputeDigest(message, 0, initializationMessageSizeWithoutSignature);
@@ -198,9 +198,9 @@ namespace MicroRatchet
             Array.Copy(decryptedPayload, 0, data, InitializationNonceSize, decryptedPayload.Length);
 
             var clientPublicKeyOffset = InitializationNonceSize;
-            var remoteEcdhOffset = InitializationNonceSize + EcPntSize;
-            var clientPublicKey = new ArraySegment<byte>(data, clientPublicKeyOffset, EcPntSize);
-            var remoteEcdhForInit = new ArraySegment<byte>(data, remoteEcdhOffset, EcPntSize);
+            var remoteEcdhOffset = InitializationNonceSize + EcNumSize;
+            var clientPublicKey = new ArraySegment<byte>(data, clientPublicKeyOffset, EcNumSize);
+            var remoteEcdhForInit = new ArraySegment<byte>(data, remoteEcdhOffset, EcNumSize);
             var signedMessage = new ArraySegment<byte>(data, 0, macOffset);
 
             if (serverState.ClientPublicKey != null)
@@ -256,7 +256,7 @@ namespace MicroRatchet
             // generate server ECDH for root key and root key
             var rootPreKey = rootPreEcdh.DeriveKey(remoteEcdhForInit);
             rootPreKey = Digest.ComputeDigest(rootPreKey);
-            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, EcPntSize);
+            var genKeys = KeyDerivation.GenerateKeys(rootPreKey, serverNonce, 3, EcNumSize);
             serverState.RootKey = genKeys[0];
             serverState.FirstSendHeaderKey = genKeys[1];
             serverState.FirstReceiveHeaderKey = genKeys[2];
@@ -269,25 +269,25 @@ namespace MicroRatchet
             IKeyAgreement serverEcdhRatchet1 = KeyAgreementFactory.GenerateNew();
             serverState.LocalEcdhRatchetStep1 = serverEcdhRatchet1;
 
-            var minimumMessageSize = InitializationNonceSize * 2 + EcPntSize * 6 + MacSize;
+            var minimumMessageSize = InitializationNonceSize * 2 + EcNumSize * 6 + MacSize;
             var entireMessageSize = Math.Max(Configuration.MinimumMessageSize, minimumMessageSize);
             var macOffset = entireMessageSize - MacSize;
             var entireMessageWithoutMacOrSignatureSize = macOffset - SignatureSize;
-            var encryptedPayloadOffset = InitializationNonceSize + EcPntSize;
+            var encryptedPayloadOffset = InitializationNonceSize + EcNumSize;
             var encryptedPayloadSize = macOffset - encryptedPayloadOffset;
 
             // construct the message
             var message = new byte[entireMessageSize];
             Array.Copy(serverNonce, 0, message, 0, InitializationNonceSize);
-            Array.Copy(rootPreEcdhPubkey, 0, message, InitializationNonceSize, EcPntSize);
+            Array.Copy(rootPreEcdhPubkey, 0, message, InitializationNonceSize, EcNumSize);
 
             // construct the to-be-encrypted part
             var rre0 = serverEcdhRatchet0.GetPublicKey();
             var rre1 = serverEcdhRatchet1.GetPublicKey();
             Array.Copy(initializationNonce.Array, initializationNonce.Offset, message, encryptedPayloadOffset, InitializationNonceSize);
-            Array.Copy(Signature.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize, EcPntSize);
-            Array.Copy(rre0, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize, EcPntSize);
-            Array.Copy(rre1, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcPntSize * 2, EcPntSize);
+            Array.Copy(Signature.GetPublicKey(), 0, message, encryptedPayloadOffset + InitializationNonceSize, EcNumSize);
+            Array.Copy(rre0, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcNumSize, EcNumSize);
+            Array.Copy(rre1, 0, message, encryptedPayloadOffset + InitializationNonceSize + EcNumSize * 2, EcNumSize);
 
             // sign the message
             var digest = Digest.ComputeDigest(message, 0, entireMessageWithoutMacOrSignatureSize);
@@ -320,7 +320,7 @@ namespace MicroRatchet
             var messageSize = data.Length;
             var macOffset = messageSize - MacSize;
             var headerIvOffset = macOffset - HeaderIVSize;
-            var headerSize = InitializationNonceSize + EcPntSize;
+            var headerSize = InitializationNonceSize + EcNumSize;
             var payloadSize = messageSize - headerSize - MacSize;
 
             // decrypt header
@@ -331,7 +331,7 @@ namespace MicroRatchet
             // new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
             // new ecdh pubkey(32) x2, signature(64)>, mac(12)
             var nonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
-            var rootEcdhKey = new ArraySegment<byte>(data, InitializationNonceSize, EcPntSize);
+            var rootEcdhKey = new ArraySegment<byte>(data, InitializationNonceSize, EcNumSize);
             var encryptedPayload = new ArraySegment<byte>(data, headerSize, payloadSize);
 
             // decrypt payload
@@ -344,9 +344,9 @@ namespace MicroRatchet
 
             // extract some goodies
             var oldNonce = new ArraySegment<byte>(data, headerSize, InitializationNonceSize);
-            var serverPubKey = new ArraySegment<byte>(data, headerSize + InitializationNonceSize, EcPntSize);
-            var remoteRatchetEcdh0 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcPntSize, EcPntSize);
-            var remoteRatchetEcdh1 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcPntSize * 2, EcPntSize);
+            var serverPubKey = new ArraySegment<byte>(data, headerSize + InitializationNonceSize, EcNumSize);
+            var remoteRatchetEcdh0 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcNumSize, EcNumSize);
+            var remoteRatchetEcdh1 = new ArraySegment<byte>(data, headerSize + InitializationNonceSize + EcNumSize * 2, EcNumSize);
 
             // make sure the nonce sent back by the server (which is encrypted and signed)
             // matches the nonce we sent previously
@@ -454,7 +454,7 @@ namespace MicroRatchet
             }
 
             // calculate some sizes
-            var headerSize = NonceSize + (includeEcdh ? EcPntSize : 0);
+            var headerSize = NonceSize + (includeEcdh ? EcNumSize : 0);
             var overhead = headerSize + MacSize;
             var messageSize = message.Count;
             var maxMessageSize = Configuration.MaximumMessageSize - overhead;
@@ -629,7 +629,7 @@ namespace MicroRatchet
             var step = BigEndianBitConverter.ToInt32(decryptedNonce);
             if (hasEcdh)
             {
-                var clientEcdhPublic = new ArraySegment<byte>(hcipher.Process(new ArraySegment<byte>(payload, NonceSize, EcPntSize)));
+                var clientEcdhPublic = new ArraySegment<byte>(hcipher.Process(new ArraySegment<byte>(payload, NonceSize, EcNumSize)));
 
                 if (ratchetUsed == null)
                 {
@@ -668,7 +668,7 @@ namespace MicroRatchet
             (var key, var _) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
 
             // get the encrypted payload
-            var payloadOffset = hasEcdh ? NonceSize + EcPntSize : NonceSize;
+            var payloadOffset = hasEcdh ? NonceSize + EcNumSize : NonceSize;
             var encryptedPayload = new ArraySegment<byte>(payload, payloadOffset, messageSize - payloadOffset - MacSize);
 
             // decrypt the inner payload
