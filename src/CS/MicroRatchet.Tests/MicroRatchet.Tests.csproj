@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\MicroRatchet.BouncyCastle\MicroRatchet.BouncyCastle.csproj" />
+    <ProjectReference Include="..\MicroRatchet.BouncyCastle\MicroRatchet.BouncyCastle.csproj" />
     <ProjectReference Include="..\MicroRatchet\MicroRatchet.csproj" />
   </ItemGroup>
 

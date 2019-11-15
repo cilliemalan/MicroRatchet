@@ -32,7 +32,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gtest", "C\gtest\gtest.vcxp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gmock", "C\gtest\gmock.vcxproj", "{34681F0D-CE45-415D-B5F2-5C662DFE3BD5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroRatchet.BouncyCastle", "MicroRatchet.BouncyCastle\MicroRatchet.BouncyCastle.csproj", "{58E34E39-CE5B-44EC-AB5E-0EBE486D8707}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MicroRatchet.BouncyCastle", "CS\MicroRatchet.BouncyCastle\MicroRatchet.BouncyCastle.csproj", "{58E34E39-CE5B-44EC-AB5E-0EBE486D8707}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
