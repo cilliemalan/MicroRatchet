@@ -905,15 +905,15 @@ namespace MicroRatchet
             return MatchMessageWithMac(message, aesfac, applicationKey) >= 0;
         }
 
-        public static bool MatchMessageToSession(ArraySegment<byte> message, IAesFactory aesfac, IKeyAgreementFactory kexfac, IStorageProvider storage)
+        public static bool MatchMessageToSession(ArraySegment<byte> message, IAesFactory aesfac, IKeyAgreementFactory kexfac, byte[] state)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
             if (aesfac == null) throw new ArgumentNullException(nameof(aesfac));
             if (kexfac == null) throw new ArgumentNullException(nameof(kexfac));
-            if (storage == null) throw new ArgumentNullException(nameof(storage));
+            if (state == null) throw new ArgumentNullException(nameof(state));
             if (message.Count < MinimumMessageSize) throw new ArgumentException("The message is too small to be a valid message", nameof(message));
 
-            using var mem = storage.Lock();
+            using var mem = new MemoryStream(state);
             var s = ClientState.Load(mem, kexfac, 32);
             if (s == null || s.Ratchets == null || s.Ratchets.IsEmpty)
             {
