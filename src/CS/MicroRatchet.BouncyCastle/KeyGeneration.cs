@@ -66,6 +66,23 @@ namespace MicroRatchet.BouncyCastle
             }
         }
 
+        public static bool IsPublicKeyAcceptable(AsymmetricCipherKeyPair ackp)
+        {
+            if (ackp?.Public is ECPublicKeyParameters pubkeyparm)
+            {
+                return IsPublicKeyAcceptable(pubkeyparm);
+            }
+            else
+            {
+                throw new InvalidOperationException("The key pair is not an EC key pair");
+            }
+        }
+
+        public static bool IsPublicKeyAcceptable(ECPublicKeyParameters pubkey)
+        {
+            return pubkey?.Q?.AffineYCoord?.TestBitZero() ?? false;
+        }
+
         public static byte[] GetPublicKeyFromPrivateKey(ArraySegment<byte> key) =>
             GetPublicKeyFromPrivateKey(new ECPrivateKeyParameters(new BigInteger(key.Array, key.Offset, key.Count), domainParms));
 
