@@ -29,6 +29,8 @@ namespace MicroRatchet
 
         public override void Store(Stream memory, int numberOfRatchetsToStore)
         {
+            if (memory == null) throw new ArgumentNullException(nameof(memory));
+
             byte versionByte = (byte)Version;
 
             bool hasInit = InitializationNonce != null;
@@ -91,14 +93,20 @@ namespace MicroRatchet
             Log.Verbose($"Read {memory.Position} bytes of client state");
         }
 
-        internal static ClientState Load(IStorageProvider storage, IKeyAgreementFactory kexFac, int keySize = 32)
+        public static ClientState Load(byte[] source, IKeyAgreementFactory kexFac, int keySize = 32)
         {
-            using var mem = storage.Lock();
-            return Load(mem, kexFac, keySize);
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));
+
+            using var ms = new MemoryStream(source);
+            return Load(ms, kexFac, keySize);
         }
 
         public static ClientState Load(Stream source, IKeyAgreementFactory kexFac, int keySize = 32)
         {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));
+
             if (keySize != 32) throw new InvalidOperationException("Invalid key size");
             var state = new ClientState(keySize);
             state.LoadInternal(source, kexFac);

@@ -27,11 +27,6 @@ namespace MicroRatchet
         IRandomNumberGenerator RandomNumberGenerator { get; }
 
         /// <summary>
-        /// Storage for reading state
-        /// </summary>
-        IStorageProvider Storage { get; }
-
-        /// <summary>
         /// ECDH for key exchange
         /// </summary>
         IKeyAgreementFactory KeyAgreementFactory { get; }

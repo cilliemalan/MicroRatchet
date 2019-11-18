@@ -70,10 +70,10 @@ namespace MicroRatchet.Tests
             Assert.Equal(smessage5, cr5);
             Assert.Equal(smessage6, cr6);
 
-            client.SaveState();
-            server.SaveState();
-            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance);
-            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance);
+            var css = client.SaveStateAsByteArray();
+            var sss = server.SaveStateAsByteArray();
+            var cs = ClientState.Load(css, DefaultKexFactory.Instance);
+            var ss = ServerState.Load(sss, DefaultKexFactory.Instance);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }

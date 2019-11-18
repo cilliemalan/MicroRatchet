@@ -73,28 +73,26 @@ namespace MicroRatchet.Tests
             };
 
             var rngC = new FakeRandomNumberGenerator(randomC);
-            var storageC = new InMemoryStorage();
             var signatureC = new Signature(privateKeyC, new SecureRandom(rngC));
             var rngS = new FakeRandomNumberGenerator(randomS);
-            var storageS = new InMemoryStorage();
             var signatureS = new Signature(privateKeyS, new SecureRandom(rngS));
 
-            var servicesC = new BouncyCastleServices(privateKeyC, storageC)
+            var servicesC = new BouncyCastleServices(privateKeyC)
             {
                 Signature = signatureC,
                 RandomNumberGenerator = rngC,
             };
             servicesC.KeyAgreementFactory = new DeterministicKexFac(servicesC.KeyAgreementFactory, rngC);
 
-            var servicesS = new BouncyCastleServices(privateKeyS, storageS)
+            var servicesS = new BouncyCastleServices(privateKeyS)
             {
                 Signature = signatureS,
                 RandomNumberGenerator = rngS,
             };
             servicesS.KeyAgreementFactory = new DeterministicKexFac(servicesS.KeyAgreementFactory, rngS);
 
-            var C = new MicroRatchetClient(servicesC, configC);
-            var S = new MicroRatchetClient(servicesS, configS);
+            var C = new MicroRatchetClient(servicesC, configC, null);
+            var S = new MicroRatchetClient(servicesS, configS, null);
 
             var c1 = C.InitiateInitialization();
             var s2 = S.Receive(c1).ToSendBack;
@@ -202,28 +200,26 @@ namespace MicroRatchet.Tests
             };
 
             var rngC = new FakeRandomNumberGenerator(randomC);
-            var storageC = new InMemoryStorage();
             var signatureC = new Signature(privateKeyC, new SecureRandom(rngC));
             var rngS = new FakeRandomNumberGenerator(randomS);
-            var storageS = new InMemoryStorage();
             var signatureS = new Signature(privateKeyS, new SecureRandom(rngS));
 
-            var servicesC = new BouncyCastleServices(privateKeyC, storageC)
+            var servicesC = new BouncyCastleServices(privateKeyC)
             {
                 Signature = signatureC,
                 RandomNumberGenerator = rngC,
             };
             servicesC.KeyAgreementFactory = new DeterministicKexFac(servicesC.KeyAgreementFactory, rngC);
 
-            var servicesS = new BouncyCastleServices(privateKeyS, storageS)
+            var servicesS = new BouncyCastleServices(privateKeyS)
             {
                 Signature = signatureS,
                 RandomNumberGenerator = rngS,
             };
             servicesS.KeyAgreementFactory = new DeterministicKexFac(servicesS.KeyAgreementFactory, rngS);
 
-            var C = new MicroRatchetClient(servicesC, configC);
-            var S = new MicroRatchetClient(servicesS, configS);
+            var C = new MicroRatchetClient(servicesC, configC, null);
+            var S = new MicroRatchetClient(servicesS, configS, null);
 
             var c1 = C.InitiateInitialization();
             var s2 = S.Receive(c1).ToSendBack;

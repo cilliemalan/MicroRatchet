@@ -11,20 +11,18 @@ namespace MicroRatchet.BouncyCastle
     /// </summary>
     public class BouncyCastleServices : IServices
     {
-        public BouncyCastleServices(byte[] privateKey, IStorageProvider storage)
+        public BouncyCastleServices(byte[] privateKey)
         {
             var fac = new DefaultFactories();
             KeyAgreementFactory = fac;
             VerifierFactory = fac;
             AesFactory = fac;
-            Storage = storage;
             Signature = new Signature(new ArraySegment<byte>(privateKey));
         }
 
         public IDigest Digest { get; set; } = new Digest();
         public ISignature Signature { get; set; }
         public IRandomNumberGenerator RandomNumberGenerator { get; set; } = new RandomNumberGenerator();
-        public IStorageProvider Storage { get; set; }
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
         public IVerifierFactory VerifierFactory { get; set; }
         public IAesFactory AesFactory { get; }

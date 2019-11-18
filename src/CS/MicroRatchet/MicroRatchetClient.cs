@@ -32,31 +32,41 @@ namespace MicroRatchet
         private IAesFactory AesFactory => Services.AesFactory;
         private IKeyDerivation KeyDerivation { get; }
         private IVerifierFactory VerifierFactory => Services.VerifierFactory;
-        private IStorageProvider Storage => Services.Storage;
-        private State _state;
+
+        private State state;
+
         private readonly List<(byte[], IAes)> _headerKeyCiphers = new List<(byte[], IAes)>();
 
         public IServices Services { get; }
 
         public MicroRatchetConfiguration Configuration { get; }
 
-        public bool IsInitialized => LoadState().IsInitialized;
+        public bool IsInitialized => state.IsInitialized;
+
         public int MaximumMessageSize => Configuration.MaximumMessageSize - MinimumOverhead;
 
-        public MicroRatchetClient(IServices services, MicroRatchetConfiguration config)
+        public MicroRatchetClient(IServices services, MicroRatchetConfiguration config, Stream stateData)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
 
             KeyDerivation = new AesKdf(Services.AesFactory);
 
+            LoadState(stateData);
+
             VerifyServices();
             CheckMtu();
         }
 
-        public MicroRatchetClient(IServices services, bool isClient, int? MaximumMessageSize = null, int? MinimumMessageSize = null)
+        public MicroRatchetClient(IServices services, bool isClient, int? MaximumMessageSize = null, int? MinimumMessageSize = null, Stream stateData = null, byte[] stateBytes = null)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
+
+            if (stateData != null && stateBytes != null)
+            {
+                throw new InvalidOperationException("stateData and stateBytes cannot both be specified");
+            }
+
             Configuration = new MicroRatchetConfiguration
             {
                 IsClient = isClient
@@ -72,9 +82,50 @@ namespace MicroRatchet
                 Configuration.MinimumMessageSize = MinimumMessageSize.Value;
             }
 
+            if (stateData != null)
+            {
+                LoadState(stateData);
+            }
+            else if (stateBytes != null)
+            {
+                using var ms = new MemoryStream(stateBytes);
+                LoadState(ms);
+            }
+            else
+            {
+                InitializeState();
+            }
+
             KeyDerivation = new AesKdf(Services.AesFactory);
 
             CheckMtu();
+        }
+
+        private void LoadState(Stream stateData)
+        {
+            if (stateData != null)
+            {
+                state = Configuration.IsClient
+                    ? (State)ClientState.Load(stateData, KeyAgreementFactory, 32)
+                    : ServerState.Load(stateData, KeyAgreementFactory, 32);
+            }
+            else
+            {
+                InitializeState();
+            }
+        }
+
+        public void SaveState(Stream destination)
+        {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+
+            state.Store(destination, Configuration.NumberOfRatchetsToKeep);
+        }
+
+        private void InitializeState()
+        {
+            state?.Dispose();
+            state = State.Initialize(Configuration.IsClient, 32);
         }
 
         private void CheckMtu()
@@ -744,28 +795,8 @@ namespace MicroRatchet
             return sendback;
         }
 
-        private State LoadState()
-        {
-            if (_state == null)
-            {
-                using var mem = Storage.Lock();
-                _state = Configuration.IsClient
-                    ? (State)ClientState.Load(mem, KeyAgreementFactory, 32)
-                    : ServerState.Load(mem, KeyAgreementFactory, 32);
-            }
-            return _state;
-        }
-
-        private State InitializeState()
-        {
-            _state = State.Initialize(Configuration.IsClient, 32);
-            return _state;
-        }
-
         public byte[] InitiateInitialization(bool forceReinitialization = false)
         {
-            State state = LoadState();
-
             if (state != null && state.IsInitialized && !forceReinitialization)
             {
                 throw new InvalidOperationException("The client is already initialized");
@@ -776,7 +807,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("only a client can initiate initialization");
             }
 
-            state = InitializeState();
+            InitializeState();
 
             return ProcessInitialization(state, null, null, null, false);
         }
@@ -788,8 +819,6 @@ namespace MicroRatchet
 
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} RECEIVE");
 
-            State state = LoadState();
-
             // check the MAC and get info regarding the message header
             var (headerKeyUsed, ratchetUsed, usedNextHeaderKey, usedApplicationKey) = InterpretMessageMAC(state, data);
 
@@ -797,11 +826,6 @@ namespace MicroRatchet
             ReceiveResult result;
             if (usedApplicationKey || !IsInitialized)
             {
-                if (state == null)
-                {
-                    state = InitializeState();
-                }
-
                 result = new ReceiveResult
                 {
                     ToSendBack = ProcessInitialization(state, data, headerKeyUsed, ratchetUsed, usedApplicationKey)
@@ -828,7 +852,6 @@ namespace MicroRatchet
         {
             Log.Verbose($"\n\n###{(Configuration.IsClient ? "CLIENT" : "SERVER")} SEND");
 
-            State state = LoadState();
             if (!state.IsInitialized)
             {
                 throw new InvalidOperationException("The client has not been initialized.");
@@ -855,22 +878,6 @@ namespace MicroRatchet
             else
             {
                 throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
-            }
-        }
-
-        public void SaveState(Stream destination = null)
-        {
-            if (destination == null)
-            {
-                using var dest = Storage.Lock();
-                SaveState(dest);
-            }
-            else
-            {
-                if (_state != null)
-                {
-                    _state.Store(destination, Configuration.NumberOfRatchetsToKeep);
-                }
             }
         }
 
@@ -937,8 +944,8 @@ namespace MicroRatchet
 
         public void Dispose()
         {
-            _state?.Dispose();
-            _state = null;
+            state?.Dispose();
+            state = null;
         }
     }
 }

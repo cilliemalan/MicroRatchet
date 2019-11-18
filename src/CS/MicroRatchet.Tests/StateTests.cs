@@ -10,27 +10,14 @@ namespace MicroRatchet.Tests
     public class StateTests
     {
         private const int ks = 32;
-        private class InMemoryStorage : IStorageProvider
-        {
-            public byte[] memory;
-
-            public InMemoryStorage()
-            {
-                memory = new byte[1024];
-            }
-
-            public Stream Lock() => new MemoryStream(memory);
-        }
 
         [Fact]
         public void ClientInitStateTest()
         {
-            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            var cstorage = new InMemoryStorage();
-            var sstorage = new InMemoryStorage();
-            clientServices.Storage = cstorage;
-            serverServices.Storage = sstorage;
+            var clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
+            var serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
+
+            byte[] cs, ss;
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);
@@ -41,104 +28,93 @@ namespace MicroRatchet.Tests
             var kex = clientServices.KeyAgreementFactory;
 
             var clientInitPacket = client.InitiateInitialization();
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
             var server = new MicroRatchetClient(serverServices, false);
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
-            server.SaveState();
+            ss = server.SaveStateAsByteArray();
             {
-                var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
-                Assert.Equal(oldState, sstorage.memory);
+                var ts = ServerState.Load(ss, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, ss);
             }
 
 
-            client = new MicroRatchetClient(clientServices, true);
+            client = new MicroRatchetClient(clientServices, true, stateBytes: cs);
             var firstPacket = client.Receive(responsePacket).ToSendBack;
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
-            server = new MicroRatchetClient(serverServices, false);
+            server = new MicroRatchetClient(serverServices, false, stateBytes: ss);
             var firstResponse = server.Receive(firstPacket).ToSendBack;
-            server.SaveState();
+            ss = server.SaveStateAsByteArray();
             {
-                var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
-                Assert.Equal(oldState, sstorage.memory);
+                var ts = ServerState.Load(ss, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, ss);
             }
 
-            client = new MicroRatchetClient(clientServices, true);
+            client = new MicroRatchetClient(clientServices, true, stateBytes: cs);
             var lastResult = client.Receive(firstResponse).ToSendBack;
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
 
-            client = new MicroRatchetClient(clientServices, true, 80);
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: cs);
             var pl1 = client.Send(message1);
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
-            client = new MicroRatchetClient(clientServices, true, 80);
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: cs);
             var pl2 = client.Send(message2);
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
-            client = new MicroRatchetClient(clientServices, true, 80);
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: cs);
             var pl3 = client.Send(message3);
-            client.SaveState();
+            cs = client.SaveStateAsByteArray();
             {
-                var oldState = cstorage.memory.Clone();
-                ClientState.Load(cstorage.Lock(), kex, ks).Store(cstorage, 5);
-                Assert.Equal(oldState, cstorage.memory);
+                var ts = ClientState.Load(cs, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, cs);
             }
 
 
-            server = new MicroRatchetClient(serverServices, false, 80);
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: ss);
             var r1 = server.Receive(pl1).Payload;
-            server.SaveState();
+            ss = server.SaveStateAsByteArray();
             {
-                var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
-                Assert.Equal(oldState, sstorage.memory);
+                var ts = ServerState.Load(ss, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, ss);
             }
 
-            server = new MicroRatchetClient(serverServices, false, 80);
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: ss);
             var r2 = server.Receive(pl2).Payload;
-            server.SaveState();
+            ss = server.SaveStateAsByteArray();
             {
-                var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
-                Assert.Equal(oldState, sstorage.memory);
+                var ts = ServerState.Load(ss, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, ss);
             }
 
-            server = new MicroRatchetClient(serverServices, false, 80);
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: ss);
             var r3 = server.Receive(pl3).Payload;
-            server.SaveState();
+            ss = server.SaveStateAsByteArray();
             {
-                var oldState = sstorage.memory.Clone();
-                ServerState.Load(sstorage.Lock(), kex, ks).Store(sstorage, 5);
-                Assert.Equal(oldState, sstorage.memory);
+                var ts = ServerState.Load(ss, kex, ks).StoreAsByteArray(5);
+                Assert.Equal(ts, ss);
             }
 
 
@@ -147,15 +123,6 @@ namespace MicroRatchet.Tests
             Assert.Equal(message3, r3);
 
             Assert.Null(lastResult);
-        }
-    }
-
-    internal static class StateExtensions
-    {
-        public static void Store(this State state, IStorageProvider storage, int nr)
-        {
-            using var stream = storage.Lock();
-            state.Store(stream, nr);
         }
     }
 }

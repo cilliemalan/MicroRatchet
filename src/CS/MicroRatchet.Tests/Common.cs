@@ -11,8 +11,8 @@ namespace MicroRatchet.Tests
     {
         public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, int maximumBufferedPartialMessageSize = 50 * 1024)
         {
-            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            var clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
+            var serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -28,20 +28,11 @@ namespace MicroRatchet.Tests
                 }
             }
 
-            client.SaveState();
-            server.SaveState();
+            var cs = client.SaveStateAsByteArray();
+            var ss = server.SaveStateAsByteArray();
 
-            var clientConfig = new MicroRatchetConfiguration
-            {
-                IsClient = true,
-                MaximumMessageSize = mtu
-            };
-            var serverConfig = new MicroRatchetConfiguration
-            {
-                IsClient = false,
-                MaximumMessageSize = mtu
-            };
-            return (new MicroRatchetClient(clientServices, clientConfig), new MicroRatchetClient(serverServices, serverConfig));
+            return (new MicroRatchetClient(clientServices, true, mtu, stateBytes: cs),
+                new MicroRatchetClient(serverServices, false, mtu, stateBytes: ss));
         }
 
         public static IAesFactory AesFactory { get; } = new _AesFactory();

@@ -48,7 +48,7 @@ namespace MicroRatchet
                 // check if this is still a ratchet record
                 var b = stream.ReadByte();
                 stream.Seek(-1, SeekOrigin.Current);
-                if ((b & 0b1110_0000) == 0) break;
+                if (b < 0 || (b & 0b1110_0000) == 0) break;
 
                 if (last)
                 {

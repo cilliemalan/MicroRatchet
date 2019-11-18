@@ -3,6 +3,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -15,7 +16,7 @@ namespace MicroRatchet.Performance
             int messageCount = 1000000;
             double clientDropChance = 0.0;
             double serverDropChance = 0.0;
-            var defaultServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            var defaultServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
             Random r = new Random();
             RandomNumberGenerator rng = new RandomNumberGenerator();
@@ -435,8 +436,8 @@ namespace MicroRatchet.Performance
 
         private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int? mtu = null)
         {
-            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
+            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
             var client = new MicroRatchetClient(clientServices, true);
             var server = new MicroRatchetClient(serverServices, false);
@@ -454,19 +455,14 @@ namespace MicroRatchet.Performance
 
             if (!client.IsInitialized || !server.IsInitialized) throw new InvalidOperationException("Initialization failed");
 
-            client.SaveState();
-            server.SaveState();
+            using var msc = new MemoryStream();
+            using var mss = new MemoryStream();
+            client.SaveState(msc); msc.Position = 0;
+            server.SaveState(mss); mss.Position = 0;
 
             return (
-                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }),
-                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }));
-        }
-
-        private class InMemoryStorage : IStorageProvider
-        {
-            private byte[] memory;
-            public InMemoryStorage(int space = 8192) => memory = new byte[space];
-            public System.IO.Stream Lock() => new System.IO.MemoryStream(memory);
+                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }, msc),
+                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }, mss));
         }
     }
 }

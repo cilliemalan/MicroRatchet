@@ -1,6 +1,7 @@
 ﻿using MicroRatchet.BouncyCastle;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Xunit;
@@ -12,49 +13,51 @@ namespace MicroRatchet.Tests
         [Fact]
         public void ClientMessagesReinstantiation()
         {
-            BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
-            BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey(), new InMemoryStorage());
+            var clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
+            var serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
             RandomNumberGenerator rng = new RandomNumberGenerator();
             byte[] message1 = rng.Generate(64);
             byte[] message2 = rng.Generate(64);
             byte[] message3 = rng.Generate(64);
 
+            byte[] s, c;
+
             var client = new MicroRatchetClient(clientServices, true);
             var clientInitPacket = client.InitiateInitialization();
-            client.SaveState();
+            c = client.SaveStateAsByteArray();
             var server = new MicroRatchetClient(serverServices, false);
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
-            server.SaveState();
-            client = new MicroRatchetClient(clientServices, true);
+            s = server.SaveStateAsByteArray();
+            client = new MicroRatchetClient(clientServices, true, stateBytes: c);
             var firstPacket = client.Receive(responsePacket).ToSendBack;
-            client.SaveState();
-            server = new MicroRatchetClient(serverServices, false);
+            c = client.SaveStateAsByteArray();
+            server = new MicroRatchetClient(serverServices, false, stateBytes: s);
             var firstResponse = server.Receive(firstPacket).ToSendBack;
-            server.SaveState();
-            client = new MicroRatchetClient(clientServices, true);
+            s = server.SaveStateAsByteArray();
+            client = new MicroRatchetClient(clientServices, true, stateBytes: c);
             var lastResult = client.Receive(firstResponse).ToSendBack;
-            client.SaveState();
+            c = client.SaveStateAsByteArray();
 
-            client = new MicroRatchetClient(clientServices, true, 80);
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
             var pl1 = client.Send(message1);
-            client.SaveState();
-            client = new MicroRatchetClient(clientServices, true, 80);
+            c = client.SaveStateAsByteArray();
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
             var pl2 = client.Send(message2);
-            client.SaveState();
-            client = new MicroRatchetClient(clientServices, true, 80);
+            c = client.SaveStateAsByteArray();
+            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
             var pl3 = client.Send(message3);
-            client.SaveState();
+            c = client.SaveStateAsByteArray();
 
-            server = new MicroRatchetClient(serverServices, false, 80);
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
             var r1 = server.Receive(pl1).Payload;
-            server.SaveState();
-            server = new MicroRatchetClient(serverServices, false, 80);
+            s = server.SaveStateAsByteArray();
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
             var r2 = server.Receive(pl2).Payload;
-            server.SaveState();
-            server = new MicroRatchetClient(serverServices, false, 80);
+            s = server.SaveStateAsByteArray();
+            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
             var r3 = server.Receive(pl3).Payload;
-            server.SaveState();
+            s = server.SaveStateAsByteArray();
 
             Assert.Equal(message1, r1);
             Assert.Equal(message2, r2);
@@ -313,10 +316,12 @@ namespace MicroRatchet.Tests
             var cr3 = client.Receive(sp3).Payload;
             Assert.Equal(smessage3, cr3);
 
-            client.SaveState();
-            server.SaveState();
-            var cs = ClientState.Load(client.Services.Storage, DefaultKexFactory.Instance);
-            var ss = ServerState.Load(server.Services.Storage, DefaultKexFactory.Instance);
+            using var cms = new MemoryStream();
+            using var sms = new MemoryStream();
+            client.SaveState(cms); cms.Position = 0;
+            server.SaveState(sms); sms.Position = 0;
+            var cs = ClientState.Load(cms, DefaultKexFactory.Instance);
+            var ss = ServerState.Load(sms, DefaultKexFactory.Instance);
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
