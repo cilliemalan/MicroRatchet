@@ -80,7 +80,7 @@ namespace MicroRatchet.BouncyCastle
 
         public static bool IsPublicKeyAcceptable(ECPublicKeyParameters pubkey)
         {
-            return pubkey?.Q?.AffineYCoord?.TestBitZero() ?? false;
+            return !(pubkey?.Q?.AffineYCoord?.TestBitZero() ?? true);
         }
 
         public static byte[] GetPublicKeyFromPrivateKey(ArraySegment<byte> key) =>
