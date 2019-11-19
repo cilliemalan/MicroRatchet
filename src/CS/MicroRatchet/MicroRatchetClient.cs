@@ -880,6 +880,12 @@ namespace MicroRatchet
                 throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
             }
         }
+        public byte[] GetRemotePublicKey()
+        {
+            //if (state is ClientState cs) return cs.ServerPublicKey
+            if (state is ServerState ss) return ss.ClientPublicKey;
+            return null;
+        }
 
         private static int MatchMessageWithMac(ArraySegment<byte> message, IAesFactory aesFactory, params byte[][] keys)
         {
