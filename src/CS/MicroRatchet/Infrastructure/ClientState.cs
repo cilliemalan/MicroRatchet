@@ -27,6 +27,9 @@ namespace MicroRatchet
         // used twice
         public IKeyAgreement LocalEcdhForInit;
 
+        // server public key gets held onto
+        public byte[] ServerPublicKey;
+
         public override void Store(Stream memory, int numberOfRatchetsToStore)
         {
             if (memory == null) throw new ArgumentNullException(nameof(memory));
@@ -36,22 +39,29 @@ namespace MicroRatchet
             bool hasInit = InitializationNonce != null;
             bool hasRatchet = Ratchets != null && Ratchets.Count != 0;
             bool hasEcdh = LocalEcdhForInit != null;
+            bool hasServerPubkey = ServerPublicKey != null;
 
             if (hasInit) versionByte |= 0b0001_0000;
             if (hasRatchet) versionByte |= 0b0010_0000;
             if (hasEcdh) versionByte |= 0b0100_0000;
+            if (hasServerPubkey) versionByte |= 0b1000_0000;
             memory.WriteByte(versionByte);
 
             if (hasInit)
             {
                 if (InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
-
-                if (InitializationNonce != null) memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
+                memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
             }
 
             if (hasEcdh)
             {
                 LocalEcdhForInit.Serialize(memory);
+            }
+
+            if (hasServerPubkey)
+            {
+                if (ServerPublicKey.Length != MicroRatchetClient.ExpectedPublicKeySize) throw new InvalidOperationException($"ServerPublicKey must be {MicroRatchetClient.ExpectedPublicKeySize} bytes");
+                memory.Write(ServerPublicKey, 0, MicroRatchetClient.ExpectedPublicKeySize);
             }
 
             if (hasRatchet)
@@ -71,6 +81,7 @@ namespace MicroRatchet
             bool hasInit = (versionByte & 0b0001_0000) != 0;
             bool hasRatchet = (versionByte & 0b0010_0000) != 0;
             bool hasEcdh = (versionByte & 0b0100_0000) != 0;
+            bool hasServerPublicKey = (versionByte & 0b1000_0000) != 0;
 
             if (hasInit)
             {
@@ -81,8 +92,13 @@ namespace MicroRatchet
 
             if (hasEcdh)
             {
-                    
                 LocalEcdhForInit = kexFac.Deserialize(memory);
+            }
+
+            if (hasServerPublicKey)
+            {
+                if (ServerPublicKey == null || ServerPublicKey.Length != MicroRatchetClient.ExpectedPublicKeySize) ServerPublicKey = new byte[MicroRatchetClient.ExpectedPublicKeySize];
+                memory.Read(ServerPublicKey, 0, MicroRatchetClient.ExpectedPublicKeySize);
             }
 
             if (hasRatchet)

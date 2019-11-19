@@ -414,6 +414,9 @@ namespace MicroRatchet
                 throw new InvalidOperationException("The signature was invalid");
             }
 
+            // keep the server public key around
+            clientState.ServerPublicKey = serverPubKey.ToArray();
+
             // store the new nonce we got from the server
             clientState.InitializationNonce = nonce.ToArray();
             Log.Verbose($"storing iniitlizaionta nonce: {Log.ShowBytes(nonce)}");
@@ -882,7 +885,7 @@ namespace MicroRatchet
         }
         public byte[] GetRemotePublicKey()
         {
-            //if (state is ClientState cs) return cs.ServerPublicKey
+            if (state is ClientState cs) return cs.ServerPublicKey;
             if (state is ServerState ss) return ss.ClientPublicKey;
             return null;
         }
