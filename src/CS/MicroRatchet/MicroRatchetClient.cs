@@ -934,12 +934,14 @@ namespace MicroRatchet
             if (message.Count < MinimumMessageSize) throw new ArgumentException("The message is too small to be a valid message", nameof(message));
 
             using var mem = new MemoryStream(state);
-            var s = ClientState.Load(mem, kexfac, 32);
-            if (s == null || s.Ratchets == null || s.Ratchets.IsEmpty)
+            var s = State.Load(mem, kexfac, 32);
+
+            if (s == null)
             {
                 return false;
             }
-            else
+
+            if (s != null && s.Ratchets != null && !s.Ratchets.IsEmpty)
             {
                 byte[][] keys = new byte[s.Ratchets.Count + 1][];
                 for (int i = 0; i < s.Ratchets.Count; i++)
@@ -953,6 +955,13 @@ namespace MicroRatchet
 
                 return MatchMessageWithMac(message, aesfac, keys) >= 0;
             }
+
+            if (s is ServerState ss && ss.FirstReceiveHeaderKey != null)
+            {
+                return MatchMessageWithMac(message, aesfac, ss.FirstReceiveHeaderKey) >= 0;
+            }
+
+            return false;
         }
 
         public void Dispose()
