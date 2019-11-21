@@ -26,6 +26,7 @@ namespace MicroRatchet.BouncyCastle
         public IKeyAgreementFactory KeyAgreementFactory { get; set; }
         public IVerifierFactory VerifierFactory { get; set; }
         public IAesFactory AesFactory { get; }
+        public INonceCache NonceCache { get; set; } = new InMemoryNonceCache();
 
         private class DefaultFactories : IKeyAgreementFactory, IVerifierFactory, IAesFactory
         {

@@ -35,5 +35,10 @@ namespace MicroRatchet
         /// Verifier that can verify signatures
         /// </summary>
         IVerifierFactory VerifierFactory { get; }
+
+        /// <summary>
+        /// Checks if previously used nonces are used again
+        /// </summary>
+        INonceCache NonceCache { get; }
     }
 }

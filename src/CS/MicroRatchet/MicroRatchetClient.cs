@@ -32,6 +32,7 @@ namespace MicroRatchet
         private IAesFactory AesFactory => Services.AesFactory;
         private IKeyDerivation KeyDerivation { get; }
         private IVerifierFactory VerifierFactory => Services.VerifierFactory;
+        private INonceCache NonceCache => Services.NonceCache;
 
         private State state;
 
@@ -179,6 +180,7 @@ namespace MicroRatchet
         private IAes GetHeaderKeyCipher(byte[] key)
         {
             if (key == null) return null;
+
             foreach ((byte[], IAes) hkc in _headerKeyCiphers)
             {
                 if (hkc.Item1.Matches(key)) return hkc.Item2;
@@ -244,6 +246,7 @@ namespace MicroRatchet
             var messageSize = data.Length;
             var macOffset = messageSize - MacSize;
             var initializationNonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
+            CheckNonce(initializationNonce);
 
             // decrypt the message
             var cipher = new AesCtrMode(AesFactory.GetAes(true, Configuration.ApplicationKey), initializationNonce);
@@ -386,6 +389,8 @@ namespace MicroRatchet
             var nonce = new ArraySegment<byte>(data, 0, InitializationNonceSize);
             var rootEcdhKey = new ArraySegment<byte>(data, InitializationNonceSize, EcNumSize);
             var encryptedPayload = new ArraySegment<byte>(data, headerSize, payloadSize);
+
+            CheckNonce(nonce);
 
             // decrypt payload
             IKeyAgreement rootEcdh = clientState.LocalEcdhForInit;
@@ -687,6 +692,8 @@ namespace MicroRatchet
             var hcipher = new AesCtrMode(GetHeaderKeyCipher(headerKey), headerEncryptionNonce);
             var decryptedNonce = hcipher.Process(encryptedNonce);
 
+            CheckNonce(headerEncryptionNonce);
+
             // get the ecdh bit
             var hasEcdh = (decryptedNonce[0] & 0b1000_0000) != 0;
             decryptedNonce[0] &= 0b0111_1111;
@@ -732,6 +739,7 @@ namespace MicroRatchet
                 throw new InvalidOperationException("An override header key was used but the message did not contain ECDH parameters");
             }
             (var key, var _) = ratchetUsed.ReceivingChain.RatchetForReceiving(KeyDerivation, step);
+            CheckNonce(key);
 
             // get the encrypted payload
             var payloadOffset = hasEcdh ? NonceSize + EcNumSize : NonceSize;
@@ -907,6 +915,19 @@ namespace MicroRatchet
             return null;
         }
 
+        private void CheckNonce(byte[] nonce) =>
+            CheckNonce(new ArraySegment<byte>(nonce));
+
+        private void CheckNonce(ArraySegment<byte> nonce)
+        {
+            if (NonceCache != null)
+            {
+                if (!NonceCache.CheckNonce(nonce))
+                {
+                    throw new InvalidOperationException("A duplicate nonce was detected");
+                }
+            }
+        }
 
         private static ArraySegment<byte> Pad(ArraySegment<byte> payload, int minimumMessageSize)
         {
