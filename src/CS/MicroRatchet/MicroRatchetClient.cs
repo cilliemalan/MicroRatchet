@@ -178,6 +178,7 @@ namespace MicroRatchet
 
         private IAes GetHeaderKeyCipher(byte[] key)
         {
+            if (key == null) return null;
             foreach ((byte[], IAes) hkc in _headerKeyCiphers)
             {
                 if (hkc.Item1.Matches(key)) return hkc.Item2;
@@ -497,6 +498,8 @@ namespace MicroRatchet
 
         private byte[] ConstructMessage(ArraySegment<byte> message, bool includeEcdh, EcdhRatchetStep step)
         {
+            if (message == null) throw new ArgumentNullException(nameof(message));
+
             // message format:
             // <nonce (4)>, <payload, padding>, mac(12)
             // <nonce (4), ecdh (32)>, <payload, padding>, mac(12)
@@ -672,6 +675,10 @@ namespace MicroRatchet
 
         private byte[] DeconstructMessage(State state, byte[] payload, byte[] headerKey, EcdhRatchetStep ratchetUsed, bool usedNextHeaderKey)
         {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (payload == null) throw new ArgumentNullException(nameof(payload));
+            if (headerKey == null) throw new ArgumentNullException(nameof(headerKey));
+
             var messageSize = payload.Length;
             var encryptedNonce = new ArraySegment<byte>(payload, 0, NonceSize);
 
@@ -893,18 +900,19 @@ namespace MicroRatchet
             }
         }
 
-        private ArraySegment<byte> Pad(ArraySegment<byte> payload, int minimumMessageSize)
-        {
-            var result = new byte[minimumMessageSize];
-            Array.Copy(payload.Array, payload.Offset, result, 0, payload.Count);
-            return new ArraySegment<byte>(result);
-        }
-
         public byte[] GetRemotePublicKey()
         {
             if (state is ClientState cs) return cs.ServerPublicKey;
             if (state is ServerState ss) return ss.ClientPublicKey;
             return null;
+        }
+
+
+        private static ArraySegment<byte> Pad(ArraySegment<byte> payload, int minimumMessageSize)
+        {
+            var result = new byte[minimumMessageSize];
+            Array.Copy(payload.Array, payload.Offset, result, 0, payload.Count);
+            return new ArraySegment<byte>(result);
         }
 
         private static int MatchMessageWithMac(ArraySegment<byte> message, IAesFactory aesFactory, params byte[][] keys)
