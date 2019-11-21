@@ -41,6 +41,7 @@ namespace MicroRatchet
             bool hasEcdh = LocalEcdhForInit != null;
             bool hasServerPubkey = ServerPublicKey != null;
 
+            versionByte |= 0b0000_1000; // client bit
             if (hasInit) versionByte |= 0b0001_0000;
             if (hasRatchet) versionByte |= 0b0010_0000;
             if (hasEcdh) versionByte |= 0b0100_0000;
@@ -78,10 +79,13 @@ namespace MicroRatchet
             if (versionInt < 0) throw new EndOfStreamException();
             var versionByte = (byte)versionInt;
 
+            bool isClient = (versionByte & 0b0000_1000) != 0;
             bool hasInit = (versionByte & 0b0001_0000) != 0;
             bool hasRatchet = (versionByte & 0b0010_0000) != 0;
             bool hasEcdh = (versionByte & 0b0100_0000) != 0;
             bool hasServerPublicKey = (versionByte & 0b1000_0000) != 0;
+
+            if (!isClient) throw new InvalidOperationException("The provided state is not client state");
 
             if (hasInit)
             {
@@ -109,7 +113,7 @@ namespace MicroRatchet
             Log.Verbose($"Read {memory.Position} bytes of client state");
         }
 
-        public static ClientState Load(byte[] source, IKeyAgreementFactory kexFac, int keySize = 32)
+        public static new ClientState Load(byte[] source, IKeyAgreementFactory kexFac, int keySize = 32)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));
@@ -118,7 +122,7 @@ namespace MicroRatchet
             return Load(ms, kexFac, keySize);
         }
 
-        public static ClientState Load(Stream source, IKeyAgreementFactory kexFac, int keySize = 32)
+        public static new ClientState Load(Stream source, IKeyAgreementFactory kexFac, int keySize = 32)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));

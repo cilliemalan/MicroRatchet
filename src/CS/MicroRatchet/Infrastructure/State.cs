@@ -14,7 +14,7 @@ namespace MicroRatchet
         protected abstract int Version { get; }
 
         public virtual bool IsInitialized => (Ratchets?.Count ?? 0) != 0;
-        
+
         public EcdhRatchet Ratchets = new EcdhRatchet();
 
         protected State(int keySizeInBytes)
@@ -260,6 +260,31 @@ namespace MicroRatchet
             }
         }
 
+        public static State Load(Stream source, IKeyAgreementFactory kexFac, int keySize = 32)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));
+
+            var versionInt = source.ReadByte();
+            if (versionInt < 0) throw new EndOfStreamException();
+            var versionByte = (byte)versionInt;
+            source.Position -= 1;
+
+            bool isClient = (versionByte & 0b0000_1000) != 0;
+
+            if (isClient) return ClientState.Load(source, kexFac, keySize);
+            else return ServerState.Load(source, kexFac, keySize);
+        }
+
+        public static State Load(byte[] source, IKeyAgreementFactory kexFac, int keySize = 32)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (kexFac == null) throw new ArgumentNullException(nameof(kexFac));
+
+            using var ms = new MemoryStream(source);
+            return Load(ms, kexFac, keySize);
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (disposing)
@@ -277,7 +302,7 @@ namespace MicroRatchet
         public void Dispose()
         {
             Dispose(true);
-             GC.SuppressFinalize(this);
+            GC.SuppressFinalize(this);
         }
     }
 }
