@@ -449,6 +449,10 @@ namespace MicroRatchet
         private void ReceiveFirstMessage(State state, byte[] payload, EcdhRatchetStep ecdhRatchetStep)
         {
             if (!(state is ServerState serverState)) throw new InvalidOperationException("Only the server can receive the first client message.");
+            if (serverState.FirstReceiveHeaderKey == null)
+            {
+                throw new InvalidOperationException("Invalid message received");
+            }
 
             var data = DeconstructMessage(state, payload, serverState.FirstReceiveHeaderKey, ecdhRatchetStep, false);
             if (data.Length < InitializationNonceSize || !serverState.NextInitializationNonce.Matches(data, 0, InitializationNonceSize))
