@@ -866,6 +866,11 @@ namespace MicroRatchet
 
             if (payload.Count <= MaximumMessageSize)
             {
+                if (payload.Count < HeaderIVSize)
+                {
+                    payload = Pad(payload, HeaderIVSize);
+                }
+
                 var canIncludeEcdh = payload.Count <= Configuration.MaximumMessageSize - 48;
                 EcdhRatchetStep step;
                 if (canIncludeEcdh)
@@ -887,6 +892,14 @@ namespace MicroRatchet
                 throw new InvalidOperationException($"Payload is too big. Maximum payload is {MaximumMessageSize}");
             }
         }
+
+        private ArraySegment<byte> Pad(ArraySegment<byte> payload, int minimumMessageSize)
+        {
+            var result = new byte[minimumMessageSize];
+            Array.Copy(payload.Array, payload.Offset, result, 0, payload.Count);
+            return new ArraySegment<byte>(result);
+        }
+
         public byte[] GetRemotePublicKey()
         {
             if (state is ClientState cs) return cs.ServerPublicKey;
