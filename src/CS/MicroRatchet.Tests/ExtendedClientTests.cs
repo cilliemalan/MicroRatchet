@@ -77,5 +77,208 @@ namespace MicroRatchet.Tests
             Assert.Equal(4, cs.Ratchets.Count);
             Assert.Equal(4, ss.Ratchets.Count);
         }
+
+        [Fact]
+        public void SmallMessageTest()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(1);
+            var msg2 = rng.Generate(2);
+            var msg3 = rng.Generate(3);
+            var msg4 = rng.Generate(4);
+
+            var cmsg1 = client.Send(msg1);
+            var rmsg1 = server.Receive(cmsg1);
+            PrefixMatch(msg1, rmsg1.Payload);
+
+            var cmsg2 = server.Send(msg2);
+            var rmsg2 = client.Receive(cmsg2);
+            PrefixMatch(msg2, rmsg2.Payload);
+
+            var cmsg3 = client.Send(msg3);
+            var rmsg3 = server.Receive(cmsg3);
+            PrefixMatch(msg3, rmsg3.Payload);
+
+            var cmsg4 = server.Send(msg4);
+            var rmsg4 = client.Receive(cmsg4);
+            PrefixMatch(msg4, rmsg4.Payload);
+        }
+
+        [Fact]
+        public void RetransmissionFailTest1()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(16);
+            var msg2 = rng.Generate(26);
+            var msg3 = rng.Generate(36);
+            var msg4 = rng.Generate(46);
+
+            var cmsg1 = client.Send(msg1);
+            var rmsg1 = server.Receive(cmsg1);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg1));
+            Assert.Equal(msg1, rmsg1.Payload);
+
+            var cmsg2 = server.Send(msg2);
+            var rmsg2 = client.Receive(cmsg2);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg2));
+            Assert.Equal(msg2, rmsg2.Payload);
+
+            var cmsg3 = client.Send(msg3);
+            var rmsg3 = server.Receive(cmsg3);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg3));
+            Assert.Equal(msg3, rmsg3.Payload);
+
+            var cmsg4 = server.Send(msg4);
+            var rmsg4 = client.Receive(cmsg4);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg4));
+            Assert.Equal(msg4, rmsg4.Payload);
+        }
+
+        [Fact]
+        public void RetransmissionFailTest2()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(16);
+            var msg2 = rng.Generate(26);
+            var msg3 = rng.Generate(36);
+            var msg4 = rng.Generate(46);
+
+            var cmsg1 = client.Send(msg1);
+            var rmsg1 = server.Receive(cmsg1);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg1));
+            Assert.Equal(msg1, rmsg1.Payload);
+
+            var cmsg2 = server.Send(msg2);
+            var rmsg2 = client.Receive(cmsg2);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg2));
+            Assert.Equal(msg2, rmsg2.Payload);
+
+            var cmsg3 = client.Send(msg3);
+            var rmsg3 = server.Receive(cmsg3);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg1));
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg3));
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg1));
+            Assert.Equal(msg3, rmsg3.Payload);
+
+            var cmsg4 = server.Send(msg4);
+            var rmsg4 = client.Receive(cmsg4);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg2));
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg4));
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg2));
+            Assert.Equal(msg4, rmsg4.Payload);
+        }
+
+        [Fact]
+        public void RetransmissionFailTest3()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(16);
+            var msg2 = rng.Generate(26);
+            var msg3 = rng.Generate(36);
+            var msg4 = rng.Generate(46);
+
+            var cmsg1 = client.Send(msg1);
+            var cmsg2 = client.Send(msg2);
+            var cmsg3 = client.Send(msg3);
+            var cmsg4 = client.Send(msg4);
+
+            var rmsg1 = server.Receive(cmsg1);
+            var rmsg3 = server.Receive(cmsg3);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg3));
+            var rmsg2 = server.Receive(cmsg2);
+            var rmsg4 = server.Receive(cmsg4);
+
+            Assert.Equal(msg1, rmsg1.Payload);
+            Assert.Equal(msg2, rmsg2.Payload);
+            Assert.Equal(msg3, rmsg3.Payload);
+            Assert.Equal(msg4, rmsg4.Payload);
+        }
+
+        [Fact]
+        public void RetransmissionFailTest4()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(16);
+            var msg2 = rng.Generate(26);
+            var msg3 = rng.Generate(36);
+            var msg4 = rng.Generate(46);
+            var msg5 = rng.Generate(25);
+            var msg6 = rng.Generate(34);
+            var msg7 = rng.Generate(43);
+            var msg8 = rng.Generate(52);
+
+            var cmsg1 = client.Send(msg1);
+            var cmsg2 = client.Send(msg2);
+            var cmsg3 = client.Send(msg3);
+            var cmsg4 = client.Send(msg4);
+            var cmsg5 = client.Send(msg5);
+            var cmsg6 = client.Send(msg6);
+            var cmsg7 = client.Send(msg7);
+            var cmsg8 = client.Send(msg8);
+
+            var rmsg1 = server.Receive(cmsg1);
+            var rmsg2 = server.Receive(cmsg2);
+            var rmsg7 = server.Receive(cmsg7);
+            var rmsg5 = server.Receive(cmsg5);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg5));
+            var rmsg6 = server.Receive(cmsg6);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg6));
+            var rmsg8 = server.Receive(cmsg8);
+            var rmsg3 = server.Receive(cmsg3);
+            var rmsg4 = server.Receive(cmsg4);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg4));
+
+            Assert.Equal(msg1, rmsg1.Payload);
+            Assert.Equal(msg2, rmsg2.Payload);
+            Assert.Equal(msg3, rmsg3.Payload);
+            Assert.Equal(msg4, rmsg4.Payload);
+            Assert.Equal(msg5, rmsg5.Payload);
+            Assert.Equal(msg6, rmsg6.Payload);
+            Assert.Equal(msg7, rmsg7.Payload);
+            Assert.Equal(msg8, rmsg8.Payload);
+        }
+
+        [Fact]
+        public void ReflectFailTest()
+        {
+            var (client, server) = Common.CreateAndInitialize();
+            var rng = new RandomNumberGenerator();
+            var msg1 = rng.Generate(16);
+            var msg2 = rng.Generate(26);
+            var msg3 = rng.Generate(36);
+            var msg4 = rng.Generate(46);
+
+            var cmsg1 = client.Send(msg1);
+            var rmsg1 = server.Receive(cmsg1);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg1));
+            Assert.Equal(msg1, rmsg1.Payload);
+
+            var cmsg2 = server.Send(msg2);
+            var rmsg2 = client.Receive(cmsg2);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg2));
+            Assert.Equal(msg2, rmsg2.Payload);
+
+            var cmsg3 = client.Send(msg3);
+            var rmsg3 = server.Receive(cmsg3);
+            Assert.ThrowsAny<Exception>(() => client.Receive(cmsg3));
+            Assert.Equal(msg3, rmsg3.Payload);
+
+            var cmsg4 = server.Send(msg4);
+            var rmsg4 = client.Receive(cmsg4);
+            Assert.ThrowsAny<Exception>(() => server.Receive(cmsg4));
+            Assert.Equal(msg4, rmsg4.Payload);
+        }
+
+        private static void PrefixMatch(byte[] a, byte[] b)
+        {
+            var t = new byte[a.Length];
+            Array.Copy(b, 0, t, 0, a.Length);
+            Assert.Equal(a, t);
+        }
     }
 }
