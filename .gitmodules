@@ -4,7 +4,7 @@
 	branch = master
 [submodule "thirdparty/googletest"]
 	path = thirdparty/googletest
-	url = ../../cilliemalan/googletest
+	url = https://github.com/cilliemalan/googletest
 	branch = master
 [submodule "thirdparty/mbed-crypto"]
 	path = thirdparty/mbed-crypto
