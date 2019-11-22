@@ -768,7 +768,7 @@ namespace MicroRatchet
                 {
                     if (usedApplicationHeaderKey)
                     {
-                        if (clientState.Ratchets.Count == 0)
+                        if (clientState.Ratchets.Count == 0 && clientState.LocalEcdhForInit != null)
                         {
                             // step 2: init response from server
                             ReceiveInitializationResponse(clientState, dataReceived);
