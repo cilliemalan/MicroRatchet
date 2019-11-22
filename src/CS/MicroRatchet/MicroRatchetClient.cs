@@ -947,6 +947,7 @@ namespace MicroRatchet
             for (int i = 0; i < keys.Length; i++)
             {
                 var key = keys[i];
+                if (key == null) continue;
                 if (key.Length != 32) throw new ArgumentException("Each key must be 32 bytes", nameof(keys));
 
                 var Mac = new Poly(aesFactory);
