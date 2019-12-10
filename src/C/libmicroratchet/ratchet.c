@@ -455,7 +455,7 @@ mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state * chain, uint
 	struct {
 		uint8_t nck[KEY_SIZE];
 		uint8_t key[MSG_KEY_SIZE];
-	} keys;
+	} keys = {0};
 	for (;gen < generation; gen++)
 	{
 		_C(kdf_compute(mr_ctx, cku, KEY_SIZE, _chain_context, sizeof(_chain_context), keys.nck, sizeof(keys)));
