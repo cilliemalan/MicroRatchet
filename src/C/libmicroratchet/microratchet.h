@@ -61,6 +61,9 @@ typedef enum mr_result_e {
 // called will return MR_E_INVALIDSIZE.
 #define MR_MAX_INITIALIZATION_MESSAGE_SIZE 256
 
+// The size of an ECDSA or ECDH public key in bytes.
+#define MR_PUBLIC_KEY_SIZE 32
+
 #ifdef __cplusplus
 	extern "C" {
 #endif
