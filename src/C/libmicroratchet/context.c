@@ -976,10 +976,26 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 		}
 
 		// if the application key was used this is an initialization message
-		return process_initialization(ctx,
+		mr_result result = process_initialization(ctx,
 			message, messagesize, spaceavailable,
 			headerkeyused, KEY_SIZE,
 			stepused);
+
+		// assign payload and payloadsize variables if needed
+		if (result == MR_E_SENDBACK)
+		{
+			if (payload)
+			{
+				*payload = message;
+			}
+
+			if (payloadsize)
+			{
+				*payloadsize = spaceavailable;
+			}
+		}
+
+		return result;
 	}
 	else if (stepused)
 	{
