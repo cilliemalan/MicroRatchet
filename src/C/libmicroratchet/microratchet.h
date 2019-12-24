@@ -156,9 +156,9 @@ typedef enum mr_result_e {
 	mr_ctx mr_ctx_create(const mr_config* config);
 
 	// set the identity of a context. Must be done before initialization but need not be done
-	// if initialization has already taken place. The identity ECDH object will not be freed
-	// when the context is destroyed.
-	mr_result mr_ctx_set_identity(mr_ctx ctx, mr_ecdsa_ctx identity);
+	// if initialization has already taken place. If destroy_with_context is true, the ecdsa object
+	// will be freed along with the context when the context is destroyed.
+	mr_result mr_ctx_set_identity(mr_ctx ctx, mr_ecdsa_ctx identity, bool destroy_with_context);
 
 	// initiate initialization. If the context is a client, this will create the first initialization message to
 	// be sent to a server. The message will be created in message, which must provide at least

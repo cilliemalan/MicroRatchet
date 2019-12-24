@@ -161,13 +161,14 @@ mr_ctx mr_ctx_create(const mr_config* config)
 	return ctx;
 }
 
-mr_result mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity)
+mr_result mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity, bool destroy_with_context)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, MR_E_INVALIDARG, "The context given was null")
 	FAILIF(!identity, MR_E_INVALIDARG, "The identity given was null")
 	
 	ctx->identity = identity;
+	ctx->owns_identity = destroy_with_context;
 	return MR_E_SUCCESS;
 }
 
@@ -1042,6 +1043,12 @@ void mr_ctx_destroy(mr_ctx _ctx)
 		{
 			mr_rng_destroy(ctx->rng_ctx);
 			ctx->rng_ctx = 0;
+		}
+
+		if (ctx->identity && ctx->owns_identity)
+		{
+			mr_ecdsa_destroy(ctx->identity);
+			ctx->identity = 0;
 		}
 
 		for (int i = 0; i < NUM_RATCHETS; i++)
