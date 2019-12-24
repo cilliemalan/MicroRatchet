@@ -994,6 +994,18 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 				*payloadsize = spaceavailable;
 			}
 		}
+		else
+		{
+			if (payload)
+			{
+				*payload = 0;
+			}
+
+			if (payloadsize)
+			{
+				*payloadsize = 0;
+			}
+		}
 
 		return result;
 	}
