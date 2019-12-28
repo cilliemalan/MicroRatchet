@@ -17,7 +17,7 @@ namespace MicroRatchet.Examples
             var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (s, e) => cts.Cancel();
 
-            if (args.Length == 0 || args.Length > 1)
+            if (args.Length == 0)
             {
                 using var mutex = new Mutex(true, mutexName);
                 if (mutex.WaitOne(0, false))
@@ -35,9 +35,7 @@ namespace MicroRatchet.Examples
             await ((args[0]) switch
             {
                 "server" => Server.Run(cts.Token),
-                "client" => Client.Run(cts.Token),
-                "simple" => Simple.Run(cts.Token),
-                "dtls" => Dtls.Run(cts.Token),
+                "client" => Client.Run(cts.Token)
                 _ => PrintUsage(),
             });
         }
@@ -48,12 +46,11 @@ namespace MicroRatchet.Examples
 
 MicroRatchet examples. Usage:
 
+    mrexamples              Starts a server or client based on whether
+                            another instance is already running.
     mrexamples server       Starts a UDP server on 127.0.0.1:3422.
     mrexamples client       Starts a UDP client that will connect to
                             localhost on port 127.0.0.1:3422.
-    mrexamples simple       Sends a few messages back and forth
-                            showing data sizes.
-    mrexamples dtls         Compares MicroRatchet to DTLS.
 ");
             return Task.CompletedTask;
         }
