@@ -434,13 +434,13 @@ namespace MicroRatchet.Performance
             }
         }
 
-        private static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int? mtu = null)
+        private static (MicroRatchetContext client, MicroRatchetContext server) CreateAndInitialize(int? mtu = null)
         {
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var packet = client.InitiateInitialization();
 
@@ -461,8 +461,8 @@ namespace MicroRatchet.Performance
             server.SaveState(mss); mss.Position = 0;
 
             return (
-                new MicroRatchetClient(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }, msc),
-                new MicroRatchetClient(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }, mss));
+                new MicroRatchetContext(clientServices, new MicroRatchetConfiguration { IsClient = true, MaximumMessageSize = mtu ?? 80 }, msc),
+                new MicroRatchetContext(serverServices, new MicroRatchetConfiguration { IsClient = false, MaximumMessageSize = mtu ?? 80 }, mss));
         }
     }
 }

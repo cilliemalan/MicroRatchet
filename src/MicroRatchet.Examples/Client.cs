@@ -33,7 +33,7 @@ namespace MicroRatchet.Examples
 
             // create the MicroRatchet context
             var services = new BouncyCastleServices(privateKey);
-            using var context = new MicroRatchetClient(services, config, null);
+            using var context = new MicroRatchetContext(services, config, null);
 
             Console.WriteLine($"Starting Client with public key: {publicKey.ToHexString()}");
 

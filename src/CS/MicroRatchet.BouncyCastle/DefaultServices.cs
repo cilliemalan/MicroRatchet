@@ -7,7 +7,7 @@ using System.Text;
 namespace MicroRatchet.BouncyCastle
 {
     /// <summary>
-    /// A default implementation of the services needed by <see cref="MicroRatchetClient" />.
+    /// A default implementation of the services needed by <see cref="MicroRatchetContext" />.
     /// </summary>
     public class BouncyCastleServices : IServices
     {

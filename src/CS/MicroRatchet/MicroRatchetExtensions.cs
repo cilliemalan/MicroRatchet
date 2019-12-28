@@ -7,7 +7,7 @@ namespace MicroRatchet
 {
     public static class MicroRatchetExtensions
     {
-        public static byte[] SaveStateAsByteArray(this MicroRatchetClient mr)
+        public static byte[] SaveStateAsByteArray(this MicroRatchetContext mr)
         {
             if (mr == null) throw new ArgumentNullException(nameof(mr));
 

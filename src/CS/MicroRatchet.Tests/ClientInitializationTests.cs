@@ -15,7 +15,7 @@ namespace MicroRatchet.Tests
         {
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
+            var client = new MicroRatchetContext(clientServices, true);
 
             var clientInitPacket = client.InitiateInitialization();
             var sb = client.SaveStateAsByteArray();
@@ -24,7 +24,7 @@ namespace MicroRatchet.Tests
             Assert.NotNull(clientState.LocalEcdhForInit);
             Assert.NotNull(clientState.InitializationNonce);
 
-            Assert.Equal(MicroRatchetClient.InitializationNonceSize, clientState.InitializationNonce.Length);
+            Assert.Equal(MicroRatchetContext.InitializationNonceSize, clientState.InitializationNonce.Length);
         }
 
         [Fact]
@@ -33,8 +33,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -50,8 +50,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -71,8 +71,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -94,8 +94,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -116,8 +116,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -127,7 +127,7 @@ namespace MicroRatchet.Tests
             var cs = client.SaveStateAsByteArray();
             var ss = server.SaveStateAsByteArray();
 
-            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetClient.MinimumOverhead];
+            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetContext.MinimumOverhead];
             clientServices.RandomNumberGenerator.Generate(payload);
             byte[] message = client.Send(payload);
             byte[] received = server.Receive(message).Payload;
@@ -140,8 +140,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -151,7 +151,7 @@ namespace MicroRatchet.Tests
             var cs = client.SaveStateAsByteArray();
             var ss = server.SaveStateAsByteArray();
 
-            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetClient.MinimumOverhead];
+            byte[] payload = new byte[server.Configuration.MaximumMessageSize - MicroRatchetContext.MinimumOverhead];
             clientServices.RandomNumberGenerator.Generate(payload);
             byte[] message = server.Send(payload);
             byte[] received = client.Receive(message).Payload;
@@ -164,19 +164,19 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
+            var client = new MicroRatchetContext(clientServices, true);
             var clientInitPacket = client.InitiateInitialization();
             var cs = client.SaveStateAsByteArray();
-            var server = new MicroRatchetClient(serverServices, false);
+            var server = new MicroRatchetContext(serverServices, false);
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             var ss = server.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, stateBytes: cs);
+            client = new MicroRatchetContext(clientServices, true, stateBytes: cs);
             var firstPacket = client.Receive(responsePacket).ToSendBack;
             cs = client.SaveStateAsByteArray();
-            server = new MicroRatchetClient(serverServices, false, stateBytes: ss);
+            server = new MicroRatchetContext(serverServices, false, stateBytes: ss);
             var firstResponse = server.Receive(firstPacket).ToSendBack;
             ss = server.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, stateBytes: cs);
+            client = new MicroRatchetContext(clientServices, true, stateBytes: cs);
             var lastResult = client.Receive(firstResponse).ToSendBack;
             cs = client.SaveStateAsByteArray();
 
@@ -189,8 +189,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true, 1000);
-            var server = new MicroRatchetClient(serverServices, false, 1000);
+            var client = new MicroRatchetContext(clientServices, true, 1000);
+            var server = new MicroRatchetContext(serverServices, false, 1000);
 
             byte[] cs, ss;
 
@@ -206,8 +206,8 @@ namespace MicroRatchet.Tests
             }
 
             // now we're hot
-            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: cs);
-            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: ss);
+            client = new MicroRatchetContext(clientServices, true, 80, stateBytes: cs);
+            server = new MicroRatchetContext(serverServices, false, 80, stateBytes: ss);
             {
                 RandomNumberGenerator rng = new RandomNumberGenerator();
                 byte[] message1 = rng.Generate(32);
@@ -231,8 +231,8 @@ namespace MicroRatchet.Tests
             }
 
             // oh noes! Client fail! reinitialize
-            client = new MicroRatchetClient(clientServices, true, 1000);
-            server = new MicroRatchetClient(serverServices, false, 1000, stateBytes: ss);
+            client = new MicroRatchetContext(clientServices, true, 1000);
+            server = new MicroRatchetContext(serverServices, false, 1000, stateBytes: ss);
             {
                 var clientInitPacket = client.InitiateInitialization();
                 var responsePacket = server.Receive(clientInitPacket).ToSendBack;
@@ -244,8 +244,8 @@ namespace MicroRatchet.Tests
             }
 
             // now we're hot AGAIN
-            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: cs);
-            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: ss);
+            client = new MicroRatchetContext(clientServices, true, 80, stateBytes: cs);
+            server = new MicroRatchetContext(serverServices, false, 80, stateBytes: ss);
             {
                 RandomNumberGenerator rng = new RandomNumberGenerator();
                 byte[] message1 = rng.Generate(32);
@@ -280,8 +280,8 @@ namespace MicroRatchet.Tests
             BouncyCastleServices clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             BouncyCastleServices serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var clientInitPacket = client.InitiateInitialization();
             var responsePacket = server.Receive(clientInitPacket.ToArray()).ToSendBack;
@@ -322,8 +322,8 @@ namespace MicroRatchet.Tests
 
             for (int i = 0; i < 4; i++)
             {
-                var client = new MicroRatchetClient(clientServices, true);
-                var server = new MicroRatchetClient(serverServices, false);
+                var client = new MicroRatchetContext(clientServices, true);
+                var server = new MicroRatchetContext(serverServices, false);
 
                 {
                     var clientInitPacket = client.InitiateInitialization();

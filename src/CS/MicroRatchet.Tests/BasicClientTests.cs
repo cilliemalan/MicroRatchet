@@ -23,39 +23,39 @@ namespace MicroRatchet.Tests
 
             byte[] s, c;
 
-            var client = new MicroRatchetClient(clientServices, true);
+            var client = new MicroRatchetContext(clientServices, true);
             var clientInitPacket = client.InitiateInitialization();
             c = client.SaveStateAsByteArray();
-            var server = new MicroRatchetClient(serverServices, false);
+            var server = new MicroRatchetContext(serverServices, false);
             var responsePacket = server.Receive(clientInitPacket).ToSendBack;
             s = server.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, stateBytes: c);
+            client = new MicroRatchetContext(clientServices, true, stateBytes: c);
             var firstPacket = client.Receive(responsePacket).ToSendBack;
             c = client.SaveStateAsByteArray();
-            server = new MicroRatchetClient(serverServices, false, stateBytes: s);
+            server = new MicroRatchetContext(serverServices, false, stateBytes: s);
             var firstResponse = server.Receive(firstPacket).ToSendBack;
             s = server.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, stateBytes: c);
+            client = new MicroRatchetContext(clientServices, true, stateBytes: c);
             var lastResult = client.Receive(firstResponse).ToSendBack;
             c = client.SaveStateAsByteArray();
 
-            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
+            client = new MicroRatchetContext(clientServices, true, 80, stateBytes: c);
             var pl1 = client.Send(message1);
             c = client.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
+            client = new MicroRatchetContext(clientServices, true, 80, stateBytes: c);
             var pl2 = client.Send(message2);
             c = client.SaveStateAsByteArray();
-            client = new MicroRatchetClient(clientServices, true, 80, stateBytes: c);
+            client = new MicroRatchetContext(clientServices, true, 80, stateBytes: c);
             var pl3 = client.Send(message3);
             c = client.SaveStateAsByteArray();
 
-            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
+            server = new MicroRatchetContext(serverServices, false, 80, stateBytes: s);
             var r1 = server.Receive(pl1).Payload;
             s = server.SaveStateAsByteArray();
-            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
+            server = new MicroRatchetContext(serverServices, false, 80, stateBytes: s);
             var r2 = server.Receive(pl2).Payload;
             s = server.SaveStateAsByteArray();
-            server = new MicroRatchetClient(serverServices, false, 80, stateBytes: s);
+            server = new MicroRatchetContext(serverServices, false, 80, stateBytes: s);
             var r3 = server.Receive(pl3).Payload;
             s = server.SaveStateAsByteArray();
 

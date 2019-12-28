@@ -50,8 +50,8 @@ namespace MicroRatchet
 
             if (hasInit)
             {
-                if (InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
-                memory.Write(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
+                if (InitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) throw new InvalidOperationException($"InitializationNonce must be {MicroRatchetContext.InitializationNonceSize} bytes");
+                memory.Write(InitializationNonce, 0, MicroRatchetContext.InitializationNonceSize);
             }
 
             if (hasEcdh)
@@ -61,8 +61,8 @@ namespace MicroRatchet
 
             if (hasServerPubkey)
             {
-                if (ServerPublicKey.Length != MicroRatchetClient.ExpectedPublicKeySize) throw new InvalidOperationException($"ServerPublicKey must be {MicroRatchetClient.ExpectedPublicKeySize} bytes");
-                memory.Write(ServerPublicKey, 0, MicroRatchetClient.ExpectedPublicKeySize);
+                if (ServerPublicKey.Length != MicroRatchetContext.ExpectedPublicKeySize) throw new InvalidOperationException($"ServerPublicKey must be {MicroRatchetContext.ExpectedPublicKeySize} bytes");
+                memory.Write(ServerPublicKey, 0, MicroRatchetContext.ExpectedPublicKeySize);
             }
 
             if (hasRatchet)
@@ -89,9 +89,9 @@ namespace MicroRatchet
 
             if (hasInit)
             {
-                if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) InitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
+                if (InitializationNonce == null || InitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) InitializationNonce = new byte[MicroRatchetContext.InitializationNonceSize];
 
-                memory.Read(InitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
+                memory.Read(InitializationNonce, 0, MicroRatchetContext.InitializationNonceSize);
             }
 
             if (hasEcdh)
@@ -101,8 +101,8 @@ namespace MicroRatchet
 
             if (hasServerPublicKey)
             {
-                if (ServerPublicKey == null || ServerPublicKey.Length != MicroRatchetClient.ExpectedPublicKeySize) ServerPublicKey = new byte[MicroRatchetClient.ExpectedPublicKeySize];
-                memory.Read(ServerPublicKey, 0, MicroRatchetClient.ExpectedPublicKeySize);
+                if (ServerPublicKey == null || ServerPublicKey.Length != MicroRatchetContext.ExpectedPublicKeySize) ServerPublicKey = new byte[MicroRatchetContext.ExpectedPublicKeySize];
+                memory.Read(ServerPublicKey, 0, MicroRatchetContext.ExpectedPublicKeySize);
             }
 
             if (hasRatchet)

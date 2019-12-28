@@ -15,10 +15,10 @@ namespace MicroRatchet
             return b;
         }
 
-        public static byte[] Send(this MicroRatchetClient mrc, byte[] payload) =>
+        public static byte[] Send(this MicroRatchetContext mrc, byte[] payload) =>
             mrc.Send(new ArraySegment<byte>(payload));
 
-        public static byte[] Send(this MicroRatchetClient mrc, byte[] payload, int offset, int length) =>
+        public static byte[] Send(this MicroRatchetContext mrc, byte[] payload, int offset, int length) =>
             mrc.Send(new ArraySegment<byte>(payload, offset, length));
 
         public static byte[] ComputeDigest(this IDigest digest, ArraySegment<byte> data)

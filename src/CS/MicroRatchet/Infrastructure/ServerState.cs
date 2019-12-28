@@ -46,17 +46,17 @@ namespace MicroRatchet
 
             if (hasInit)
             {
-                if (ClientInitializationNonce != null && ClientInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"ClientInitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
+                if (ClientInitializationNonce != null && ClientInitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) throw new InvalidOperationException($"ClientInitializationNonce must be {MicroRatchetContext.InitializationNonceSize} bytes");
                 if (RootKey != null && RootKey.Length != KeySizeInBytes) throw new InvalidOperationException($"RootKey must be {KeySizeInBytes} bytes");
                 if (FirstSendHeaderKey != null && FirstSendHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"FirstSendHeaderKey must be {KeySizeInBytes} bytes");
                 if (FirstReceiveHeaderKey != null && FirstReceiveHeaderKey.Length != KeySizeInBytes) throw new InvalidOperationException($"FirstReceiveHeaderKey must be {KeySizeInBytes} bytes");
-                if (NextInitializationNonce != null && NextInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) throw new InvalidOperationException($"NextInitializationNonce must be {MicroRatchetClient.InitializationNonceSize} bytes");
+                if (NextInitializationNonce != null && NextInitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) throw new InvalidOperationException($"NextInitializationNonce must be {MicroRatchetContext.InitializationNonceSize} bytes");
 
-                if (ClientInitializationNonce != null) memory.Write(ClientInitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
+                if (ClientInitializationNonce != null) memory.Write(ClientInitializationNonce, 0, MicroRatchetContext.InitializationNonceSize); else memory.Seek(MicroRatchetContext.InitializationNonceSize, SeekOrigin.Current);
                 if (RootKey != null) memory.Write(RootKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
                 if (FirstSendHeaderKey != null) memory.Write(FirstSendHeaderKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
                 if (FirstReceiveHeaderKey != null) memory.Write(FirstReceiveHeaderKey, 0, KeySizeInBytes); else memory.Seek(KeySizeInBytes, SeekOrigin.Current);
-                if (NextInitializationNonce != null) memory.Write(NextInitializationNonce, 0, MicroRatchetClient.InitializationNonceSize); else memory.Seek(MicroRatchetClient.InitializationNonceSize, SeekOrigin.Current);
+                if (NextInitializationNonce != null) memory.Write(NextInitializationNonce, 0, MicroRatchetContext.InitializationNonceSize); else memory.Seek(MicroRatchetContext.InitializationNonceSize, SeekOrigin.Current);
             }
             if (hasEcdh)
             {
@@ -91,17 +91,17 @@ namespace MicroRatchet
 
             if (hasInit)
             {
-                if (ClientInitializationNonce == null || ClientInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) ClientInitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
+                if (ClientInitializationNonce == null || ClientInitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) ClientInitializationNonce = new byte[MicroRatchetContext.InitializationNonceSize];
                 if (RootKey == null || RootKey.Length != KeySizeInBytes) RootKey = new byte[KeySizeInBytes];
                 if (FirstSendHeaderKey == null || FirstSendHeaderKey.Length != KeySizeInBytes) FirstSendHeaderKey = new byte[KeySizeInBytes];
                 if (FirstReceiveHeaderKey == null || FirstReceiveHeaderKey.Length != KeySizeInBytes) FirstReceiveHeaderKey = new byte[KeySizeInBytes];
-                if (NextInitializationNonce == null || NextInitializationNonce.Length != MicroRatchetClient.InitializationNonceSize) NextInitializationNonce = new byte[MicroRatchetClient.InitializationNonceSize];
+                if (NextInitializationNonce == null || NextInitializationNonce.Length != MicroRatchetContext.InitializationNonceSize) NextInitializationNonce = new byte[MicroRatchetContext.InitializationNonceSize];
 
-                memory.Read(ClientInitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
+                memory.Read(ClientInitializationNonce, 0, MicroRatchetContext.InitializationNonceSize);
                 memory.Read(RootKey, 0, KeySizeInBytes);
                 memory.Read(FirstSendHeaderKey, 0, KeySizeInBytes);
                 memory.Read(FirstReceiveHeaderKey, 0, KeySizeInBytes);
-                memory.Read(NextInitializationNonce, 0, MicroRatchetClient.InitializationNonceSize);
+                memory.Read(NextInitializationNonce, 0, MicroRatchetContext.InitializationNonceSize);
             }
 
             if (hasEcdh)

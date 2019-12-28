@@ -4,7 +4,7 @@ using System.IO;
 
 namespace MicroRatchet
 {
-    public sealed class MicroRatchetClient : IDisposable
+    public sealed class MicroRatchetContext : IDisposable
     {
         public const int InitializationNonceSize = 16;
         public const int NonceSize = 4;
@@ -46,7 +46,7 @@ namespace MicroRatchet
 
         public int MaximumMessageSize => Configuration.MaximumMessageSize - MinimumOverhead;
 
-        public MicroRatchetClient(IServices services, MicroRatchetConfiguration config, Stream stateData)
+        public MicroRatchetContext(IServices services, MicroRatchetConfiguration config, Stream stateData)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
             Configuration = config ?? throw new ArgumentNullException(nameof(config));
@@ -59,7 +59,7 @@ namespace MicroRatchet
             CheckMtu();
         }
 
-        public MicroRatchetClient(IServices services, bool isClient, int? MaximumMessageSize = null, int? MinimumMessageSize = null, Stream stateData = null, byte[] stateBytes = null)
+        public MicroRatchetContext(IServices services, bool isClient, int? MaximumMessageSize = null, int? MinimumMessageSize = null, Stream stateData = null, byte[] stateBytes = null)
         {
             Services = services ?? throw new ArgumentNullException(nameof(services));
 

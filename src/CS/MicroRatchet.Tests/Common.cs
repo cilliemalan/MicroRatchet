@@ -9,13 +9,13 @@ namespace MicroRatchet.Tests
 {
     internal static class Common
     {
-        public static (MicroRatchetClient client, MicroRatchetClient server) CreateAndInitialize(int mtu = 80, int maximumBufferedPartialMessageSize = 50 * 1024)
+        public static (MicroRatchetContext client, MicroRatchetContext server) CreateAndInitialize(int mtu = 80, int maximumBufferedPartialMessageSize = 50 * 1024)
         {
             var clientServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
             var serverServices = new BouncyCastleServices(KeyGeneration.GeneratePrivateKey());
 
-            var client = new MicroRatchetClient(clientServices, true);
-            var server = new MicroRatchetClient(serverServices, false);
+            var client = new MicroRatchetContext(clientServices, true);
+            var server = new MicroRatchetContext(serverServices, false);
 
             var packet = client.InitiateInitialization();
 
@@ -31,8 +31,8 @@ namespace MicroRatchet.Tests
             var cs = client.SaveStateAsByteArray();
             var ss = server.SaveStateAsByteArray();
 
-            return (new MicroRatchetClient(clientServices, true, mtu, stateBytes: cs),
-                new MicroRatchetClient(serverServices, false, mtu, stateBytes: ss));
+            return (new MicroRatchetContext(clientServices, true, mtu, stateBytes: cs),
+                new MicroRatchetContext(serverServices, false, mtu, stateBytes: ss));
         }
 
         public static IAesFactory AesFactory { get; } = new _AesFactory();

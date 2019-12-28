@@ -91,8 +91,8 @@ namespace MicroRatchet.Tests
             };
             servicesS.KeyAgreementFactory = new DeterministicKexFac(servicesS.KeyAgreementFactory, rngS);
 
-            var C = new MicroRatchetClient(servicesC, configC, null);
-            var S = new MicroRatchetClient(servicesS, configS, null);
+            var C = new MicroRatchetContext(servicesC, configC, null);
+            var S = new MicroRatchetContext(servicesS, configS, null);
 
             var c1 = C.InitiateInitialization();
             var s2 = S.Receive(c1).ToSendBack;
@@ -218,8 +218,8 @@ namespace MicroRatchet.Tests
             };
             servicesS.KeyAgreementFactory = new DeterministicKexFac(servicesS.KeyAgreementFactory, rngS);
 
-            var C = new MicroRatchetClient(servicesC, configC, null);
-            var S = new MicroRatchetClient(servicesS, configS, null);
+            var C = new MicroRatchetContext(servicesC, configC, null);
+            var S = new MicroRatchetContext(servicesS, configS, null);
 
             var c1 = C.InitiateInitialization();
             var s2 = S.Receive(c1).ToSendBack;
