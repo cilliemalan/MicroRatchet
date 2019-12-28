@@ -75,17 +75,18 @@ namespace MicroRatchet.Examples
                             // to the session from that client key.
                             if (message.ToSendBack != null)
                             {
+                                // send the response back
+                                await udp.SendAsync(message.ToSendBack, message.ToSendBack.Length, received.RemoteEndPoint);
+                                Console.WriteLine($"SENT {message.ToSendBack.Length} bytes RESPONSE");
+
                                 if (context.IsInitialized)
                                 {
                                     // message.ToSendBack != null && context.IsInitialized
                                     // typically happens once per session.
                                     clientEndpoint = received.RemoteEndPoint;
-                                    Console.WriteLine($"Session initialized with remote public key {context.GetRemotePublicKey().ToHexString()}.");
+                                    Console.WriteLine($"Server initialized with remote public key {context.GetRemotePublicKey().ToHexString()}.");
+                                    Console.WriteLine("Type stuff in and press enter to send to the client.\n\n");
                                 }
-
-                                // send the response back
-                                await udp.SendAsync(message.ToSendBack, message.ToSendBack.Length, received.RemoteEndPoint);
-                                Console.WriteLine($"SENT {message.ToSendBack.Length} bytes RESPONSE");
                             }
                             else if (message.Payload != null)
                             {
