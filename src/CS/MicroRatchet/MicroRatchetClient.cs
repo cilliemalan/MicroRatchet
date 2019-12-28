@@ -977,7 +977,7 @@ namespace MicroRatchet
             if (message.Count < MinimumMessageSize) throw new ArgumentException("The message is too small to be a valid message", nameof(message));
 
             using var mem = new MemoryStream(state);
-            var s = State.Load(mem, kexfac, 32);
+            using var s = State.Load(mem, kexfac, 32);
 
             if (s == null)
             {
