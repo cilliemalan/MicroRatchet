@@ -25,7 +25,7 @@ namespace MicroRatchet.Examples
             // 256 bytes.
             var config = new MicroRatchetConfiguration
             {
-                ApplicationKey = new byte[16],
+                ApplicationKey = new byte[32],
                 IsClient = true,
                 MaximumMessageSize = 256,
                 MinimumMessageSize = 64
@@ -69,7 +69,7 @@ namespace MicroRatchet.Examples
                         Console.WriteLine("Sending first message");
                         // 1.3 Send first request
                         await udp.SendAsync(res.ToSendBack, serverEndpoint, cancellationToken);
-                        Console.WriteLine($"SENT BACK {res.ToSendBack} bytes");
+                        Console.WriteLine($"SENT BACK {res.ToSendBack.Length} bytes");
 
                         // 1.4 Receive first response
                         timeout = CancellationTokenSource.CreateLinkedTokenSource(
@@ -150,7 +150,7 @@ namespace MicroRatchet.Examples
 
                         // send as UDP message to the server endpoint.
                         await udp.SendAsync(message, serverEndpoint, cancellationToken);
-                        Console.WriteLine($"SENT {payloadBytes} bytes PAYLOAD, resulting in {message.Length} bytes ENCRYPTED MESSAGE");
+                        Console.WriteLine($"SENT {payloadBytes.Length} bytes PAYLOAD, resulting in {message.Length} bytes ENCRYPTED MESSAGE");
                     }
                 }
 

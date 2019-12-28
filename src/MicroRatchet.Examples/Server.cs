@@ -25,7 +25,7 @@ namespace MicroRatchet.Examples
             // 256 bytes.
             var config = new MicroRatchetConfiguration
             {
-                ApplicationKey = new byte[16],
+                ApplicationKey = new byte[32],
                 IsClient = false,
                 MaximumMessageSize = 256,
                 MinimumMessageSize = 64
@@ -41,6 +41,7 @@ namespace MicroRatchet.Examples
             // the local endpoint to be localhost,
             // listening on the configured port.
             var serverEndpoint = new IPEndPoint(IPAddress.Loopback, PORT);
+            IPEndPoint clientEndpoint = null;
             using var udp = new UdpClient(serverEndpoint);
 
             if (!cancellationToken.IsCancellationRequested)
@@ -78,6 +79,7 @@ namespace MicroRatchet.Examples
                                 {
                                     // message.ToSendBack != null && context.IsInitialized
                                     // typically happens once per session.
+                                    clientEndpoint = received.RemoteEndPoint;
                                     Console.WriteLine($"Session initialized with remote public key {context.GetRemotePublicKey().ToHexString()}.");
                                 }
 
@@ -128,8 +130,8 @@ namespace MicroRatchet.Examples
                         var message = context.Send(payloadBytes);
 
                         // send as UDP message to the server endpoint.
-                        await udp.SendAsync(message, serverEndpoint, cancellationToken);
-                        Console.WriteLine($"SENT {payloadBytes} bytes PAYLOAD, resulting in {message.Length} bytes ENCRYPTED MESSAGE");
+                        await udp.SendAsync(message, clientEndpoint, cancellationToken);
+                        Console.WriteLine($"SENT {payloadBytes.Length} bytes PAYLOAD, resulting in {message.Length} bytes ENCRYPTED MESSAGE");
                     }
                 }
 
@@ -140,7 +142,7 @@ namespace MicroRatchet.Examples
                     for (; ; )
                     {
                         string line = Console.ReadLine();
-                        if (context.IsInitialized)
+                        if (clientEndpoint != null)
                         {
                             messages.Enqueue(line);
                             semaphore.Release();
