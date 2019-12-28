@@ -10,6 +10,7 @@ namespace MicroRatchet.Examples
     {
         public static async Task Run(CancellationToken cancellationToken)
         {
+            await Task.Delay(1000);
         }
     }
 }

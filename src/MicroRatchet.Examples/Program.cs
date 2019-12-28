@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -124,10 +125,10 @@ MicroRatchet examples. Usage:
             return result;
         }
 
-        public static string ToHexString(this byte[] bytes) =>
+        internal static string ToHexString(this byte[] bytes) =>
             ToHexString(bytespan: bytes);
 
-        public static string ToHexString(this ReadOnlySpan<byte> bytespan)
+        internal static string ToHexString(this ReadOnlySpan<byte> bytespan)
         {
             var lookup32 = _lookup32;
             Span<char> result = stackalloc char[bytespan.Length * 2];
@@ -138,6 +139,22 @@ MicroRatchet examples. Usage:
                 result[2 * i + 1] = (char)(val >> 16);
             }
             return new string(result);
+        }
+
+        internal static string DecodeNullTerminatedString(this byte[] payload) =>
+            DecodeNullTerminatedString(bytespan: payload);
+
+        internal static string DecodeNullTerminatedString(this ReadOnlySpan<byte> bytespan)
+        {
+            for (int i = 1; i < bytespan.Length; i++)
+            {
+                if (bytespan[i] == 0)
+                {
+                    return Encoding.UTF8.GetString(bytespan.Slice(0, i));
+                }
+            }
+
+            return "";
         }
 
         #endregion
