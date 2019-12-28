@@ -10,23 +10,36 @@ namespace MicroRatchet.Examples
 {
     public static class Program
     {
-        static Task Main(string[] args)
-        {
-            if (args.Length == 0 || args.Length > 1)
-            {
-                return PrintUsage();
-            }
+        const string mutexName = "6efce0f439614d43ab88588798691a5f";
 
+        static async Task Main(string[] args)
+        {
             var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (s, e) => cts.Cancel();
-            return (args[0]) switch
+
+            if (args.Length == 0 || args.Length > 1)
+            {
+                using var mutex = new Mutex(true, mutexName);
+                if (mutex.WaitOne(0, false))
+                {
+                    Console.WriteLine("No server started yet so starting server");
+                    await Server.Run(cts.Token);
+                }
+                else
+                {
+                    Console.WriteLine("Server started already so starting client");
+                    await Client.Run(cts.Token);
+                }
+            }
+
+            await ((args[0]) switch
             {
                 "server" => Server.Run(cts.Token),
                 "client" => Client.Run(cts.Token),
                 "simple" => Simple.Run(cts.Token),
                 "dtls" => Dtls.Run(cts.Token),
                 _ => PrintUsage(),
-            };
+            });
         }
 
         static Task PrintUsage()
@@ -154,7 +167,7 @@ MicroRatchet examples. Usage:
                 }
             }
 
-            return "";
+            return Encoding.UTF8.GetString(bytespan);
         }
 
         #endregion
