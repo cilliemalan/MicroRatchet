@@ -143,7 +143,7 @@ void allocate_and_clear(mr_ctx ctx, T** ptr)
 	ctx = nullptr; \
 	ctx = mr_ctx_create(&__cfg); \
 	mr_ctx_state_load(ctx, __storage, 2048, nullptr); \
-	mr_ctx_set_identity(ctx, __identity); \
+	mr_ctx_set_identity(ctx, __identity, false); \
 	delete[] __storage; \
 }
 
@@ -451,13 +451,13 @@ TEST(Storage, FullProcess)
 	uint8_t clientpubkey[32];
 	auto clientidentity = mr_ecdsa_create(client);
 	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(clientidentity, clientpubkey, sizeof(clientpubkey)));
-	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity, false));
 	mr_config servercfg{ false };
 	auto server = mr_ctx_create(&servercfg);
 	uint8_t serverpubkey[32];
 	auto serveridentity = mr_ecdsa_create(server);
 	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey)));
-	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity, false));
 	run_on_exit _a{ [=] {
 		mr_rng_destroy(rng);
 		mr_ctx_destroy(client);

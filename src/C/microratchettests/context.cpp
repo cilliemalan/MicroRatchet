@@ -24,13 +24,13 @@ static constexpr size_t buffersize_total = buffersize + 128;
 	uint8_t clientpubkey[32]; \
 	auto clientidentity = mr_ecdsa_create(client); \
 	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(clientidentity, clientpubkey, sizeof(clientpubkey))); \
-	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity)); \
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity, false)); \
 	mr_config servercfg{ false }; \
 	auto server = mr_ctx_create(&servercfg); \
 	uint8_t serverpubkey[32]; \
 	auto serveridentity = mr_ecdsa_create(server); \
 	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey))); \
-	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity)); \
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity, false)); \
 	run_on_exit _a{[=] { \
 		mr_rng_destroy(rng); \
 		mr_ctx_destroy(client); \
