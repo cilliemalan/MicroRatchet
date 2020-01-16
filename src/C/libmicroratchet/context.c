@@ -264,8 +264,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 		else
 		{
 			// the client wants to reinitialize. Reset state.
-			if (ctx->init.server) mr_free(ctx, ctx->init.server);
-			ctx->init = (_mr_initialization_state){ 0 };
+			*ctx->init.server = (_mr_initialization_state_server){{ 0 }};
 		}
 	}
 
@@ -850,8 +849,12 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			if (!ctx->init.client)
 			{
 				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
-				*ctx->init.client = (_mr_initialization_state_client){{ 0 }};
 			}
+
+			// reset client state
+			ctx->init.initialized = false;
+			*ctx->init.client = (_mr_initialization_state_client){{ 0 }};
+			memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
 
 			// step 1: send first init request from client
 			_C(send_initialization_request(ctx, message, spaceavail));
@@ -911,6 +914,15 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 				initialization_nonce, initialization_nonce_size,
 				remote_ecdh_for_init, remote_ecdh_for_init_size,
 				message, spaceavail));
+
+			ctx->init.initialized = false;
+
+			// reset ratchets if this is a reinitialization
+			if(ctx->ratchets[0].num)
+			{
+				memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
+			}
+
 			return MR_E_SENDBACK;
 		}
 		else if (ctx->init.server && headerkey == ctx->init.server->firstreceiveheaderkey)
