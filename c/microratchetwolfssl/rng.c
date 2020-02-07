@@ -77,16 +77,16 @@ static inline int IntelRDseed64_r(word64* rnd)
     for (int i = 0; i < 128; i++)
 	{
 		unsigned char ok = _rdseed64_step(rnd);
-        if (ok == 0) return 0;
+        if (ok == 1) return MR_E_SUCCESS;
     }
-    return -1;
+    return MR_E_RNGFAIL;
 }
 
 #endif
 
 
 // we might need to make up our own random seed
-__attribute__((weak)) int mr_rng_seed(uint8_t *output, uint32_t sz)
+WEAK_SYMBOL int mr_rng_seed(uint8_t *output, uint32_t sz)
 {
 #ifdef HAVE_INTEL_RDSEED
 
