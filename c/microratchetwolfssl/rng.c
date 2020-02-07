@@ -99,7 +99,7 @@ WEAK_SYMBOL int mr_rng_seed(uint8_t *output, uint32_t sz)
         if (ret != 0)
             return ret;
     }
-    if (sz == 0) return 0;
+    if (sz == 0) return MR_E_SUCCESS;
 
     /* handle unaligned remainder */
     ret = IntelRDseed64_r(&rndTmp);
@@ -108,7 +108,7 @@ WEAK_SYMBOL int mr_rng_seed(uint8_t *output, uint32_t sz)
     memcpy(output, &rndTmp, sz);
     *(volatile uint64_t*)(&rndTmp) = 0;
 
-    return 0;
+    return MR_E_SUCCESS;
 
 
 #else
