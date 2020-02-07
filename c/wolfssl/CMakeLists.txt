@@ -39,9 +39,3 @@ add_library(wolfssl STATIC ${WOLFSSL_SOURCES})
 
 # we have our own config with a load of config settings
 target_compile_definitions(wolfssl PUBLIC HAVE_CONFIG_H)
-
-# specify args for compiling AES_NI
-if (NOT ARM)
-	target_compile_options(wolfssl PUBLIC -msse2 -msse -march=native -maes)
-endif ()
-

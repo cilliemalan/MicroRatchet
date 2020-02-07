@@ -86,15 +86,8 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=c++14>)
 add_compile_options(-Wall)
 
 # debug and release options
-if (DEBUG)
-    message("Debug build")
-    add_definitions(-DDEBUG)
-    add_compile_options(-g3 -O0)
-else ()
-    message("Release build")
-    add_compile_options(-Os)
-    add_definitions(-D_FORTIFY_SOURCE=2)
-endif (DEBUG)
+set(CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG} -DDEBUG -g3 -O0)
+set(CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE} -Os -D_FORTIFY_SOURCE=2)
 
 # trace precompiler defs
 if (TRACE)
@@ -107,15 +100,15 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Stuff to build
-add_subdirectory(src/C/libmicroratchet)
-add_subdirectory(src/C/microratchetwolfssl)
-add_subdirectory(src/C/wolfssl)
+add_subdirectory(c/libmicroratchet)
+add_subdirectory(c/microratchetwolfssl)
+add_subdirectory(c/wolfssl)
 
 # if tests are to be built, include these
 if (BUILD_TESTS)
     enable_testing()
     set(INSTALL_GTEST OFF CACHE BOOL "disable googletest installation")
-    add_subdirectory(src/C/microratchettests)
+    add_subdirectory(c/microratchettests)
     add_subdirectory(thirdparty/googletest)
 endif (BUILD_TESTS)
 

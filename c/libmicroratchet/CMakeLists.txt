@@ -14,4 +14,3 @@ set(SOURCES
     ratchet.c)
 
 add_library(microratchet STATIC ${SOURCES})
-target_compile_options(microratchet PUBLIC -Werror)

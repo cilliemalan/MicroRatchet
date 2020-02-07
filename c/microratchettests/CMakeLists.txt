@@ -49,8 +49,8 @@ endif ()
 
 include_directories(
     ../libmicroratchet
-    ../../../thirdparty/googletest/googletest/include
-    ../../../thirdparty/googletest/googlemock/include
+    ../../thirdparty/googletest/googletest/include
+    ../../thirdparty/googletest/googlemock/include
 )
 
 target_link_libraries(microratchettests
@@ -64,7 +64,6 @@ target_link_libraries(microratchettests
 # we have our own TEST definition that tracks memory allocations
 # so we prevent gtest from defining its own
 target_compile_definitions(microratchettests PUBLIC GTEST_DONT_DEFINE_TEST)
-target_compile_options(microratchettests PUBLIC -Werror)
 
 
 
