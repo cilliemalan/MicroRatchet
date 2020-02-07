@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <microratchet.h>
 #include "support.h"
+#include <chrono>
 
 template<size_t T>
 static uint8_t emptybuffer[T] = {};
@@ -759,4 +760,49 @@ TEST(Context, MultiMessagesManyInterleavedRandomSizeWithReordersAndDrops) {
 			}
 		}
 	}
+}
+
+TEST(Context, InitializationPerformanceTest) {
+
+
+	uint8_t buffer[256]{};
+	mr_config clientcfg{ true };
+	auto client = mr_ctx_create(&clientcfg);
+	uint8_t clientpubkey[32];
+	auto clientidentity = mr_ecdsa_create(client);
+	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(clientidentity, clientpubkey, sizeof(clientpubkey)));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(client, clientidentity, false));
+	mr_config servercfg{ false };
+	auto server = mr_ctx_create(&servercfg);
+	uint8_t serverpubkey[32];
+	auto serveridentity = mr_ecdsa_create(server);
+	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey)));
+	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity, false));
+	run_on_exit _a{ [client, server, clientidentity, serveridentity] {
+		mr_ctx_destroy(client);
+		mr_ctx_destroy(server);
+		mr_ecdsa_destroy(clientidentity);
+		mr_ecdsa_destroy(serveridentity);
+	} };
+
+
+	auto t1 = std::chrono::high_resolution_clock::now();
+
+	int i = 0;
+	double seconds = 0;
+	for (i = 0; ; i++) {
+		// run #1
+		ASSERT_EQ(MR_E_SENDBACK, mr_ctx_initiate_initialization(client, buffer, buffersize, true));
+		ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+		ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+		ASSERT_EQ(MR_E_SENDBACK, mr_ctx_receive(server, buffer, buffersize, buffersize, nullptr, 0));
+		ASSERT_EQ(MR_E_SUCCESS, mr_ctx_receive(client, buffer, buffersize, buffersize, nullptr, 0));
+
+		auto t2 = std::chrono::high_resolution_clock::now();
+		auto time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+		seconds = time_passed.count();
+		if (seconds > 1) break;
+	}
+
+	printf("Ran %i initializations in %.3f seconds", i, seconds);
 }
