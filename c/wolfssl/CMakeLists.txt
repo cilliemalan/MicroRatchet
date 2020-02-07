@@ -2,9 +2,9 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-project(wolfssl C ASM)
+project(wolfssl C ASM ASM_MASM)
 
-set(WOLFSSL_BASE_DIR ../../../thirdparty/wolfssl/)
+set(WOLFSSL_BASE_DIR ../../thirdparty/wolfssl/)
 set(WOLFSSL_SRC_DIR ${WOLFSSL_BASE_DIR}wolfcrypt/src/)
 
 set(WOLFSSL_SOURCES_BASE
@@ -19,9 +19,15 @@ set(WOLFSSL_SOURCES_BASE
 	tfm.c wc_encrypt.c wc_port.c wolfmath.c wolfevent.c)
 
 # we have AES_NI on x64 platform
-if (NOT ARM AND ${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-	set(WOLFSSL_SOURCES_BASE ${WOLFSSL_SOURCES_BASE} aes_asm.S)
-	set_source_files_properties(aes_asm.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
+if (NOT ARM AND (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64") OR (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "AMD64"))
+
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		set(WOLFSSL_SOURCES_BASE ${WOLFSSL_SOURCES_BASE} aes_asm.S)
+		set_source_files_properties(aes_asm.S PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
+	else()
+		set(WOLFSSL_SOURCES_BASE ${WOLFSSL_SOURCES_BASE} aes_asm.asm)
+	endif()
+	
 endif()
 
 
@@ -31,11 +37,12 @@ foreach(f ${WOLFSSL_SOURCES_BASE})
     list(APPEND WOLFSSL_SOURCES "${WOLFSSL_SRC_DIR}${f}")
 endforeach(f)
 
-include_directories(
-    ${WOLFSSL_BASE_DIR}
-    config)
 
 add_library(wolfssl STATIC ${WOLFSSL_SOURCES})
 
 # we have our own config with a load of config settings
 target_compile_definitions(wolfssl PUBLIC HAVE_CONFIG_H)
+
+target_include_directories(wolfssl
+    PUBLIC ${WOLFSSL_BASE_DIR}
+    PUBLIC config)

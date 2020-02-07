@@ -80,14 +80,7 @@ if (ARM)
 endif(ARM)
 
 # c++ 14
-add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=c++14>)
-
-# enable all warnings globally
-add_compile_options(-Wall)
-
-# debug and release options
-set(CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG} -DDEBUG -g3 -O0)
-set(CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE} -Os -D_FORTIFY_SOURCE=2)
+set(CMAKE_CXX_STANDARD 14)
 
 # trace precompiler defs
 if (TRACE)
@@ -108,12 +101,15 @@ add_subdirectory(c/wolfssl)
 if (BUILD_TESTS)
     enable_testing()
     set(INSTALL_GTEST OFF CACHE BOOL "disable googletest installation")
+	set(gtest_force_shared_crt ON)
     add_subdirectory(c/microratchettests)
     add_subdirectory(thirdparty/googletest)
 endif (BUILD_TESTS)
 
 
 # generate list files
-set(CMAKE_C_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
-set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
-set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
+if (EMBEDDED)
+	set(CMAKE_C_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
+	set(CMAKE_CXX_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
+	set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_C_COMPILE_OBJECT} -Wa,-alh=<OBJECT>.lst")
+endif (EMBEDDED)
