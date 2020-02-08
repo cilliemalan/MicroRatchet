@@ -32,7 +32,8 @@ typedef enum mr_result_e {
 	MR_E_NOMEM = -4,
 	MR_E_VERIFYFAIL = -5,
 	MR_E_NOTFOUND = -6,
-	MR_E_RNGFAIL = -7
+	MR_E_RNGFAIL = -7,
+	MR_E_NOTIMPL = -8
 } mr_result;
 
 // the minimum amount of overhead. The message space
