@@ -1,4 +1,4 @@
-# provides crypto functions from wolfssl
+# provides crypto functions from mbed crypto
 
 cmake_minimum_required(VERSION 3.0)
 
