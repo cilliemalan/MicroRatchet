@@ -12,9 +12,8 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	_mr_aes_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_aes_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
-	*ctx = (_mr_aes_ctx){
-		.mr_ctx = mr_ctx
-	};
+	ctx->mr_ctx = mr_ctx;
+	mbedtls_aes_init(&ctx->aes_ctx);
 	return ctx;
 }
 
@@ -23,7 +22,6 @@ mr_result mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 	_mr_aes_ctx* ctx = _ctx;
 	FAILIF(keysize != 16 && keysize != 24 && keysize != 32, MR_E_INVALIDSIZE, "keysize != 16 && keysize != 24 && keysize != 32")
 
-	mbedtls_aes_init(&ctx->aes_ctx);
 	int r = mbedtls_aes_setkey_enc(&ctx->aes_ctx, key, keysize * 8);
 	FAILIF(r, MR_E_INVALIDOP, "failed to initialize AES");
 
@@ -43,12 +41,12 @@ mr_result mr_aes_process(mr_aes_ctx _ctx, const uint8_t* data, uint32_t amount, 
 	return MR_E_SUCCESS;
 }
 
-void mr_aes_destroy(mr_aes_ctx ctx)
+void mr_aes_destroy(mr_aes_ctx _ctx)
 {
-	if (ctx)
+	if (_ctx)
 	{
-		_mr_aes_ctx* _ctx = (_mr_aes_ctx*)ctx;
-		*_ctx = (_mr_aes_ctx){ 0 };
-		mr_free(_ctx->mr_ctx, _ctx);
+		_mr_aes_ctx* ctx = (_mr_aes_ctx*)_ctx;
+		mbedtls_aes_free(&ctx->aes_ctx);
+		mr_free(ctx->mr_ctx, ctx);
 	}
 }
