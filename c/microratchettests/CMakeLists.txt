@@ -33,18 +33,22 @@ endif (EMBEDDED)
 
 
 
-add_executable(microratchettests ${SOURCES})
+add_executable(microratchettestswolfssl ${SOURCES})
+add_executable(microratchettestmbed ${SOURCES})
 
 
 if (EMBEDDED)
-    target_link_options(microratchettests PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
-    target_compile_definitions(microratchettests PUBLIC EMBEDDED)
+    target_link_options(microratchettestswolfssl PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
+    target_link_options(microratchettestmbed PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
+    target_compile_definitions(microratchettestswolfssl PUBLIC EMBEDDED)
+    target_compile_definitions(microratchettestmbed PUBLIC EMBEDDED)
 endif (EMBEDDED)
 
 # with gtest cmake can discover tests automatically
 # (but not if we're cross compiling)
 if (NOT EMBEDDED AND NOT ARM)
-    gtest_discover_tests(microratchettests)
+    gtest_discover_tests(microratchettestswolfssl)
+    gtest_discover_tests(microratchettestmbed)
 endif ()
 
 include_directories(
@@ -53,21 +57,30 @@ include_directories(
     ../../thirdparty/googletest/googlemock/include
 )
 
-target_link_libraries(microratchettests
+target_link_libraries(microratchettestswolfssl
     microratchet
     wolfssl
     microratchetwolfssl
     gtest
     gmock
     gtest_main)
+target_link_libraries(microratchettestmbed
+    microratchet
+    mbedcrypto
+    microratchetmbed
+    gtest
+    gmock
+    gtest_main)
 
 # we have our own TEST definition that tracks memory allocations
 # so we prevent gtest from defining its own
-target_compile_definitions(microratchettests PUBLIC GTEST_DONT_DEFINE_TEST)
+target_compile_definitions(microratchettestswolfssl PUBLIC GTEST_DONT_DEFINE_TEST)
+target_compile_definitions(microratchettestmbed PUBLIC GTEST_DONT_DEFINE_TEST)
 
 
 
 # generate PCH (but not when cross compiling because it doesn't work for some reason)
 if (USE_PCH AND NOT EMBEDDED)
-    target_precompile_headers(microratchettests PUBLIC pch.h)
+    target_precompile_headers(microratchettestswolfssl PUBLIC pch.h)
+    target_precompile_headers(microratchettestmbed PUBLIC pch.h)
 endif (USE_PCH AND NOT EMBEDDED)
