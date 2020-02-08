@@ -96,6 +96,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(c/libmicroratchet)
 add_subdirectory(c/microratchetwolfssl)
 add_subdirectory(c/wolfssl)
+add_subdirectory(thirdparty/mbed-crypto)
+add_subdirectory(c/microratchetmbed)
 
 # if tests are to be built, include these
 if (BUILD_TESTS)
