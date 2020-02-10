@@ -13,7 +13,7 @@ namespace MicroRatchet.BouncyCastle
             cache = new ConcurrentDictionary<byte[], int>(ByteArrayComparer.Instance);
         }
 
-        public bool CheckNonce(ArraySegment<byte> nonce)
+        public bool MarkNonce(ArraySegment<byte> nonce)
         {
             return cache.TryAdd(nonce.ToArray(), 0);
         }

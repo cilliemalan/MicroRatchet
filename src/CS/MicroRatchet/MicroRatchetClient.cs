@@ -922,7 +922,7 @@ namespace MicroRatchet
         {
             if (NonceCache != null)
             {
-                if (!NonceCache.CheckNonce(nonce))
+                if (!NonceCache.MarkNonce(nonce))
                 {
                     throw new InvalidOperationException("A duplicate nonce was detected");
                 }

@@ -10,6 +10,6 @@ namespace MicroRatchet
         /// Adds a nonce to the cache. Returns true if the nonce
         /// was added. Returns false if the nonce was already present.
         /// </summary>
-        bool CheckNonce(ArraySegment<byte> nonce);
+        bool MarkNonce(ArraySegment<byte> nonce);
     }
 }
