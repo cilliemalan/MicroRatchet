@@ -14,6 +14,7 @@ using Org.BouncyCastle.Math.EC;
 using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Security;
 using System.Diagnostics;
+using Org.BouncyCastle.Crypto.EC;
 #pragma warning disable CA1810 // Initialize reference type static fields inline
 
 namespace MicroRatchet.BouncyCastle
@@ -24,7 +25,7 @@ namespace MicroRatchet.BouncyCastle
 
         static Signature()
         {
-            var curve = ECNamedCurveTable.GetByName("secp256r1");
+            var curve = CustomNamedCurves.GetByName("secp256r1");
             domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
         }
 

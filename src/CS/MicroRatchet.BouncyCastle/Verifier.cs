@@ -1,4 +1,5 @@
 ﻿using Org.BouncyCastle.Asn1.X9;
+using Org.BouncyCastle.Crypto.EC;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Signers;
 using Org.BouncyCastle.Math;
@@ -18,7 +19,7 @@ namespace MicroRatchet.BouncyCastle
 
         static Verifier()
         {
-            var curve = ECNamedCurveTable.GetByName("secp256r1");
+            var curve = CustomNamedCurves.GetByName("secp256r1");
             domainParms = new ECDomainParameters(curve.Curve, curve.G, curve.N, curve.H);
         }
 
