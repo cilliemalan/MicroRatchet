@@ -36,8 +36,6 @@ namespace MicroRatchet
 
         private State state;
 
-        private readonly List<(byte[], IAes)> _headerKeyCiphers = new List<(byte[], IAes)>();
-
         public IServices Services { get; }
 
         public MicroRatchetConfiguration Configuration { get; }
@@ -177,20 +175,7 @@ namespace MicroRatchet
             if (Services.VerifierFactory.SignatureSize != ExpectedSignatureSize) throw new InvalidOperationException($"The verifier signature size differs from the expected size of {ExpectedSignatureSize} bytes");
         }
 
-        private IAes GetHeaderKeyCipher(byte[] key)
-        {
-            if (key == null) return null;
-
-            foreach ((byte[], IAes) hkc in _headerKeyCiphers)
-            {
-                if (hkc.Item1.Matches(key)) return hkc.Item2;
-            }
-
-            IAes cipher = AesFactory.GetAes(true, key);
-            _headerKeyCiphers.Add((key, cipher));
-            if (_headerKeyCiphers.Count > 3) _headerKeyCiphers.RemoveAt(0);
-            return cipher;
-        }
+        private IAes GetHeaderKeyCipher(byte[] key) => AesFactory.GetAes(true, key);
 
         private byte[] SendInitializationRequest(State state)
         {
