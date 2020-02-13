@@ -445,6 +445,20 @@ namespace MicroRatchet
                 throw new InvalidOperationException("Invalid message received");
             }
 
+            // check the first receive header key mac
+            var payloadExceptMac = new ArraySegment<byte>(payload, 0, payload.Length - MacSize);
+            var maciv = new ArraySegment<byte>(payload, 0, 16);
+            var mac = new ArraySegment<byte>(payload, payload.Length - MacSize, MacSize);
+            var Mac = new Poly(AesFactory);
+            Mac.Init(serverState.FirstReceiveHeaderKey, maciv, MacSize);
+            Mac.Process(payloadExceptMac);
+            var compareMac = Mac.Compute();
+            LogMacMatch(serverState.FirstReceiveHeaderKey, maciv, compareMac, mac);
+            if (!mac.Matches(compareMac))
+            {
+                throw new InvalidOperationException("The first received message does not have the correct MAC");
+            }
+
             var data = DeconstructMessage(state, payload, serverState.FirstReceiveHeaderKey, ecdhRatchetStep, false);
             if (data.Length < InitializationNonceSize || !serverState.NextInitializationNonce.Matches(data, 0, InitializationNonceSize))
             {
