@@ -82,13 +82,13 @@ mr_result mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const uint8_t* signature, uint32_t 
 uint32_t mr_ecdsa_store_size_needed(mr_ecdsa_ctx _ctx)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	return ecc_store_size_needed(&ctx->key.k);
+	return ecc_store_size_needed(&ctx->key);
 }
 
 mr_result mr_ecdsa_store(mr_ecdsa_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	int len = ecc_store_size_needed(&ctx->key.k);
+	int len = ecc_store_size_needed(&ctx->key);
 	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail")
 	int result = ecc_store(&ctx->key, data, spaceavail);
 	if (result != MR_E_SUCCESS) return result;

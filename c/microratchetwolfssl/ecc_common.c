@@ -3,7 +3,6 @@
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/ecc.h>
 
-
 int mp_sqrtmod_prime(mp_int* n, mp_int* prime, mp_int* ret);
 
 mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublickeysize, ecc_point *pub)
@@ -114,7 +113,7 @@ uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 	return 32;
 }
 
-mr_result ecc_store_size_needed(const mp_int* key)
+mr_result ecc_store_size_needed(const ecc_key* key)
 {
 	return 32;
 }

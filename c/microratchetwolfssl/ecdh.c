@@ -56,13 +56,13 @@ mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uin
 uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	return ecc_store_size_needed(&ctx->key.k);
+	return ecc_store_size_needed(&ctx->key);
 }
 
 mr_result mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdh_ctx* ctx = _ctx;
-	int len = ecc_store_size_needed(&ctx->key.k);
+	int len = ecc_store_size_needed(&ctx->key);
 	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail")
 	mr_result result = ecc_store(&ctx->key, data, spaceavail);
 	return result;
