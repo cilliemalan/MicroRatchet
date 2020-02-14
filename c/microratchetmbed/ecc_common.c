@@ -27,32 +27,62 @@ static mr_result load_curves()
 
 void mpi_to_nat256(uint32_t o[8], const mbedtls_mpi* z)
 {
-	for (int i = 0; i < 4; i++)
+	static_assert(sizeof(mbedtls_mpi_uint) == 8 || sizeof(mbedtls_mpi_uint) == 4, "mbedtls_mpi_uint must be 4 or 8 bytes");
+
+	if (sizeof(mbedtls_mpi_uint) == 8)
 	{
-		if (i < z->n)
+		for (int i = 0; i < 4; i++)
 		{
-			uint64_t l = z->p[i];
-			o[i * 2] = (uint32_t)l;
-			o[i * 2 + 1] = l >> 32;
+			if (i < z->n)
+			{
+				uint64_t l = z->p[i];
+				o[i * 2] = (uint32_t)l;
+				o[i * 2 + 1] = l >> 32;
+			}
+			else
+			{
+				o[i * 2] = 0;
+				o[i * 2 + 1] = 0;
+			}
 		}
-		else
+	}
+	if (sizeof(mbedtls_mpi_uint) == 4)
+	{
+		for (int i = 0; i < 8; i++)
 		{
-			o[i * 2] = 0;
-			o[i * 2 + 1] = 0;
+			if (i < z->n)
+			{
+				o[i] = z->p[i];
+			}
+			else
+			{
+				o[i] = 0;
+			}
 		}
 	}
 }
 
 void nat256_to_mpi(mbedtls_mpi* z, const uint32_t o[8])
 {
-	mbedtls_mpi_grow(z, 4);
-	for (int i = 0; i < 4; i++)
+	if (sizeof(mbedtls_mpi_uint) == 8)
 	{
-		z->p[i] = (((uint64_t)o[i * 2 + 1]) << 32) | o[i * 2];
+		mbedtls_mpi_grow(z, 4);
+		for (int i = 0; i < 4; i++)
+		{
+			z->p[i] = (((uint64_t)o[i * 2 + 1]) << 32) | o[i * 2];
+		}
+	}
+	if (sizeof(mbedtls_mpi_uint) == 4)
+	{
+		mbedtls_mpi_grow(z, 8);
+		for (int i = 0; i < 8; i++)
+		{
+			z->p[i] = o[i];
+		}
 	}
 }
 
-static uint32_t nat256_add(uint32_t z[8], uint32_t x[8], uint32_t y[8])
+static uint32_t nat256_add(uint32_t z[8], const uint32_t x[8], const uint32_t y[8])
 {
 	uint64_t c = 0;
 	c += (uint64_t)x[0] + y[0];
@@ -82,7 +112,7 @@ static uint32_t nat256_add(uint32_t z[8], uint32_t x[8], uint32_t y[8])
 	return (uint32_t)c;
 }
 
-static uint32_t nat256_sub(uint32_t z[8], uint32_t x[8], uint32_t y[8])
+static uint32_t nat256_sub(uint32_t z[8], const uint32_t x[8], const uint32_t y[8])
 {
 	int64_t c = 0;
 	c += (int64_t)x[0] - y[0];
@@ -486,7 +516,7 @@ static void secp256r1_reduce(uint32_t z[8], const uint32_t xx[16])
 	secp256r1_reduce32(z, (uint32_t)cc);
 }
 
-static void secp256r1_add(uint32_t z[8], uint32_t x[8], uint32_t y[8])
+static void secp256r1_add(uint32_t z[8], const uint32_t x[8], const uint32_t y[8])
 {
 	uint32_t c = nat256_add(z, x, y);
 	if (c != 0 || (z[7] == P[7] && nat256_gte(z, P)))
@@ -722,4 +752,27 @@ mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeys
 	FAILIF(r, MR_E_INVALIDOP, "Failed to write public key X coordinate");
 
 	return MR_E_SUCCESS;
+}
+
+
+// mbedtls allocation functions
+void* MBEDTLS_PLATFORM_STD_CALLOC(size_t a, size_t b)
+{
+	size_t amt = a * b;
+	if (amt == 0) return 0;
+	FAILIF(amt > 0x7fffffff, 0, "Invalid allocation");
+
+	void* ptr;
+	mr_result result = mr_allocate(0, (int)amt, &ptr);
+	FAILIF(result || !ptr, 0, "Allocation failure");
+	memset(ptr, 0, amt);
+	return ptr;
+}
+
+void MBEDTLS_PLATFORM_STD_FREE(void* pointer)
+{
+	if (pointer)
+	{
+		mr_free(0, pointer);
+	}
 }

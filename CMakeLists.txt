@@ -99,6 +99,10 @@ add_subdirectory(c/wolfssl)
 add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
 
+# MBEDTLS_USER_CONFIG_FILE
+target_compile_definitions(mbedcrypto PUBLIC "MBEDTLS_USER_CONFIG_FILE=<user_config.h>")
+target_include_directories(mbedcrypto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/c/microratchetmbed/config>)
+
 # if tests are to be built, include these
 if (BUILD_TESTS)
     enable_testing()
