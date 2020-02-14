@@ -21,8 +21,8 @@ mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 mr_result mr_ecdsa_setprivatekey(mr_ecdsa_ctx _ctx, const uint8_t* privatekey, uint32_t privatekeysize)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	FAILIF(privatekeysize < 32, MR_E_INVALIDSIZE, "privatekeysize < 32")
-	FAILIF(!privatekey || !ctx, MR_E_INVALIDARG, "!privatekey || !ctx")
+	FAILIF(privatekeysize < 32, MR_E_INVALIDSIZE, "privatekeysize < 32");
+	FAILIF(!privatekey || !ctx, MR_E_INVALIDARG, "!privatekey || !ctx");
 
 	return MR_E_NOTIMPL;
 }
@@ -30,10 +30,10 @@ mr_result mr_ecdsa_setprivatekey(mr_ecdsa_ctx _ctx, const uint8_t* privatekey, u
 mr_result mr_ecdsa_getpublickey(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	FAILIF(publickeyspaceavail < 32, MR_E_INVALIDSIZE, "publickeyspaceavail < 32")
-	FAILIF(!publickey || !ctx, MR_E_INVALIDARG, "!publickey || !ctx")
+	FAILIF(publickeyspaceavail < 32, MR_E_INVALIDSIZE, "publickeyspaceavail < 32");
+	FAILIF(!publickey || !ctx, MR_E_INVALIDARG, "!publickey || !ctx");
 
-	return ecc_getpublickey(TODO, publickey, publickeyspaceavail, 0, 0);
+	return ecc_getpublickey(TODO, publickey, publickeyspaceavail);
 }
 
 mr_result mr_ecdsa_generate(mr_ecdsa_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
@@ -49,14 +49,14 @@ uint32_t mr_ecdsa_load(mr_ecdsa_ctx _ctx, const uint8_t* data, uint32_t spaceava
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
 
-	return ecc_load(TODO, data, spaceavail, 0, 0);
+	return ecc_load(TODO, data, spaceavail);
 }
 
 mr_result mr_ecdsa_sign(mr_ecdsa_ctx _ctx, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	FAILIF(!ctx || !digest || !signature, MR_E_INVALIDARG, "!ctx || !digest || !signature")
-	FAILIF(signaturespaceavail < 64, MR_E_INVALIDSIZE, "signaturespaceavail < 64")
+	FAILIF(!ctx || !digest || !signature, MR_E_INVALIDARG, "!ctx || !digest || !signature");
+	FAILIF(signaturespaceavail < 64, MR_E_INVALIDSIZE, "signaturespaceavail < 64");
 
 	int result = ecc_sign(TODO, digest, digestsize, signature, signaturespaceavail, 0, 0);
 	if (result != MR_E_SUCCESS) return result;
@@ -66,8 +66,8 @@ mr_result mr_ecdsa_sign(mr_ecdsa_ctx _ctx, const uint8_t* digest, uint32_t diges
 mr_result mr_ecdsa_verify(mr_ecdsa_ctx _ctx, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
-	FAILIF(!ctx || !digest || !signature || !signaturesize, MR_E_INVALIDARG, "!ctx || !digest || !signature || !signaturesize")
-	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64")
+	FAILIF(!ctx || !digest || !signature || !signaturesize, MR_E_INVALIDARG, "!ctx || !digest || !signature || !signaturesize");
+	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64");
 
 	int res = ecc_verify(TODO, signature, signaturesize, digest, digestsize, result);
 	if (res != MR_E_SUCCESS) return res;
@@ -84,7 +84,7 @@ mr_result mr_ecdsa_store(mr_ecdsa_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 {
 	_mr_ecdsa_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(TODO);
-	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail")
+	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail");
 	int result = ecc_store(TODO, data, spaceavail);
 	if (result != MR_E_SUCCESS) return result;
 	return MR_E_SUCCESS;

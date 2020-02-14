@@ -49,7 +49,7 @@ uint32_t mr_ecdh_load(mr_ecdh_ctx _ctx, const uint8_t* data, uint32_t amt)
 	FAILIF(!data, MR_E_INVALIDARG, "data is null");
 	FAILIF(!amt, MR_E_INVALIDARG, "amt is 0");
 
-	return ecc_load(&ctx->key, data, amt, mbedtls_ctr_drbg_random, &ctx->ctr_drbg);
+	return ecc_load(&ctx->key, data, amt);
 }
 
 mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
@@ -116,7 +116,7 @@ mr_result mr_ecdh_getpublickey(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t pu
 	FAILIF(publickeyspaceavail < 32, MR_E_INVALIDSIZE, "publickeyspaceavail < 32");
 	FAILIF(!publickey || !ctx, MR_E_INVALIDARG, "!publickey || !ctx");
 
-	return ecc_getpublickey(&ctx->key, publickey, publickeyspaceavail, mbedtls_ctr_drbg_random, &ctx->ctr_drbg);
+	return ecc_getpublickey(&ctx->key, publickey, publickeyspaceavail);
 }
 
 void mr_ecdh_destroy(mr_ecdh_ctx _ctx)
