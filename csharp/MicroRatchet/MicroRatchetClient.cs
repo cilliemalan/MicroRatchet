@@ -453,7 +453,6 @@ namespace MicroRatchet
             Mac.Init(serverState.FirstReceiveHeaderKey, maciv, MacSize);
             Mac.Process(payloadExceptMac);
             var compareMac = Mac.Compute();
-            LogMacMatch(serverState.FirstReceiveHeaderKey, maciv, compareMac, mac);
             if (!mac.Matches(compareMac))
             {
                 throw new InvalidOperationException("The first received message does not have the correct MAC");
