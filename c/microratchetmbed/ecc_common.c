@@ -5,6 +5,7 @@
 #include <mbedtls/entropy.h>
 #include <mbedtls/bignum.h>
 #include <mbedtls/ctr_drbg.h>
+#include <mbedtls/ecdsa.h>
 
 mbedtls_ecp_group secp256r1_gp = { 0 };
 
@@ -29,6 +30,7 @@ void mpi_to_nat256(uint32_t o[8], const mbedtls_mpi* z)
 {
 	static_assert(sizeof(mbedtls_mpi_uint) == 8 || sizeof(mbedtls_mpi_uint) == 4, "mbedtls_mpi_uint must be 4 or 8 bytes");
 
+#ifdef MBEDTLS_HAVE_INT64
 	if (sizeof(mbedtls_mpi_uint) == 8)
 	{
 		for (int i = 0; i < 4; i++)
@@ -46,6 +48,8 @@ void mpi_to_nat256(uint32_t o[8], const mbedtls_mpi* z)
 			}
 		}
 	}
+#endif
+#ifdef MBEDTLS_HAVE_INT32
 	if (sizeof(mbedtls_mpi_uint) == 4)
 	{
 		for (int i = 0; i < 8; i++)
@@ -60,10 +64,12 @@ void mpi_to_nat256(uint32_t o[8], const mbedtls_mpi* z)
 			}
 		}
 	}
+#endif
 }
 
 void nat256_to_mpi(mbedtls_mpi* z, const uint32_t o[8])
 {
+#ifdef MBEDTLS_HAVE_INT64
 	if (sizeof(mbedtls_mpi_uint) == 8)
 	{
 		mbedtls_mpi_grow(z, 4);
@@ -72,6 +78,8 @@ void nat256_to_mpi(mbedtls_mpi* z, const uint32_t o[8])
 			z->p[i] = (((uint64_t)o[i * 2 + 1]) << 32) | o[i * 2];
 		}
 	}
+#endif
+#ifdef MBEDTLS_HAVE_INT32
 	if (sizeof(mbedtls_mpi_uint) == 4)
 	{
 		mbedtls_mpi_grow(z, 8);
@@ -80,6 +88,7 @@ void nat256_to_mpi(mbedtls_mpi* z, const uint32_t o[8])
 			z->p[i] = o[i];
 		}
 	}
+#endif
 }
 
 static uint32_t nat256_add(uint32_t z[8], const uint32_t x[8], const uint32_t y[8])
@@ -611,8 +620,7 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 	mbedtls_ecp_point_init(pub);
 	r = mbedtls_mpi_read_binary(&pub->X, otherpublickey, otherpublickeysize);
 
-	// y^2 = (x^2 + A) * x + b
-	// 
+	// mbed does not define A because it never uses it
 	static const uint32_t A[8] = {
 		0xFFFFFFFC,
 		0xFFFFFFFF,
@@ -625,8 +633,10 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 	};
 	uint32_t t1[8] = { 0 };
 	uint32_t B[8], x[8];
+	// TODO: less temporaries
 	uint32_t a[8], b[8], c[8], d[8], y[8];
 
+	// y^2 = (x^2 + A) * x + b
 	mpi_to_nat256(x, &pub->X);
 	mpi_to_nat256(B, &secp256r1_gp.B);
 	secp256r1_sqr(a, x);
@@ -652,6 +662,7 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng)
 {
 	FAILIF(!f_rng || !p_rng, MR_E_INVALIDSIZE, "RNG must not be null");
+	FAILIF(publickeyspaceavail != 0 && publickeyspaceavail < 32, MR_E_INVALIDSIZE, "public key must be at least 32 bytes")
 
 	mr_result r = load_curves();
 	if (r) return r;
@@ -676,9 +687,9 @@ mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspace
 		}
 	}
 
-	if (!ret)
+	if (!ret && publickey)
 	{
-		ret = mbedtls_mpi_write_binary(&key->Q.X, publickey, publickeyspaceavail);
+		ret = mbedtls_mpi_write_binary(&key->Q.X, publickey, 32);
 	}
 
 	return ret ? MR_E_INVALIDOP : MR_E_SUCCESS;
@@ -705,7 +716,7 @@ uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 	{
 		mbedtls_mpi_init(&key->d);
 		mbedtls_ecp_point_init(&key->Q);
-		r = mbedtls_mpi_read_binary(&key->d, data, spaceavail);
+		r = mbedtls_mpi_read_binary(&key->d, data, 32);
 		if (!r)
 		{
 			r = mbedtls_ecp_mul(&secp256r1_gp, &key->Q, &key->d, &secp256r1_gp.G, mbedtls_ctr_drbg_random, &ctr_drbg);
@@ -735,12 +746,54 @@ mr_result ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 
 mr_result ecc_sign(const ecc_key* key, const uint8_t* digest, uint32_t digestsize, uint8_t* signature, uint32_t signaturespaceavail, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng)
 {
-	return MR_E_NOTIMPL;
+	FAILIF(!key || !digest || !signature, MR_E_INVALIDARG, "key, digest, and signature must not be null");
+	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digest must be 256 bits (32 bytes)");
+	FAILIF(signaturespaceavail < 64, MR_E_INVALIDSIZE, "signature needs at least 64 bytes");
+	FAILIF(!f_rng, MR_E_INVALIDARG, "RNG must not be null");
+
+	mr_result res = load_curves();
+	if (res) return res;
+
+	mbedtls_mpi r, s;
+	mbedtls_mpi_init(&r);
+	mbedtls_mpi_init(&s);
+
+	int rres = mbedtls_ecdsa_sign(&secp256r1_gp, &r, &s, &key->d, digest, digestsize, f_rng, p_rng);
+
+	if (rres) rres = mbedtls_mpi_write_binary(&r, signature, 32);
+	if (rres) rres = mbedtls_mpi_write_binary(&s, signature + 32, 32);
+
+	mbedtls_mpi_free(&r);
+	mbedtls_mpi_free(&s);
+	FAILIF(rres, MR_E_INVALIDOP, "signature failed");
+
+	return MR_E_SUCCESS;
 }
 
 mr_result ecc_verify(const ecc_key* key, const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, uint32_t* result)
 {
-	return MR_E_NOTIMPL;
+	FAILIF(!key || !digest || !signature, MR_E_INVALIDARG, "key, digest, and signature must not be null");
+	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digest must be 256 bits (32 bytes)");
+	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signature must be 64 bytes");
+
+	mr_result res = load_curves();
+	if (res) return res;
+
+	mbedtls_mpi r, s;
+	mbedtls_mpi_init(&r);
+	mbedtls_mpi_init(&s);
+
+	int rres = mbedtls_mpi_read_binary(&r, signature, 32);
+	if (rres) rres = mbedtls_mpi_read_binary(&s, signature + 32, 32);
+	if (rres) rres = mbedtls_ecdsa_verify(&secp256r1_gp, digest, digestsize, &key->Q, &r, &s);
+
+	if (result)
+	{
+		if (rres == MBEDTLS_ERR_ECP_BAD_INPUT_DATA) *result = false;
+		if (rres == 0) *result = true;
+	}
+	FAILIF(rres && rres != MBEDTLS_ERR_ECP_BAD_INPUT_DATA, MR_E_INVALIDOP, "Failed to verify signature");
+	return MR_E_SUCCESS;
 }
 
 mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)

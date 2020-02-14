@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory.h>
 
 #ifdef __GNUC__
 #define WEAK_SYMBOL __attribute__((weak))
