@@ -14,6 +14,7 @@ set(SOURCES
     ecdh.cpp
     ecdhratchet.cpp
     ecdsa.cpp
+	ecc.cpp
     initialization.cpp
     pch.cpp
     poly.cpp
@@ -71,6 +72,9 @@ target_link_libraries(microratchettestmbed
     gtest
     gmock
     gtest_main)
+	
+target_compile_definitions(microratchettestswolfssl PUBLIC WOLFSSL)
+target_compile_definitions(microratchettestmbed PUBLIC MBEDCRYPTO)
 
 # we have our own TEST definition that tracks memory allocations
 # so we prevent gtest from defining its own
