@@ -96,10 +96,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(c/libmicroratchet)
 add_subdirectory(c/microratchetwolfssl)
 add_subdirectory(c/wolfssl)
+set (ENABLE_PROGRAMS OFF)
 add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
 
-# MBEDTLS_USER_CONFIG_FILE
+# mbed config
 target_compile_definitions(mbedcrypto PUBLIC "MBEDTLS_USER_CONFIG_FILE=<user_config.h>")
 target_include_directories(mbedcrypto PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/c/microratchetmbed/config>)
 
