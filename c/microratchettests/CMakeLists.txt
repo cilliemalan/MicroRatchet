@@ -36,6 +36,7 @@ endif (EMBEDDED)
 
 add_executable(microratchettestswolfssl ${SOURCES})
 add_executable(microratchettestmbed ${SOURCES})
+add_executable(microratchettestopenssl ${SOURCES})
 
 
 if (EMBEDDED)
@@ -50,6 +51,7 @@ endif (EMBEDDED)
 if (NOT EMBEDDED AND NOT ARM)
     gtest_discover_tests(microratchettestswolfssl)
     gtest_discover_tests(microratchettestmbed)
+    gtest_discover_tests(microratchettestopenssl)
 endif ()
 
 include_directories(
@@ -72,14 +74,22 @@ target_link_libraries(microratchettestmbed
     gtest
     gmock
     gtest_main)
+target_link_libraries(microratchettestopenssl
+    microratchet
+    microratchetopenssl
+    gtest
+    gmock
+    gtest_main)
 	
 target_compile_definitions(microratchettestswolfssl PUBLIC WOLFSSL)
 target_compile_definitions(microratchettestmbed PUBLIC MBEDCRYPTO)
+target_compile_definitions(microratchettestopenssl PUBLIC OPENSSL)
 
 # we have our own TEST definition that tracks memory allocations
 # so we prevent gtest from defining its own
 target_compile_definitions(microratchettestswolfssl PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_definitions(microratchettestmbed PUBLIC GTEST_DONT_DEFINE_TEST)
+target_compile_definitions(microratchettestopenssl PUBLIC GTEST_DONT_DEFINE_TEST)
 
 
 
@@ -87,4 +97,5 @@ target_compile_definitions(microratchettestmbed PUBLIC GTEST_DONT_DEFINE_TEST)
 if (USE_PCH AND NOT EMBEDDED)
     target_precompile_headers(microratchettestswolfssl PUBLIC pch.h)
     target_precompile_headers(microratchettestmbed PUBLIC pch.h)
+    target_precompile_headers(microratchettestopenssl PUBLIC pch.h)
 endif (USE_PCH AND NOT EMBEDDED)

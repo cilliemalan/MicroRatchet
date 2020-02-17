@@ -99,6 +99,7 @@ add_subdirectory(c/wolfssl)
 set (ENABLE_PROGRAMS OFF)
 add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
+add_subdirectory(c/microratchetopenssl)
 
 # mbed config
 target_compile_definitions(mbedcrypto PUBLIC "MBEDTLS_USER_CONFIG_FILE=<user_config.h>")
