@@ -94,11 +94,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Stuff to build
 add_subdirectory(c/libmicroratchet)
+# wolfssl
 add_subdirectory(c/microratchetwolfssl)
 add_subdirectory(c/wolfssl)
+# mbedtls
 set (ENABLE_PROGRAMS OFF)
 add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
+# openssl
+set(BUILD_OPENSSL ON CACHE BOOL "Automated OpenSSL building")
+add_subdirectory(thirdparty/openssl)
 add_subdirectory(c/microratchetopenssl)
 
 # mbed config

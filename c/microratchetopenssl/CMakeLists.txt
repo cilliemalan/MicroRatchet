@@ -15,5 +15,4 @@ set(SOURCES
 include_directories(../libmicroratchet)
 
 add_library(microratchetopenssl STATIC ${SOURCES})
-# target_link_libraries(microratchetopenssl wolfssl)
-# target_compile_definitions(microratchetopenssl PUBLIC HAVE_CONFIG_H)
+target_link_libraries(microratchetopenssl crypto)
