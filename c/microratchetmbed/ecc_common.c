@@ -662,7 +662,7 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail, int (*f_rng)(void*, unsigned char*, size_t), void* p_rng)
 {
 	FAILIF(!f_rng || !p_rng, MR_E_INVALIDSIZE, "RNG must not be null");
-	FAILIF(publickeyspaceavail != 0 && publickeyspaceavail < 32, MR_E_INVALIDSIZE, "public key must be at least 32 bytes")
+	FAILIF(publickeyspaceavail != 0 && publickeyspaceavail < 32, MR_E_INVALIDSIZE, "public key must be at least 32 bytes");
 
 	mr_result r = load_curves();
 	if (r) return r;

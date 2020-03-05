@@ -20,7 +20,7 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 mr_result mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 {
 	_mr_aes_ctx* ctx = _ctx;
-	FAILIF(keysize != 16 && keysize != 24 && keysize != 32, MR_E_INVALIDSIZE, "keysize != 16 && keysize != 24 && keysize != 32")
+	FAILIF(keysize != 16 && keysize != 24 && keysize != 32, MR_E_INVALIDSIZE, "keysize != 16 && keysize != 24 && keysize != 32");
 
 	int r = mbedtls_aes_setkey_enc(&ctx->aes_ctx, key, keysize * 8);
 	FAILIF(r, MR_E_INVALIDOP, "failed to initialize AES");

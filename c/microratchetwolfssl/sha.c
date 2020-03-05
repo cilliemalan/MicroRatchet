@@ -22,33 +22,33 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 
 mr_result mr_sha_init(mr_sha_ctx ctx)
 {
-	FAILIF(!ctx, MR_E_INVALIDARG, "!ctx")
+	FAILIF(!ctx, MR_E_INVALIDARG, "!ctx");
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_InitSha256(&_ctx->wc_sha);
-	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	return MR_E_SUCCESS;
 }
 
 mr_result mr_sha_process(mr_sha_ctx ctx, const uint8_t* data, uint32_t howmuch)
 {
-	FAILIF(!ctx || !data, MR_E_INVALIDARG, "!ctx || !data")
-	FAILIF(!howmuch, MR_E_SUCCESS, "!howmuch")
+	FAILIF(!ctx || !data, MR_E_INVALIDARG, "!ctx || !data");
+	FAILIF(!howmuch, MR_E_SUCCESS, "!howmuch");
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_Sha256Update(&_ctx->wc_sha, data, howmuch);
-	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	return MR_E_SUCCESS;
 }
 
 mr_result mr_sha_compute(mr_sha_ctx ctx, uint8_t* output, uint32_t spaceavail)
 {
-	FAILIF(!ctx || !output, MR_E_INVALIDARG, "!ctx || !output")
-	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32")
+	FAILIF(!ctx || !output, MR_E_INVALIDARG, "!ctx || !output");
+	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32");
 	_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 
 	int r = wc_Sha256Final(&_ctx->wc_sha, output);
-	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	return MR_E_SUCCESS;
 }
 

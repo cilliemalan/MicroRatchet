@@ -45,8 +45,8 @@ mr_result mr_sha_process(mr_sha_ctx _ctx, const uint8_t* data, uint32_t howmuch)
 
 mr_result mr_sha_compute(mr_sha_ctx _ctx, uint8_t* output, uint32_t spaceavail)
 {
-	FAILIF(!_ctx || !output, MR_E_INVALIDARG, "!ctx || !output")
-	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32")
+	FAILIF(!_ctx || !output, MR_E_INVALIDARG, "!ctx || !output");
+	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32");
 	_mr_sha_ctx* ctx = (_mr_sha_ctx*)_ctx;
 
 	int r = SHA256_Final(output, &ctx->sha);

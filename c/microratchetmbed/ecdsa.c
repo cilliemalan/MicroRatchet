@@ -135,6 +135,6 @@ mr_result mr_ecdsa_verify_other(const uint8_t* signature, uint32_t signaturesize
 	}
 
 	mbedtls_ecp_point_free(&key.Q);
-	FAILIF(r, MR_E_INVALIDOP, "could not verify the signature")
+	FAILIF(r, MR_E_INVALIDOP, "could not verify the signature");
 	return mrr;
 }

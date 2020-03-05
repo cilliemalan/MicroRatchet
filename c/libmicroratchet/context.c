@@ -33,13 +33,13 @@ static bool allzeroes(const uint8_t* d, uint32_t amt)
 
 static mr_result computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
-	FAILIF(!ctx || !data || !key || !iv, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(keysize != KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid")
-	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The nonce was too small")
-	FAILIF(datasize < MAC_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a MAC plus one byte")
+	FAILIF(!ctx || !data || !key || !iv, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(keysize != KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
+	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The nonce was too small");
+	FAILIF(datasize < MAC_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a MAC plus one byte");
 
 	mr_poly_ctx mac = mr_poly_create(ctx);
-	FAILIF(!mac, MR_E_NOMEM, "Could not allocate a POLY1305 instance")
+	FAILIF(!mac, MR_E_NOMEM, "Could not allocate a POLY1305 instance");
 	mr_result result = MR_E_SUCCESS;
 	_R(result, mr_poly_init(mac, key, keysize, iv, ivsize));
 	_R(result, mr_poly_process(mac, data, datasize - MAC_SIZE));
@@ -55,16 +55,16 @@ static mr_result computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, cons
 
 static mr_result verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize, bool* result)
 {
-	FAILIF(!ctx || !data || !key || !iv || !result, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(keysize != KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid")
-	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The nonce was too small")
-	FAILIF(datasize < MAC_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a MAC plus one byte")
+	FAILIF(!ctx || !data || !key || !iv || !result, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(keysize != KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
+	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The nonce was too small");
+	FAILIF(datasize < MAC_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a MAC plus one byte");
 
 	*result = false;
 
 	uint8_t computedmac[MAC_SIZE] = { 0 };
 	mr_poly_ctx mac = mr_poly_create(ctx);
-	FAILIF(!mac, MR_E_NOMEM, "Could not allocate a POLY1305 instance")
+	FAILIF(!mac, MR_E_NOMEM, "Could not allocate a POLY1305 instance");
 	mr_result rr = MR_E_SUCCESS;
 	_R(rr, mr_poly_init(mac, key, keysize, iv, ivsize));
 	_R(rr, mr_poly_process(mac, data, datasize - MAC_SIZE));
@@ -81,8 +81,8 @@ static mr_result verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize,
 
 static mr_result digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, uint8_t* digest, uint32_t digestsize)
 {
-	FAILIF(!ctx || !data || !digest, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(digestsize < DIGEST_SIZE, MR_E_INVALIDSIZE, "The output space was smaller than the digest size")
+	FAILIF(!ctx || !data || !digest, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(digestsize < DIGEST_SIZE, MR_E_INVALIDSIZE, "The output space was smaller than the digest size");
 
 	_C(mr_sha_init(ctx->sha_ctx));
 	_C(mr_sha_process(ctx->sha_ctx, data, datasize));
@@ -92,8 +92,8 @@ static mr_result digest(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, ui
 
 static mr_result sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_ctx signer)
 {
-	FAILIF(!ctx || !data || !signer, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(datasize < SIGNATURE_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a signature and one byte extra")
+	FAILIF(!ctx || !data || !signer, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(datasize < SIGNATURE_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a signature and one byte extra");
 
 	uint8_t sha[DIGEST_SIZE];
 	_C(digest(ctx, data, datasize - SIGNATURE_SIZE, sha, sizeof(sha)));
@@ -105,8 +105,8 @@ static mr_result sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_c
 
 static mr_result verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize, const uint8_t* pubkey, uint32_t pubkeysize, bool* result)
 {
-	FAILIF(!ctx || !data || !pubkey || !result, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(datasize < SIGNATURE_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a signature and one byte extra")
+	FAILIF(!ctx || !data || !pubkey || !result, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(datasize < SIGNATURE_SIZE + 1, MR_E_INVALIDSIZE, "The data size was too small. Must be at least the size of a signature and one byte extra");
 
 	*result = false;
 	uint8_t sha[DIGEST_SIZE];
@@ -124,17 +124,17 @@ static mr_result verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize,
 
 static mr_result crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uint8_t* key, uint32_t keysize, const uint8_t* iv, uint32_t ivsize)
 {
-	FAILIF(!ctx || !data || !key || !iv, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(datasize < 1, MR_E_INVALIDSIZE, "At least one byte of data must be specified")
-	FAILIF(keysize != KEY_SIZE && keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid")
-	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The IV size was to small")
+	FAILIF(!ctx || !data || !key || !iv, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(datasize < 1, MR_E_INVALIDSIZE, "At least one byte of data must be specified");
+	FAILIF(keysize != KEY_SIZE && keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
+	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The IV size was to small");
 
 	LOGD("crypt with iv         ", iv, ivsize);
 	LOGD("crypt with key        ", key, keysize);
 
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
-	FAILIF(!aes, MR_E_NOMEM, "Could not allocate AES")
+	FAILIF(!aes, MR_E_NOMEM, "Could not allocate AES");
 	mr_result result = MR_E_SUCCESS;
 	_R(result, mr_aes_init(aes, key, keysize));
 	_R(result, aesctr_init(&cipher, aes, iv, ivsize));
@@ -164,8 +164,8 @@ mr_ctx mr_ctx_create(const mr_config* config)
 mr_result mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity, bool destroy_with_context)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
-	FAILIF(!ctx, MR_E_INVALIDARG, "The context given was null")
-	FAILIF(!identity, MR_E_INVALIDARG, "The identity given was null")
+	FAILIF(!ctx, MR_E_INVALIDARG, "The context given was null");
+	FAILIF(!identity, MR_E_INVALIDARG, "The identity given was null");
 	
 	ctx->identity = identity;
 	ctx->owns_identity = destroy_with_context;
@@ -174,11 +174,11 @@ mr_result mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity, bool destroy_w
 
 static mr_result send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	FAILIF(!ctx || !output, MR_E_INVALIDARG, "Some of the required parameters were null")
-	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can send an initialization request")
-	FAILIF(spaceavail < INIT_REQ_MSG_SIZE, MR_E_INVALIDSIZE, "The space avaialble was less than the minimum init request message size")
-	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity")
-	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null")
+	FAILIF(!ctx || !output, MR_E_INVALIDARG, "Some of the required parameters were null");
+	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can send an initialization request");
+	FAILIF(spaceavail < INIT_REQ_MSG_SIZE, MR_E_INVALIDSIZE, "The space avaialble was less than the minimum init request message size");
+	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
+	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
 	LOG("--send_initialization_request");
 
@@ -235,7 +235,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 	FAILIF(amount < INIT_REQ_MSG_SIZE, MR_E_INVALIDSIZE, "The space amount of data was less than the minimum init request message size");
 	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can receive an init request");
 	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
-	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null")
+	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	LOG("--receive_initialization_request");
 
@@ -294,10 +294,10 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 {
 	FAILIF(!ctx || !initializationnonce || !remoteecdhforinit || !output, MR_E_INVALIDARG, "Some of the required parameters were null");
 	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can send an initialization response");
-	FAILIF(initializationnoncesize != INITIALIZATION_NONCE_SIZE, MR_E_INVALIDSIZE, "The initialization nonce size was invalid")
-	FAILIF(remoteecdhforinitsize != ECNUM_SIZE, MR_E_INVALIDSIZE, "The ECDH public key was of an incorrect size")
-	FAILIF(spaceavail < INIT_RES_MSG_SIZE, MR_E_INVALIDSIZE, "The amount of space available is less than the minimum space required for an initialization response")
-	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null")
+	FAILIF(initializationnoncesize != INITIALIZATION_NONCE_SIZE, MR_E_INVALIDSIZE, "The initialization nonce size was invalid");
+	FAILIF(remoteecdhforinitsize != ECNUM_SIZE, MR_E_INVALIDSIZE, "The ECDH public key was of an incorrect size");
+	FAILIF(spaceavail < INIT_RES_MSG_SIZE, MR_E_INVALIDSIZE, "The amount of space available is less than the minimum space required for an initialization response");
+	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	LOG("--send_initialization_response");
 
@@ -321,7 +321,7 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	LOGD("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
 	mr_ecdh_ctx rootPreEcdh = mr_ecdh_create(ctx);
-	FAILIF(!rootPreEcdh, MR_E_NOMEM, "Could not allocate ECDH parameters")
+	FAILIF(!rootPreEcdh, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	mr_result result = MR_E_SUCCESS;
 	_R(result, mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
 	LOGD("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
@@ -347,12 +347,12 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	// chain key as soon as the client sends a sending chain key
 	uint8_t rre0[ECNUM_SIZE];
 	ctx->init.server->localratchetstep0 = mr_ecdh_create(ctx);
-	FAILIF(!ctx->init.server->localratchetstep0, MR_E_NOMEM, "Could not allocate ECDH parameters")
+	FAILIF(!ctx->init.server->localratchetstep0, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep0, rre0, sizeof(rre0)));
 	LOGD("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
 	ctx->init.server->localratchetstep1 = mr_ecdh_create(ctx);
-	FAILIF(!ctx->init.server->localratchetstep1, MR_E_NOMEM, "Could not allocate ECDH parameters")
+	FAILIF(!ctx->init.server->localratchetstep1, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep1, rre1, sizeof(rre1)));
 	LOGD("rre1                  ", rre1, ECNUM_SIZE);
 
@@ -405,10 +405,10 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* data, uint32_t amount)
 {
-	FAILIF(!ctx || !data, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can receive an initialization response")
-	FAILIF(amount < INIT_RES_MSG_SIZE, MR_E_INVALIDARG, "The message was smaller than the minimum init response message size")
-	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null")
+	FAILIF(!ctx || !data, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can receive an initialization response");
+	FAILIF(amount < INIT_RES_MSG_SIZE, MR_E_INVALIDARG, "The message was smaller than the minimum init response message size");
+	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
 	uint32_t macOffset = amount - MAC_SIZE;
 	uint32_t ecdhOffset = INITIALIZATION_NONCE_SIZE;
@@ -469,12 +469,12 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	mr_result result = MR_E_SUCCESS;
 	uint8_t localStep0Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep0 = mr_ecdh_create(ctx);
-	FAILIF(!localStep0, MR_E_NOMEM, "Could not allocate ECDH parameters")
+	FAILIF(!localStep0, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_R(result, mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
 	LOGD("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
 	uint8_t localStep1Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
-	FAILIF(!localStep1, MR_E_NOMEM, "Could not allocate ECDH parameters")
+	FAILIF(!localStep1, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_R(result, mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
 	LOGD("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
 
@@ -520,8 +520,8 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 
 static mr_result send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can send the first message")
-	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null")
+	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can send the first message");
+	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
 	_mr_ratchet_state* secondToLast;
 	_C(ratchet_getsecondtolast(ctx, &secondToLast));
@@ -533,8 +533,8 @@ static mr_result send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32
 
 static mr_result receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint32_t amount)
 {
-	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can receive the first client message")
-	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null")
+	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can receive the first client message");
+	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	uint8_t* payload = 0;
 	uint32_t payloadSize = 0;
@@ -554,8 +554,8 @@ static mr_result receive_first_client_message(_mr_ctx* ctx, uint8_t* data, uint3
 
 static mr_result send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
 {
-	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can send the first server response")
-	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null")
+	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can send the first server response");
+	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
 	_mr_ratchet_state *laststep;
@@ -569,8 +569,8 @@ static mr_result receive_first_server_response(_mr_ctx* ctx, uint8_t* data, uint
 	const uint8_t* headerkey, uint32_t headerkeysize,
 	_mr_ratchet_state* step)
 {
-	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can receive the first server response")
-	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null")
+	FAILIF(!ctx->config.is_client, MR_E_INVALIDOP, "Only the client can receive the first server response");
+	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
 
 	uint8_t* payload = 0;
@@ -593,11 +593,11 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	bool includeecdh,
 	_mr_ratchet_state* step)
 {
-	FAILIF(!ctx || !message, MR_E_INVALIDARG, "Some of the required arguments were null")
-	FAILIF(includeecdh && spaceavail < MIN_MESSAGE_SIZE_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the total message will be at least 64 bytes")
-	FAILIF(!includeecdh && spaceavail < MIN_MESSAGE_SIZE, MR_E_INVALIDSIZE, "When ECDH is not included the total message will be at least 32 bytes")
-	FAILIF(includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the message there must be at least 48 bytes of extra space")
-	FAILIF(!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "When ECDH is not included there must be at least 16 bytes of extra space")
+	FAILIF(!ctx || !message, MR_E_INVALIDARG, "Some of the required arguments were null");
+	FAILIF(includeecdh && spaceavail < MIN_MESSAGE_SIZE_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the total message will be at least 64 bytes");
+	FAILIF(!includeecdh && spaceavail < MIN_MESSAGE_SIZE, MR_E_INVALIDSIZE, "When ECDH is not included the total message will be at least 32 bytes");
+	FAILIF(includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the message there must be at least 48 bytes of extra space");
+	FAILIF(!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "When ECDH is not included there must be at least 16 bytes of extra space");
 
 	LOG("--construct_message");
 
@@ -727,14 +727,14 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	_mr_ratchet_state* step,
 	bool usedNextKey)
 {
-	FAILIF(amount < MIN_MESSAGE_SIZE, MR_E_INVALIDSIZE, "A valid message is at least 16 bytes long")
+	FAILIF(amount < MIN_MESSAGE_SIZE, MR_E_INVALIDSIZE, "A valid message is at least 16 bytes long");
 
 	uint32_t headerIvOffset = amount - MAC_SIZE - HEADERIV_SIZE;
 
 	// decrypt the header
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
-	FAILIF(!aes, MR_E_NOMEM, "Could not allocate AES")
+	FAILIF(!aes, MR_E_NOMEM, "Could not allocate AES");
 	mr_result result = MR_E_SUCCESS;
 	_R(result, mr_aes_init(aes, headerkey, headerkeysize));
 	_R(result, aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
@@ -797,7 +797,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 			{
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
-				FAILIF(!newEcdh, MR_E_NOMEM, "Could not allocate ECDH paramters")
+				FAILIF(!newEcdh, MR_E_NOMEM, "Could not allocate ECDH paramters");
 				mr_result result = MR_E_SUCCESS;
 				_R(result, mr_ecdh_generate(newEcdh, 0, 0));
 
@@ -957,11 +957,11 @@ mr_result mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t
 mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, uint32_t spaceavailable, uint8_t** payload, uint32_t* payloadsize)
 {
 	_mr_ctx* ctx = _ctx;
-	FAILIF(!ctx, MR_E_INVALIDARG, "Context must be provided")
-	FAILIF(!message, MR_E_INVALIDARG, "Message must be provided")
-	FAILIF(messagesize < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The message size must be at least 32 bytes")
-	FAILIF(spaceavailable < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The space available must be at least 32 bytes")
-	FAILIF(spaceavailable < messagesize, MR_E_INVALIDARG, "The space available must be at least as much as the message size")
+	FAILIF(!ctx, MR_E_INVALIDARG, "Context must be provided");
+	FAILIF(!message, MR_E_INVALIDARG, "Message must be provided");
+	FAILIF(messagesize < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The message size must be at least 32 bytes");
+	FAILIF(spaceavailable < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The space available must be at least 32 bytes");
+	FAILIF(spaceavailable < messagesize, MR_E_INVALIDARG, "The space available must be at least as much as the message size");
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT RECEIVE");
 	else LOG("\n\n====SERVER RECEIVE");
@@ -1043,10 +1043,10 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
 {
 	_mr_ctx* ctx = _ctx;
-	FAILIF(!ctx, MR_E_INVALIDARG, "The context must be provided")
-	FAILIF(!payload, MR_E_INVALIDARG, "The payload must be provided")
-	FAILIF(!ctx->init.initialized, MR_E_INVALIDOP, "The session has not been initialized and cannot send yet")
-	FAILIF(spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "The amount of space available must be at least 16 bytes.")
+	FAILIF(!ctx, MR_E_INVALIDARG, "The context must be provided");
+	FAILIF(!payload, MR_E_INVALIDARG, "The payload must be provided");
+	FAILIF(!ctx->init.initialized, MR_E_INVALIDOP, "The session has not been initialized and cannot send yet");
+	FAILIF(spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "The amount of space available must be at least 16 bytes.");
 
 	if (ctx->config.is_client) LOG("\n\n====CLIENT SEND");
 	else LOG("\n\n====SERVER SEND");

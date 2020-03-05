@@ -19,3 +19,6 @@ add_library(microratchetopenssl STATIC ${SOURCES})
 find_package(OpenSSL REQUIRED)
 target_link_libraries(microratchetopenssl INTERFACE OpenSSL::SSL)
 target_link_libraries(microratchetopenssl INTERFACE OpenSSL::Crypto)
+
+
+target_include_directories(microratchetopenssl PUBLIC "c:\\tools\\openssl\\include")

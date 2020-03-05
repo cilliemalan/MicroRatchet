@@ -64,35 +64,6 @@ TEST(Ecdsa, Sign) {
 	mr_ctx_destroy(mr_ctx);
 }
 
-TEST(Ecdsa, Verify) {
-	uint8_t pubkey[32];
-	uint8_t signature[64];
-	const uint8_t digest[32] = {
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-		0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-	};
-	memset(pubkey, 0xCC, sizeof(pubkey));
-	memset(signature, 0xCC, sizeof(signature));
-
-	auto mr_ctx = mr_ctx_create(&_cfg);
-	auto ecdsa = mr_ecdsa_create(mr_ctx);
-	int result = mr_ecdsa_generate(ecdsa, pubkey, SIZEOF(pubkey));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-
-	result = mr_ecdsa_sign(ecdsa, digest, SIZEOF(digest), signature, SIZEOF(signature));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-
-	uint32_t res;
-	result = mr_ecdsa_verify(ecdsa, (const uint8_t*)signature, SIZEOF(signature), digest, SIZEOF(digest), &res);
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_EQ(true, res);
-
-	mr_ecdsa_destroy(ecdsa);
-	mr_ctx_destroy(mr_ctx);
-}
-
 TEST(Ecdsa, VerifyOther) {
 	uint8_t pubkey[32];
 	uint8_t signature[64];

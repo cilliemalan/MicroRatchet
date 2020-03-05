@@ -4,9 +4,9 @@
 
 mr_result kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t outputlen)
 {
-	FAILIF(!mr_ctx || !key || !output, MR_E_INVALIDARG, "!mr_ctx || !key || !output")
-	FAILIF(keylen != 16 && keylen != 24 && keylen != 32, MR_E_INVALIDSIZE, "keylen != 16 && keylen != 24 && keylen != 32")
-	FAILIF(outputlen == 0, MR_E_SUCCESS, "outputlen == 0")
+	FAILIF(!mr_ctx || !key || !output, MR_E_INVALIDARG, "!mr_ctx || !key || !output");
+	FAILIF(keylen != 16 && keylen != 24 && keylen != 32, MR_E_INVALIDSIZE, "keylen != 16 && keylen != 24 && keylen != 32");
+	FAILIF(outputlen == 0, MR_E_SUCCESS, "outputlen == 0");
 
 	int r = MR_E_SUCCESS;
 

@@ -40,17 +40,17 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t *output, uint32_t outputsize)
 {
 	_mr_rng_ctx *ctx = _ctx;
-	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1")
-	FAILIF(!output, MR_E_INVALIDARG, "!output")
+	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1");
+	FAILIF(!output, MR_E_INVALIDARG, "!output");
 
 	if (ctx->rng.seed.RNGSEEDHANDLEFIELD == 0)
 	{
 		int r = wc_InitRng(&ctx->rng);
-		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	}
 
 	int r = wc_RNG_GenerateBlock(&ctx->rng, output, outputsize);
-	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0")
+	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	return MR_E_SUCCESS;
 }
 

@@ -299,4 +299,36 @@ TEST(Ecc, SignVerifyInvalid) {
 	ecc_free_point(&point);
 }
 
+TEST(Ecc, SignVerifyOther) {
+
+	uint8_t digest[32] = {
+		1,2,3,4,5,6,7,8,
+		9,10,11,12,13,14,15,16,
+		17, 18, 19, 20, 21, 22, 23, 24,
+		25, 26, 27, 28, 29, 30, 31, 32
+	};
+
+	ecc_key key{};
+	uint8_t pub[32];
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, pub, sizeof(pub)));
+
+	uint8_t signature[64] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_sign(&key,
+		digest, sizeof(digest),
+		signature, sizeof(signature)));
+
+	uint32_t valid = false;
+	EXPECT_EQ(MR_E_SUCCESS, ecc_verify_other(
+		signature, sizeof(signature),
+		digest, sizeof(digest),
+		pub, sizeof(pub),
+		&valid));
+	EXPECT_EQ(1, !!valid);
+
+	ecc_free(&key);
+}
+
 #endif
