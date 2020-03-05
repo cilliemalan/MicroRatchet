@@ -331,4 +331,28 @@ TEST(Ecc, SignVerifyOther) {
 	ecc_free(&key);
 }
 
+TEST(Ecc, ComputeShared) {
+
+	ecc_key key1{};
+	ecc_key key2{};
+	uint8_t pubkey1[32];
+	uint8_t pubkey2[32];
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key1));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key2));
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key1, pubkey1, sizeof(pubkey1)));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key2, pubkey2, sizeof(pubkey2)));
+
+	uint8_t derived1[32];
+	uint8_t derived2[32];
+	EXPECT_EQ(MR_E_SUCCESS, ecc_derivekey(&key1, pubkey2, SIZEOF(pubkey2), derived1, SIZEOF(derived1)));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_derivekey(&key2, pubkey1, SIZEOF(pubkey1), derived2, SIZEOF(derived2)));
+
+	EXPECT_BUFFEREQ(derived1, sizeof(derived1), derived2, sizeof(derived2));
+
+	ecc_free(&key1);
+	ecc_free(&key2);
+}
+
 #endif
