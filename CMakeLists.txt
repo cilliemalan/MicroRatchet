@@ -98,12 +98,10 @@ add_subdirectory(c/libmicroratchet)
 add_subdirectory(c/microratchetwolfssl)
 add_subdirectory(c/wolfssl)
 # mbedtls
-set (ENABLE_PROGRAMS OFF)
+option (ENABLE_PROGRAMS OFF)
 add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
 # openssl
-set(BUILD_OPENSSL ON CACHE BOOL "Automated OpenSSL building")
-add_subdirectory(thirdparty/openssl)
 add_subdirectory(c/microratchetopenssl)
 
 # mbed config
