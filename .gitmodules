@@ -10,7 +10,3 @@
 	path = thirdparty/mbed-crypto
 	url = https://github.com/ARMmbed/mbed-crypto
 	branch = master
-[submodule "thirdparty/openssl"]
-	path = thirdparty/openssl
-	url = https://github.com/viaduck/openssl-cmake.git
-	branch = master
