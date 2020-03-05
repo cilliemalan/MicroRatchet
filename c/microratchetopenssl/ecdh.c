@@ -10,25 +10,36 @@ typedef struct {
 mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 {
 	_mr_ecdh_ctx* ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_ecdh_ctx), (void**)&ctx);
+	mr_result r = mr_allocate(mr_ctx, sizeof(_mr_ecdh_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	ctx->mr_ctx = mr_ctx;
-	ctx->key = (ecc_key){ 0 };
+	*ctx = (_mr_ecdh_ctx){
+		.mr_ctx = mr_ctx,
+		.key = {0}
+	};
+
+	r = ecc_new(&ctx->key);
+	if (r != MR_E_SUCCESS)
+	{
+		mr_free(mr_ctx, ctx);
+		return 0;
+	}
+
 	return ctx;
 }
 
 mr_result mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
+	FAILIF(!_ctx, MR_E_INVALIDARG, "!_ctx");
 	_mr_ecdh_ctx* ctx = _ctx;
 
-	int result = ecc_generate(&ctx->key, publickey, publickeyspaceavail);
-	if (result != 0) return result;
-	return MR_E_NOTIMPL;
+	return ecc_generate(&ctx->key, publickey, publickeyspaceavail);
 }
 
 uint32_t mr_ecdh_load(mr_ecdh_ctx _ctx, const uint8_t* data, uint32_t spaceavail)
 {
+	FAILIF(!_ctx, MR_E_INVALIDARG, "!_ctx");
+
 	_mr_ecdh_ctx* ctx = _ctx;
 	ecc_key* key = &ctx->key;
 	return ecc_load(key, data, spaceavail);
@@ -42,10 +53,7 @@ mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uin
 	FAILIF(derivedkeyspaceavail < 32, MR_E_INVALIDSIZE, "derivedkeyspaceavail < 32");
 
 	ecc_point pub;
-	int result = ecc_import_public(otherpublickey, otherpublickeysize, &pub);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
-
-	return MR_E_NOTIMPL;
+	return ecc_derivekey(&ctx->key, otherpublickey, otherpublickeysize, derivedkey, derivedkeyspaceavail);
 }
 
 uint32_t mr_ecdh_store_size_needed(mr_ecdh_ctx _ctx)
@@ -59,8 +67,7 @@ mr_result mr_ecdh_store(mr_ecdh_ctx _ctx, uint8_t* data, uint32_t spaceavail)
 	_mr_ecdh_ctx* ctx = _ctx;
 	int len = ecc_store_size_needed(&ctx->key);
 	FAILIF(len < 0 || (uint32_t)len > spaceavail, MR_E_INVALIDSIZE, "len < 0 || (uint32_t)len > spaceavail");
-	mr_result result = ecc_store(&ctx->key, data, spaceavail);
-	return result;
+	return ecc_store(&ctx->key, data, spaceavail);
 }
 
 
@@ -71,8 +78,8 @@ mr_result mr_ecdh_setprivatekey(mr_ecdh_ctx _ctx, const uint8_t* privatekey, uin
 	FAILIF(!privatekey || !ctx, MR_E_INVALIDARG, "!privatekey || !ctx");
 
 	ecc_key* key = &ctx->key;
-	int result = ecc_load(key, privatekey, privatekeysize);
-	if (result != 32) return result;
+	int r = ecc_load(key, privatekey, privatekeysize);
+	FAILIF(r != 32, MR_E_INVALIDOP, "Failed to load private key");
 	return MR_E_SUCCESS;
 }
 
@@ -90,7 +97,10 @@ void mr_ecdh_destroy(mr_ecdh_ctx ctx)
 	if (ctx)
 	{
 		_mr_ecdh_ctx* _ctx = (_mr_ecdh_ctx*)ctx;
-		*_ctx = (_mr_ecdh_ctx){0};
+
+		ecc_free(&_ctx->key);
+
+		*_ctx = (_mr_ecdh_ctx){ 0 };
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }
