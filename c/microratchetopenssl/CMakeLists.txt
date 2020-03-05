@@ -15,4 +15,7 @@ set(SOURCES
 include_directories(../libmicroratchet)
 
 add_library(microratchetopenssl STATIC ${SOURCES})
-target_link_libraries(microratchetopenssl crypto)
+
+find_package(OpenSSL REQUIRED)
+target_link_libraries(microratchetopenssl INTERFACE OpenSSL::SSL)
+target_link_libraries(microratchetopenssl INTERFACE OpenSSL::Crypto)
