@@ -36,7 +36,7 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 	BIGNUM* x = BN_bin2bn(otherpublickey, 32, 0);
 	int success = !!x;
 
-	if (success) success = EC_POINT_set_compressed_coordinates(g_secp256r1, pub->point, x, 1, NULL);
+	if (success) success = EC_POINT_set_compressed_coordinates(g_secp256r1, pub->point, x, 0, NULL);
 
 	if (x) BN_free(x);
 
@@ -166,6 +166,7 @@ mr_result ecc_verify(const ecc_point* pub, const uint8_t* signature, uint32_t si
 	FAILIF(!pub || !digest || !signature || !signaturesize, MR_E_INVALIDARG, "!key || !digest || !signature || !signaturesize");
 	FAILIF(!pub->point, MR_E_INVALIDARG, "!pub->point");
 	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64");
+	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digestsize != 32");
 
 	// not efficient but won't break down the line.
 	// we don't have a mutable interface to the r and s inside sig
@@ -193,6 +194,25 @@ mr_result ecc_verify(const ecc_point* pub, const uint8_t* signature, uint32_t si
 	return MR_E_SUCCESS;
 }
 
+mr_result ecc_verify_other(const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, const uint8_t* publickey, uint32_t publickeysize, uint32_t* result)
+{
+	FAILIF(!publickey || !digest || !signature || !signaturesize, MR_E_INVALIDARG, "!publickey || !digest || !signature || !signaturesize");
+	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64");
+	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digestsize != 32");
+	FAILIF(publickeysize != 32, MR_E_INVALIDSIZE, "publickeysize != 32");
+
+	ecc_point p;
+	mr_result r = ecc_new_point(&p);
+	if (r) return r;
+
+	r = ecc_import_public(publickey, publickeysize, &p);
+	if (r == MR_E_SUCCESS) r = ecc_verify(&p, signature, signaturesize, digest, digestsize, result);
+
+	ecc_free_point(&p);
+
+	return r;
+}
+
 mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
 	FAILIF(!key || !publickey, MR_E_INVALIDARG, "!key || !publickey");
@@ -202,7 +222,7 @@ mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeys
 	BIGNUM* x = BN_new();
 	BIGNUM* y = BN_new();
 
-	EC_POINT* p = EC_KEY_get0_public_key(key->key);
+	const EC_POINT* p = EC_KEY_get0_public_key(key->key);
 	int success = x && y && p;
 
 	if (success) success = EC_POINT_get_affine_coordinates(g_secp256r1, p, x, y, NULL);
