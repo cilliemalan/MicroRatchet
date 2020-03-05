@@ -147,3 +147,156 @@ TEST(Ecc, Sqrt) {
 }
 
 #endif
+
+
+#ifdef OPENSSL
+
+
+#include "../microratchetopenssl/ecc_common.h"
+static uint8_t zeroes[32] = { 0 };
+
+TEST(Ecc, CreateDestroy) {
+	ecc_key key{};
+	ecc_point point{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+	EXPECT_NE(nullptr, key.key);
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&point));
+	EXPECT_NE(nullptr, point.point);
+
+	ecc_free(&key);
+	ecc_free_point(&point);
+
+	EXPECT_EQ(nullptr, key.key);
+	EXPECT_EQ(nullptr, point.point);
+}
+
+TEST(Ecc, Generate) {
+	ecc_key key{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+
+	uint8_t pub[32] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, pub, sizeof(pub)));
+
+	EXPECT_BUFFERNES(zeroes, pub);
+
+
+	ecc_free(&key);
+}
+
+TEST(Ecc, StoreLoad) {
+	ecc_key key1{};
+	ecc_key key2{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key1));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key2));
+
+	uint8_t pub1[32] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key1, pub1, sizeof(pub1)));
+
+	uint8_t d[32] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_store(&key1, d, sizeof(d)));
+	EXPECT_BUFFERNES(zeroes, d);
+
+	EXPECT_EQ(32, ecc_load(&key2, d, sizeof(d)));
+
+	uint8_t pub2[32] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_getpublickey(&key2, pub2, sizeof(pub2)));
+	EXPECT_BUFFEREQS(pub1, pub2);
+
+
+	ecc_free(&key1);
+	ecc_free(&key2);
+}
+
+TEST(Ecc, ImportPublic) {
+	ecc_key key{};
+	ecc_point pnt{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&pnt));
+
+	uint8_t pub[32] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, pub, sizeof(pub)));
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_import_public(pub, sizeof(pub), &pnt));
+
+
+	ecc_free(&key);
+	ecc_free_point(&pnt);
+}
+
+TEST(Ecc, SignVerify) {
+
+	uint8_t digest[32] = {
+		1,2,3,4,5,6,7,8,
+		9,10,11,12,13,14,15,16,
+		17, 18, 19, 20, 21, 22, 23, 24,
+		25, 26, 27, 28, 29, 30, 31, 32
+	};
+
+	ecc_key key{};
+	ecc_point point{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&point));
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, 0, 0));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_getpublickey_point(&key, &point));
+
+	uint8_t signature[64] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_sign(&key,
+		digest, sizeof(digest),
+		signature, sizeof(signature)));
+
+	uint32_t valid = false;
+	EXPECT_EQ(MR_E_SUCCESS, ecc_verify(&point,
+		signature, sizeof(signature),
+		digest, sizeof(digest),
+		&valid));
+	EXPECT_EQ(1, !!valid);
+
+	ecc_free(&key);
+	ecc_free_point(&point);
+}
+
+TEST(Ecc, SignVerifyInvalid) {
+
+	uint8_t digest[32] = {
+		1,2,3,4,5,6,7,8,
+		9,10,11,12,13,14,15,16,
+		17, 18, 19, 20, 21, 22, 23, 24,
+		25, 26, 27, 28, 29, 30, 31, 32
+	};
+
+	ecc_key key{};
+	ecc_point point{};
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&point));
+
+	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, 0, 0));
+	EXPECT_EQ(MR_E_SUCCESS, ecc_getpublickey_point(&key, &point));
+
+	uint8_t signature[64] = { 0 };
+	EXPECT_EQ(MR_E_SUCCESS, ecc_sign(&key,
+		digest, sizeof(digest),
+		signature, sizeof(signature)));
+
+	// corrupt the signature
+	signature[10]++;
+
+	uint32_t valid = false;
+	EXPECT_EQ(MR_E_SUCCESS, ecc_verify(&point,
+		signature, sizeof(signature),
+		digest, sizeof(digest),
+		&valid));
+	EXPECT_EQ(0, !!valid);
+
+	ecc_free(&key);
+	ecc_free_point(&point);
+}
+
+#endif
