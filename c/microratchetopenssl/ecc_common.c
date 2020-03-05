@@ -101,7 +101,7 @@ uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t size)
 
 	// allocate
 	int success = true;
-	d = BN_bin2bn(data, size, 0);
+	d = BN_bin2bn(data, 32, 0);
 	p = EC_POINT_new(g_secp256r1);
 	success = d && p;
 
@@ -211,6 +211,28 @@ mr_result ecc_verify_other(const uint8_t* signature, uint32_t signaturesize, con
 	ecc_free_point(&p);
 
 	return r;
+}
+
+mr_result ecc_derivekey(const ecc_key* key, const uint8_t* otherpublickey, uint32_t otherpublickeysize, uint8_t* derivedkey, uint32_t derivedkeyspaceavail)
+{
+	ecc_point point;
+	mr_result r = ecc_new_point(&point);
+	if (r) return r;
+
+	r = ecc_import_public(otherpublickey, otherpublickeysize, &point);
+
+	int success = 0;
+	if (r == MR_E_SUCCESS)
+	{
+		success = ECDH_compute_key(derivedkey, derivedkeyspaceavail,
+			point.point, key->key,
+			NULL) != 0;
+	}
+
+	ecc_free_point(&point);
+	
+	FAILIF(r != MR_E_SUCCESS || success == 0, MR_E_INVALIDOP, "Could not compute shared secret");
+	return MR_E_SUCCESS;
 }
 
 mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail)
