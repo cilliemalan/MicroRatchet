@@ -1,6 +1,6 @@
 #include "pch.h"
 #include <microratchet.h>
-
+#include <openssl/rand.h>
 
 typedef struct
 {
@@ -24,7 +24,10 @@ mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1");
 	FAILIF(!output, MR_E_INVALIDARG, "!output");
 
-	return MR_E_NOTIMPL;
+	int r = RAND_bytes(output, outputsize);
+	FAILIF(r != 1, MR_E_INVALIDOP, "Could not generate random numbers");
+
+	return MR_E_SUCCESS;
 }
 
 void mr_rng_destroy(mr_rng_ctx _ctx)
