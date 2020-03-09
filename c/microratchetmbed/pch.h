@@ -24,3 +24,10 @@ int _write(int file, char *ptr, int len);
 #else
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
 #endif
+
+
+#ifndef __cplusplus
+#ifndef static_assert
+#define static_assert _Static_assert
+#endif
+#endif

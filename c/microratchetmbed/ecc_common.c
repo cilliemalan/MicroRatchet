@@ -7,6 +7,7 @@
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/ecdsa.h>
 
+
 mbedtls_ecp_group secp256r1_gp = { 0 };
 
 static const uint32_t P[8] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0xFFFFFFFF };
@@ -631,7 +632,7 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 		0x00000001,
 		0xFFFFFFFF
 	};
-	uint32_t t1[8] = { 0 };
+	//uint32_t t1[8] = { 0 };
 	uint32_t B[8], x[8];
 	// TODO: less temporaries
 	uint32_t a[8], b[8], c[8], d[8], y[8];
