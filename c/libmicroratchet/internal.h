@@ -47,6 +47,10 @@ extern "C" {
 #undef _C
 #endif
 
+#ifdef _R
+#undef _R
+#endif
+
 
 #define _C(x) { int __r = x; if(__r != MR_E_SUCCESS) return __r; }
 #define _R(r, x) if (r == MR_E_SUCCESS) r = x;
