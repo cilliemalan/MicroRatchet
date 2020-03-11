@@ -26,8 +26,6 @@ int _write(int file, char *ptr, int len);
 #endif
 
 
-#ifndef __cplusplus
-#ifndef static_assert
+#if defined(__GNUC__) && !defined(__cplusplus) && !defined(static_assert)
 #define static_assert _Static_assert
-#endif
 #endif
