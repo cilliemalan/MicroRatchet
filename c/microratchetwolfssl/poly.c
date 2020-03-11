@@ -87,7 +87,8 @@ void mr_poly_destroy(mr_poly_ctx ctx)
 	if (ctx)
 	{
 		_mr_poly_ctx* _ctx = (_mr_poly_ctx*)ctx;
+		mr_ctx mrctx = _ctx->mr_ctx;
 		memset(_ctx , 0, sizeof(_mr_poly_ctx));
-		mr_free(_ctx->mr_ctx, _ctx);
+		mr_free(mrctx, _ctx);
 	}
 }

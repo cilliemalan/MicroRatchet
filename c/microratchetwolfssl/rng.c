@@ -62,8 +62,9 @@ void mr_rng_destroy(mr_rng_ctx _ctx)
 	{
 		_mr_rng_ctx *ctx = _ctx;
 		wc_FreeRng(&ctx->rng);
+		mr_ctx mrctx = ctx->mr_ctx;
 		memset(ctx , 0, sizeof(_mr_rng_ctx));
-		mr_free(ctx->mr_ctx, ctx);
+		mr_free(mrctx, ctx);
 	}
 }
 

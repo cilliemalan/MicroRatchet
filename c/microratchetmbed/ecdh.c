@@ -124,9 +124,10 @@ void mr_ecdh_destroy(mr_ecdh_ctx _ctx)
 	if (_ctx)
 	{
 		_mr_ecdh_ctx* ctx = (_mr_ecdh_ctx*)_ctx;
+		mr_ctx mrctx = ctx->mr_ctx;
 		memset(ctx , 0, sizeof(_mr_ecdh_ctx));
 		mbedtls_entropy_free(&ctx->entropy);
 		mbedtls_ctr_drbg_free(&ctx->ctr_drbg);
-		mr_free(ctx->mr_ctx, ctx);
+		mr_free(mrctx, ctx);
 	}
 }
