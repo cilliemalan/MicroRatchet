@@ -7,8 +7,9 @@ mr_result aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, ui
 {
 	FAILIF(!iv || !ctx || !aes, MR_E_INVALIDARG, "!iv || !ctx || !aes");
 
-	*ctx = (_mr_aesctr_ctx){ aes };
+	ctx->aes_ctx = aes;
 	memcpy(ctx->ctr, iv, ivsize > 16 ? 16 : ivsize);
+	ctx->ctrix = 0;
 	
 	return MR_E_SUCCESS;
 }

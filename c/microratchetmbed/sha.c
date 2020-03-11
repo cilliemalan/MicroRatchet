@@ -55,7 +55,7 @@ void mr_sha_destroy(mr_sha_ctx ctx)
 	if (ctx)
 	{
 		_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
-		*_ctx = (_mr_sha_ctx){ 0 };
+		memset(_ctx , 0, sizeof(_mr_sha_ctx));
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

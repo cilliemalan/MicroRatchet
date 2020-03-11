@@ -48,10 +48,9 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_poly_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	*ctx = (_mr_poly_ctx){
-		.mr_ctx = mr_ctx,
-        .poly = {0}
-	};
+    memset(ctx, 0, sizeof(_mr_poly_ctx));
+    ctx->mr_ctx = mr_ctx;
+
 	return ctx;
 }
 
@@ -102,7 +101,7 @@ void mr_poly_destroy(mr_poly_ctx ctx)
 	if (ctx)
 	{
 		_mr_poly_ctx* _ctx = (_mr_poly_ctx*)ctx;
-		*_ctx = (_mr_poly_ctx){ 0 };
+		memset(_ctx , 0, sizeof(_mr_poly_ctx));
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

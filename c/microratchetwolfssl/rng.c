@@ -33,7 +33,9 @@ mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 	if (r != MR_E_SUCCESS)
 		return 0;
 
-	*ctx = (_mr_rng_ctx){mr_ctx};
+    memset(ctx, 0, sizeof(_mr_rng_ctx));
+    ctx->mr_ctx = mr_ctx;
+
 	return ctx;
 }
 
@@ -60,7 +62,7 @@ void mr_rng_destroy(mr_rng_ctx _ctx)
 	{
 		_mr_rng_ctx *ctx = _ctx;
 		wc_FreeRng(&ctx->rng);
-		*ctx = (_mr_rng_ctx){0};
+		memset(ctx , 0, sizeof(_mr_rng_ctx));
 		mr_free(ctx->mr_ctx, ctx);
 	}
 }

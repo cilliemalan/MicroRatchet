@@ -420,8 +420,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 
 				_mr_initialization_state_client* c = ctx->init.client;
 
-
-				*c = (_mr_initialization_state_client){{ 0 }};
+				memset(c, 0, sizeof(_mr_initialization_state_client));
 
 				if (mainheader & HAS_INITIALIZATION_NONCE_BIT)
 				{
@@ -448,7 +447,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 				if (!ctx->init.server)
 				{
 					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
-					*ctx->init.server = (_mr_initialization_state_server){{ 0 }};
+					memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
 				}
 				else
 				{
@@ -464,8 +463,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 
 				_mr_initialization_state_server* c = ctx->init.server;
 
-
-				*c = (_mr_initialization_state_server){{ 0 }};
+				memset(c, 0, sizeof(_mr_initialization_state_server));
 
 				if (mainheader & HAS_NEXT_INITIALIZATION_NONCE_BIT)
 				{
@@ -521,7 +519,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 			mr_ecdh_destroy(r->ecdhkey);
 		}
 
-		*r = (_mr_ratchet_state){ 0 };
+		memset(r , 0, sizeof(_mr_ratchet_state));
 
 		if (i < numRatchets)
 		{
