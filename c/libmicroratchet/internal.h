@@ -62,8 +62,10 @@ extern "C" {
 #define STRINGIZE2(x) #x
 #define LINE_STRING STRINGIZE(__LINE__)
 
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__linux__) && !defined(__unix__) && !defined(_POSIX_VERSION)
 int _write(int file, char *ptr, int len);
-#define _MYWRITE(x) _write((int)stdout, x, sizeof(x))
+#endif
+#define _MYWRITE(x) _write((int)(size_t)stdout, x, sizeof(x))
 
 #define FAILIF(condition, error, messageonfailure) if (condition) { _MYWRITE(__FILE__ ":" LINE_STRING " " messageonfailure); return (error); }
 #define FAILMSG(error, messageonfailure) _MYWRITE(__FILE__ ":" LINE_STRING " " messageonfailure); return (error);
