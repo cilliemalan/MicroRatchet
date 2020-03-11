@@ -134,18 +134,22 @@ void allocate_and_clear(mr_ctx ctx, T** ptr)
 #define FILLRANDOM(wut) mr_rng_generate(ctx->rng_ctx, wut, sizeof(wut))
 #define CREATEECDH(wut) wut = mr_ecdh_create(ctx); mr_ecdh_generate(wut, nullptr, 0);
 #define RANDOMDATA(variable, howmuch) uint8_t variable[howmuch]; mr_rng_generate(rng, variable, sizeof(variable));
-#define RECREATE(ctx) { \
-	uint8_t* __storage = new uint8_t[2048]; \
-	mr_config __cfg = ((_mr_ctx*)(ctx))->config; \
-	mr_ecdsa_ctx __identity = ((_mr_ctx*)(ctx))->identity; \
-	mr_ctx_state_store(ctx, __storage, 2048); \
-	mr_ctx_destroy(ctx); \
-	ctx = nullptr; \
-	ctx = mr_ctx_create(&__cfg); \
-	mr_ctx_state_load(ctx, __storage, 2048, nullptr); \
-	mr_ctx_set_identity(ctx, __identity, false); \
-	delete[] __storage; \
+
+void recreate_internal(mr_ctx* pctx)
+{
+	uint8_t* __storage = new uint8_t[2048];
+	mr_config __cfg = ((_mr_ctx*)(*pctx))->config;
+	mr_ecdsa_ctx __identity = ((_mr_ctx*)(*pctx))->identity;
+	mr_ctx_state_store(*pctx, __storage, 2048);
+	mr_ctx_destroy(*pctx);
+	*pctx = nullptr;
+	*pctx = mr_ctx_create(&__cfg);
+	mr_ctx_state_load(*pctx, __storage, 2048, nullptr);
+	mr_ctx_set_identity(*pctx, __identity, false);
+	delete[] __storage;
 }
+
+#define RECREATE(ctx) recreate_internal(&ctx)
 
 TEST(Storage, StoreLoadEmptyClient) {
 	mr_config cfg{ true };
