@@ -32,27 +32,27 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 	// derive y from x
 
 	// load curve parameters into numbers we can use
-	if (result) result = mp_init_multi(t1, t2, p, a, b, 0);
-	if (result) result = mp_read_radix(p, dp->prime, MP_RADIX_HEX);
-	if (result) result = mp_read_radix(a, dp->Af, MP_RADIX_HEX);
-	if (result) result = mp_read_radix(b, dp->Bf, MP_RADIX_HEX);
+	if (!result) result = mp_init_multi(t1, t2, p, a, b, 0);
+	if (!result) result = mp_read_radix(p, dp->prime, MP_RADIX_HEX);
+	if (!result) result = mp_read_radix(a, dp->Af, MP_RADIX_HEX);
+	if (!result) result = mp_read_radix(b, dp->Bf, MP_RADIX_HEX);
 
 	// t1 = x^3 over p
-	if (result) result = mp_sqr(pub->x, t1);
-	if (result) result = mp_mulmod(t1, pub->x, p, t1);
+	if (!result) result = mp_sqr(pub->x, t1);
+	if (!result) result = mp_mulmod(t1, pub->x, p, t1);
 
 	// t1 = t1 + a*x over p
-	if (result) result = mp_mulmod(a, pub->x, p, t2);
-	if (result) result = mp_add(t1, t2, t1);
+	if (!result) result = mp_mulmod(a, pub->x, p, t2);
+	if (!result) result = mp_add(t1, t2, t1);
 
 	// t1 = t1 + b
-	if (result) result = mp_add(t1, b, t1);
+	if (!result) result = mp_add(t1, b, t1);
 
 	// t2 = sqrt(t1) over p
-	if (result) result = mp_sqrtmod_prime(t1, p, t2);
+	if (!result) result = mp_sqrtmod_prime(t1, p, t2);
 
 	// set y. and fix if not even
-	if (result)
+	if (!result)
 	{
 		if (mp_isodd(t2) == MP_NO)
 		{
