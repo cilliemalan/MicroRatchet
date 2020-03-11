@@ -304,6 +304,12 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 
 	LOG("--send_initialization_response");
 
+	// store the passed in parms because we're going to overwrite the buffer
+	// this is because initializationnonce is inside output
+	uint8_t tmp1[INITIALIZATION_NONCE_SIZE];
+	memcpy(tmp1, initializationnonce, INITIALIZATION_NONCE_SIZE);
+	initializationnonce = tmp1;
+
 	// message format:
 	// new nonce(16), ecdh pubkey(32),
 	// <nonce from init request(16), server pubkey(32), 
