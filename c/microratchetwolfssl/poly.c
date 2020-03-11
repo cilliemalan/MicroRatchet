@@ -32,15 +32,13 @@ mr_result mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, c
 
 	uint8_t tkey[32];
 	memcpy(tkey, key, 16);
-	Aes *aes;
+	Aes* aes;
 	int r = mr_allocate(ctx->mr_ctx, sizeof(Aes), (void**)&aes);
 	if (r) return r;
 
-	if (r) r = wc_AesSetKeyDirect(aes, key + 16, 16, 0, AES_ENCRYPTION);
-	if (r) wc_AesEncryptDirect(aes, tkey + 16, iv);
-	if (r) r = wc_Poly1305SetKey(&ctx->wc_poly, tkey, 32);
-
-	mr_free(ctx->mr_ctx, aes);
+	if (!r) r = wc_AesSetKeyDirect(aes, key + 16, 16, 0, AES_ENCRYPTION);
+	if (!r) wc_AesEncryptDirect(aes, tkey + 16, iv);
+	if (!r) r = wc_Poly1305SetKey(&ctx->wc_poly, tkey, 32);
 
 	FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
 	return MR_E_SUCCESS;
