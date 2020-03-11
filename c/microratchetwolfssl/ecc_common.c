@@ -18,50 +18,56 @@ mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublick
 	result = mp_read_unsigned_bin(pub->x, otherpublickey, otherpublickeysize);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 
+	// allocate variables
+	mp_int* vars;
+	result = mr_allocate(0, sizeof(mp_int) * 5, (void**)&vars);
+	FAILIF(result, result, "Could not allocate 5 mp ints");
+	mp_int *p = &vars[0];
+	mp_int *a = &vars[1];
+	mp_int *b = &vars[2];
+	mp_int *t1 = &vars[3];
+	mp_int *t2 = &vars[4];
+
+
 	// derive y from x
 
 	// load curve parameters into numbers we can use
-	mp_int p, a, b;
-	mp_int t1, t2;
-	result = mp_init_multi(&t1, &t2, &p, &a, &b, 0);
-	result = mp_read_radix(&p, dp->prime, MP_RADIX_HEX);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
-	result = mp_read_radix(&a, dp->Af, MP_RADIX_HEX);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
-	result = mp_read_radix(&b, dp->Bf, MP_RADIX_HEX);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	if (result) result = mp_init_multi(t1, t2, p, a, b, 0);
+	if (result) result = mp_read_radix(p, dp->prime, MP_RADIX_HEX);
+	if (result) result = mp_read_radix(a, dp->Af, MP_RADIX_HEX);
+	if (result) result = mp_read_radix(b, dp->Bf, MP_RADIX_HEX);
 
 	// t1 = x^3 over p
-	result = mp_sqr(pub->x, &t1);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
-	result = mp_mulmod(&t1, pub->x, &p, &t1);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	if (result) result = mp_sqr(pub->x, t1);
+	if (result) result = mp_mulmod(t1, pub->x, p, t1);
 
 	// t1 = t1 + a*x over p
-	result = mp_mulmod(&a, pub->x, &p, &t2);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
-	result = mp_add(&t1, &t2, &t1);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	if (result) result = mp_mulmod(a, pub->x, p, t2);
+	if (result) result = mp_add(t1, t2, t1);
 
 	// t1 = t1 + b
-	result = mp_add(&t1, &b, &t1);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	if (result) result = mp_add(t1, b, t1);
 
 	// t2 = sqrt(t1) over p
-	result = mp_sqrtmod_prime(&t1, &p, &t2);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	if (result) result = mp_sqrtmod_prime(t1, p, t2);
 
 	// set y. and fix if not even
-	if (mp_isodd(&t2) == MP_NO)
+	if (result)
 	{
-		// y = t2 over p
-		result = mp_mod(&t2, &p, pub->y);
+		if (mp_isodd(t2) == MP_NO)
+		{
+			// y = t2 over p
+			result = mp_mod(t2, p, pub->y);
+		}
+		else
+		{
+			// y = (p - t2) over p
+			result = mp_submod(p, t2, p, pub->y);
+		}
 	}
-	else
-	{
-		// y = (p - t2) over p
-		result = mp_submod(&p, &t2, &p, pub->y);
-	}
+
+	mr_free(0, vars);
+
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 
 	return MR_E_SUCCESS;

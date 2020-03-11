@@ -148,15 +148,18 @@ mr_ctx mr_ctx_create(const mr_config* config)
 {
 	if (!config) return 0;
 
+	// allocate memory
 	_mr_ctx* ctx;
 	int r = mr_allocate(0, sizeof(_mr_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS || !ctx) return 0;
 
-	*ctx = (_mr_ctx){
-		*config,
-		mr_sha_create(ctx),
-		mr_rng_create(ctx)
-	};
+	// clear
+	memset(ctx, 0, sizeof(_mr_ctx));
+
+	// asign some stuff
+	memcpy(&ctx->config, config, sizeof(mr_config));
+	ctx->sha_ctx = mr_sha_create(ctx);
+	ctx->rng_ctx = mr_rng_create(ctx);
 
 	return ctx;
 }
@@ -264,7 +267,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 		else
 		{
 			// the client wants to reinitialize. Reset state.
-			*ctx->init.server = (_mr_initialization_state_server){{ 0 }};
+			memset(ctx->init.server , 0, sizeof(_mr_initialization_state_server));
 		}
 	}
 
@@ -300,14 +303,6 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	LOG("--send_initialization_response");
-
-	// store the passed in parms because we're going to overwrite the buffer
-	uint8_t tmp1[INITIALIZATION_NONCE_SIZE];
-	uint8_t tmp2[ECNUM_SIZE];
-	memcpy(tmp1, initializationnonce, INITIALIZATION_NONCE_SIZE);
-	memcpy(tmp2, remoteecdhforinit, ECNUM_SIZE);
-	initializationnonce = tmp1;
-	remoteecdhforinit = tmp2;
 
 	// message format:
 	// new nonce(16), ecdh pubkey(32),
@@ -493,9 +488,11 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 
 	uint8_t* remoteRatchetEcdh0 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
-	_mr_ratchet_state ratchet0 = { 0 };
-	_mr_ratchet_state ratchet1 = { 0 };
-	_R(result, ratchet_initialize_client(ctx, &ratchet0, &ratchet1,
+
+	_mr_ratchet_state *ratchets = 0;
+	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state) * 2, (void**)&ratchets));
+
+	_R(result, ratchet_initialize_client(ctx, &ratchets[0], &ratchets[1],
 		rootKey, KEY_SIZE,
 		remoteRatchetEcdh0, ECNUM_SIZE,
 		remoteRatchetEcdh1, ECNUM_SIZE,
@@ -503,16 +500,22 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 		receiveHeaderKey, KEY_SIZE,
 		sendHeaderKey, KEY_SIZE,
 		localStep1));
-	_R(result, ratchet_add(ctx, &ratchet0));
-	_R(result, ratchet_add(ctx, &ratchet1));
+	_R(result, ratchet_add(ctx, &ratchets[0]));
+	_R(result, ratchet_add(ctx, &ratchets[1]));
 
 	if (result != MR_E_SUCCESS)
 	{
 		if (localStep0) mr_ecdh_destroy(localStep0);
 		if (localStep1) mr_ecdh_destroy(localStep1);
-		if (ratchet0.num) ratchet_destroy(ctx, ratchet0.num);
-		if (ratchet1.num) ratchet_destroy(ctx, ratchet1.num);
+		if (ratchets[0].num) ratchet_destroy(ctx, ratchets[0].num);
+		if (ratchets[1].num) ratchet_destroy(ctx, ratchets[1].num);
 	}
+
+	if (ratchets)
+	{
+		mr_free(ctx, ratchets);
+	}
+
 	_C(result);
 
 	return MR_E_SUCCESS;
@@ -768,9 +771,12 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	uint32_t nonce = be_unpacku32(message);
 
 	// process ecdh if needed
-	_mr_ratchet_state _step = {0};
 	if (hasEcdh)
 	{
+		_mr_ratchet_state *_step;
+		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
+		memset(_step, 0, sizeof(_mr_ratchet_state));
+
 		if (!step)
 		{
 			// an override header key was used.
@@ -778,18 +784,20 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 			FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can initialize a ratchet using an override header key");
 			FAILIF(!ctx->init.server, MR_E_INVALIDOP, "The session is not in the state to process this message");
 
-			_C(ratchet_initialize_server(ctx, &_step,
+			_R(result, ratchet_initialize_server(ctx, _step,
 				ctx->init.server->localratchetstep0,
 				ctx->init.server->rootkey, KEY_SIZE,
 				message + ecdhOffset, ECNUM_SIZE,
 				ctx->init.server->localratchetstep1,
 				ctx->init.server->firstreceiveheaderkey, KEY_SIZE,
 				ctx->init.server->firstsendheaderkey, KEY_SIZE));
-			_C(ratchet_add(ctx, &_step));
-			mr_ecdh_destroy(ctx->init.server->localratchetstep0);
-			ctx->init.server->localratchetstep0 = 0;
-			ctx->init.server->localratchetstep1 = 0;
-			step = &_step;
+			_R(result, ratchet_add(ctx, _step));
+			if (result == 0)
+			{
+				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+				ctx->init.server->localratchetstep0 = 0;
+				ctx->init.server->localratchetstep1 = 0;
+			}
 		}
 		else
 		{
@@ -797,25 +805,32 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 			{
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
-				FAILIF(!newEcdh, MR_E_NOMEM, "Could not allocate ECDH paramters");
-				mr_result result = MR_E_SUCCESS;
+				if (!newEcdh) result = MR_E_NOMEM;
 				_R(result, mr_ecdh_generate(newEcdh, 0, 0));
 
 				_R(result, ratchet_ratchet(ctx, step,
-					&_step,
+					_step,
 					message + ecdhOffset, ECNUM_SIZE,
 					newEcdh));
 
-				_R(result, ratchet_add(ctx, &_step));
+				_R(result, ratchet_add(ctx, _step));
 				if (result != MR_E_SUCCESS)
 				{
 					mr_ecdh_destroy(newEcdh);
-					if (_step.num) ratchet_destroy(ctx, _step.num);
+					if (_step && _step->num) ratchet_destroy(ctx, _step->num);
 				}
-				_C(result);
-				step = &_step;
+				else
+				{
+					memcpy(step, _step, sizeof(_mr_ratchet_state));
+				}
 			}
 		}
+
+		if (_step)
+		{
+			mr_free(ctx, _step);
+		}
+		_C(result);
 	}
 
 	if (!step)
@@ -853,7 +868,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 
 			// reset client state
 			ctx->init.initialized = false;
-			*ctx->init.client = (_mr_initialization_state_client){{ 0 }};
+			memset(ctx->init.client, 0, sizeof(_mr_initialization_state_client));
 			memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
 
 			// step 1: send first init request from client
@@ -984,7 +999,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 		if (!ctx->init.server)
 		{
 			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
-			*ctx->init.server = (_mr_initialization_state_server){{ 0 }};
+			memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
 		}
 
 		// if the application key was used this is an initialization message
@@ -1125,7 +1140,7 @@ void mr_ctx_destroy(mr_ctx _ctx)
 			ctx->init.server = 0;
 		}
 
-		*ctx = (_mr_ctx){{ 0 }};
+		memset(ctx, 0, sizeof(_mr_ctx));
 		mr_free(ctx, ctx);
 	}
 }

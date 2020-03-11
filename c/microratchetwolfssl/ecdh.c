@@ -43,12 +43,18 @@ mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uin
 	FAILIF(otherpublickeysize != 32, MR_E_INVALIDSIZE, "otherpublickeysize != 32");
 	FAILIF(derivedkeyspaceavail < 32, MR_E_INVALIDSIZE, "derivedkeyspaceavail < 32");
 
-	ecc_point pub;
-	int result = ecc_import_public(otherpublickey, otherpublickeysize, &pub);
-	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
+	ecc_point *pub;
+	int result = mr_allocate(ctx->mr_ctx, sizeof(ecc_point), (void**)&pub);
+	if (result) return result;
 
+	// import
+	if (!result) ecc_import_public(otherpublickey, otherpublickeysize, pub);
+	
+	// compute
 	word32 dummy = derivedkeyspaceavail;
-	result = wc_ecc_shared_secret_ex(&ctx->key, &pub, derivedkey, &dummy);
+	if (!result) result = wc_ecc_shared_secret_ex(&ctx->key, pub, derivedkey, &dummy);
+
+	mr_free(ctx->mr_ctx, pub);
 	FAILIF(result != 0 || dummy != 32, MR_E_INVALIDOP, "result != 0 || dummy != 32");
 	return MR_E_SUCCESS;
 }

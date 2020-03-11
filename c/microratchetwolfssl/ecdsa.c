@@ -100,23 +100,27 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 	if (ctx)
 	{
 		_mr_ecdsa_ctx* _ctx = (_mr_ecdsa_ctx*)ctx;
-		*_ctx = (_mr_ecdsa_ctx){ 0 };
+		memset(_ctx , 0, sizeof(_mr_ecdsa_ctx));
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }
 
 mr_result mr_ecdsa_verify_other(const uint8_t* signature, uint32_t signaturesize, const uint8_t* digest, uint32_t digestsize, const uint8_t* publickey, uint32_t publickeysize, uint32_t* result)
 {
-	ecc_key key;
-	memset(&key, 0, sizeof(key));
-	key.type = ECC_PUBLICKEY;
-	int res = wc_ecc_set_curve(&key, 32, ECC_SECP256R1);
-	FAILIF(res != 0, MR_E_INVALIDOP, "res != 0");
+	ecc_key *key;
+	mr_result mrr = mr_allocate(0, sizeof(ecc_key), (void**)&key);
+	if (mrr) return mrr;
 
-	res = ecc_import_public(publickey, publickeysize, &key.pubkey);
-	FAILIF(res != 0, MR_E_INVALIDOP, "res != 0");
+	memset(key, 0, sizeof(ecc_key));
+	key->type = ECC_PUBLICKEY;
+	int res = wc_ecc_set_curve(key, 32, ECC_SECP256R1);
 
-	res = ecc_verify(&key, signature, signaturesize, digest, digestsize, result);
+	if (!res) res = ecc_import_public(publickey, publickeysize, &key->pubkey);
+	
+	if (!res) res = ecc_verify(key, signature, signaturesize, digest, digestsize, result);
+
+	mr_free(0, key);
+	
 	if (res != MR_E_SUCCESS) return res;
 
 	return MR_E_SUCCESS;
