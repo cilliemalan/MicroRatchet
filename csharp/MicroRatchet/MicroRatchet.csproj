@@ -7,6 +7,15 @@
   <PropertyGroup>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)int\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Copyright>Copyright (c) 2020 Cillié Malan</Copyright>
+    <Description>Micro Ratchet is a secure messaging protocol for embedded environments based on Double Ratchet that doesn't require retransmission of dropped packets and doesn't require packets to be in order.</Description>
+    <PackageProjectUrl>https://github.com/cilliemalan/MicroRatchet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cilliemalan/MicroRatchet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Authors>Cillié Malan</Authors>
+    <Company>Cillié Malan</Company>
     <!--<DocumentationFile>$(OutDir)MicroRatchet.xml</DocumentationFile>-->
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -23,6 +32,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\MicroRatchet\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
