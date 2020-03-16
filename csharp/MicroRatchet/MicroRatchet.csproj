@@ -7,7 +7,7 @@
   <PropertyGroup>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)int\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Copyright>Copyright (c) 2020 Cillié Malan</Copyright>
     <Description>Micro Ratchet is a secure messaging protocol for embedded environments based on Double Ratchet that doesn't require retransmission of dropped packets and doesn't require packets to be in order.</Description>
     <PackageProjectUrl>https://github.com/cilliemalan/MicroRatchet</PackageProjectUrl>
