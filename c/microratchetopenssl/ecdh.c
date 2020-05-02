@@ -50,7 +50,6 @@ mr_result mr_ecdh_derivekey(mr_ecdh_ctx _ctx, const uint8_t* otherpublickey, uin
 	FAILIF(otherpublickeysize != 32, MR_E_INVALIDSIZE, "otherpublickeysize != 32");
 	FAILIF(derivedkeyspaceavail < 32, MR_E_INVALIDSIZE, "derivedkeyspaceavail < 32");
 
-	ecc_point pub;
 	return ecc_derivekey(&ctx->key, otherpublickey, otherpublickeysize, derivedkey, derivedkeyspaceavail);
 }
 
