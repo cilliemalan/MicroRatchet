@@ -15,7 +15,9 @@ namespace MicroRatchet.BouncyCastle
 
         public bool MarkNonce(ArraySegment<byte> nonce)
         {
-            return cache.TryAdd(nonce.ToArray(), 0);
+            byte[] tocache = new byte[nonce.Count];
+            Array.Copy(nonce.Array, nonce.Offset, tocache, 0, nonce.Count);
+            return cache.TryAdd(tocache, 0);
         }
 
         private class ByteArrayComparer : IEqualityComparer<byte[]>
