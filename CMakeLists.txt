@@ -6,7 +6,6 @@ if (DEFINED CMAKE_VERSION AND NOT "${CMAKE_VERSION}" VERSION_LESS "3.16.0")
 endif()
 
 # options
-option(DEBUG "Produce a debug build" OFF)
 option(TRACE "include diagnostic logging (INSECURE)" OFF)
 option(BUILD_TESTS "build tests" ON)
 set(TARGET "host" CACHE STRING "Which environment to target. Defaults to host system")
