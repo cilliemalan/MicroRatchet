@@ -90,12 +90,3 @@ target_compile_definitions(microratchettestopenssl PUBLIC OPENSSL)
 target_compile_definitions(microratchettestswolfssl PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_definitions(microratchettestmbed PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_definitions(microratchettestopenssl PUBLIC GTEST_DONT_DEFINE_TEST)
-
-
-
-# generate PCH (but not when cross compiling because it doesn't work for some reason)
-if (USE_PCH AND NOT EMBEDDED)
-    target_precompile_headers(microratchettestswolfssl PUBLIC pch.h)
-    target_precompile_headers(microratchettestmbed PUBLIC pch.h)
-    target_precompile_headers(microratchettestopenssl PUBLIC pch.h)
-endif (USE_PCH AND NOT EMBEDDED)
