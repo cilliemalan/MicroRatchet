@@ -12,6 +12,10 @@ option(BUILD_TESTS "build tests" ON)
 set(TARGET "host" CACHE STRING "Which environment to target. Defaults to host system")
 set_property(CACHE TARGET PROPERTY STRINGS host embedded_arm linux_arm)
 
+# policies
+if (POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif (POLICY CMP0077)
 
 # CC=arm-none-eabi-gcc CXX=arm-none-eabi-g++ cmake -DTARGET=embedded_arm ..
 # qemu-system-arm -cpu cortex-a15 -machine virt -nographic -semihosting -kernel bin/microratchettests
