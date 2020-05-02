@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Description>BouncyCastle crypto implementation for Micro Ratchet. Micro Ratchet is a secure messaging protocol for embedded environments based on Double Ratchet that doesn't require retransmission of dropped packets and doesn't require packets to be in order.</Description>
+    <Description>BouncyCastle crypto implementation for Micro Ratchet. Micro Ratchet is a secure messaging protocol for embedded applications based on Double Ratchet that doesn't require retransmission of dropped packets and doesn't require packets to be in order.</Description>
     <Authors>Cillié Malan</Authors>
     <Company>Cillié Malan</Company>
     <Copyright>Copyright (c) 2020 Cillié Malan</Copyright>
@@ -12,6 +12,8 @@
     <PackageProjectUrl>https://github.com/cilliemalan/MicroRatchet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/cilliemalan/MicroRatchet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <Title>MicroRatchet.BouncyCastle</Title>
+    <Summary>BouncyCastle crypto implementation for Micro Ratchet</Summary>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,7 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\..\..\..\MicroRatchet\LICENSE">
+    <None Include="..\..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
