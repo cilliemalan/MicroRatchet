@@ -2,12 +2,9 @@
 
 #include "microratchet.h"
 
-
 #define HAS_SERVER
 
-
-
-#if defined(_DEBUG) && !defined(DEBUG)
+#if defined(MR_DEBUG) && !defined(DEBUG)
 #define DEBUG
 #endif
 
@@ -17,11 +14,6 @@
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
 #else
 #define STATIC_ASSERT(e, r)
-#endif
-
-
-#ifdef __cplusplus
-extern "C" {
 #endif
 
 #define KEY_SIZE 32
@@ -51,31 +43,11 @@ extern "C" {
 #undef _R
 #endif
 
+// check the result and return if not successful
+#define _C(x) do { int __r = x; if(__r != MR_E_SUCCESS) return __r; } while (0)
 
-#define _C(x) { int __r = x; if(__r != MR_E_SUCCESS) return __r; }
-#define _R(r, x) if (r == MR_E_SUCCESS) r = x;
-
-#ifdef DEBUG
-#include <stdio.h>
-
-#define STRINGIZE(x) STRINGIZE2(x)
-#define STRINGIZE2(x) #x
-#define LINE_STRING STRINGIZE(__LINE__)
-
-#if !defined(_WIN32) && !defined(__APPLE__) && !defined(__linux__) && !defined(__unix__) && !defined(_POSIX_VERSION)
-int _write(int file, char *ptr, int len);
-#define _MYWRITE(x) _write((int)(size_t)stdout, x, sizeof(x))
-#else
-#define _MYWRITE(x) printf("%s", x);
-#endif
-
-#define FAILIF(condition, error, messageonfailure) if (condition) { _MYWRITE(__FILE__ ":" LINE_STRING " " messageonfailure); return (error); }
-#define FAILMSG(error, messageonfailure) _MYWRITE(__FILE__ ":" LINE_STRING " " messageonfailure); return (error);
-
-#else
-#define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
-#define FAILMSG(error, messageonfailure) return (error);
-#endif
+// if (r == success) r = x
+#define _R(r, x) do { if (r == MR_E_SUCCESS) r = x; } while (0)
 
 	typedef struct _mr_initialization_state_server {
 		uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
@@ -139,6 +111,9 @@ int _write(int file, char *ptr, int len);
 		uint32_t ctrix;
 	} _mr_aesctr_ctx;
 
+#ifdef __cplusplus
+	extern "C" {
+#endif
 
 	// AES KDF
 	mr_result kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const uint8_t* info, uint32_t infolen, uint8_t* output, uint32_t spaceavail);
@@ -191,23 +166,34 @@ int _write(int file, char *ptr, int len);
 	mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
 	mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
+#ifdef __cplusplus
+}
+#endif
 
 
+// fail messages to fail a function with a reason message
+#if defined(MR_WRITE) && defined(MR_DEBUG)
 
+#define MR_STRINGIZE(x) MR_STRINGIZE2(x)
+#define MR_STRINGIZE2(x) #x
+#define __LINE_STRING__ MR_STRINGIZE(__LINE__)
 
+#define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
 
-#if defined(TRACE)
-#include <stdio.h>
-void _mrlog(const char* msg, const uint8_t* data, uint32_t amt);
-#define LOG(msg) printf("%s\n", msg)
-#define LOGD(msg, data, amt) _mrlog(msg, data, amt)
+#define FAILIF(condition, error, messageonfailure) if (condition) { MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " messageonfailure); return (error); }
+#define FAILMSG(error, messageonfailure) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " messageonfailure); return (error);
+#else
+#define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
+#define FAILMSG(error, messageonfailure) return (error);
+#endif
+
+// trace messages to debug crypto internals
+#if defined(MR_TRACE) && defined (MR_WRITE)
+void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
+#define LOG(msg) _mrlog(msg, sizeof(msg) - 1, 0, 0)
+#define LOGD(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
 #else
 #define LOG(msg)
 #define LOGD(msg, data, amt)
 #endif
 
-
-
-#ifdef __cplusplus
-}
-#endif

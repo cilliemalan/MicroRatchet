@@ -513,8 +513,11 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	{
 		if (localStep0) mr_ecdh_destroy(localStep0);
 		if (localStep1) mr_ecdh_destroy(localStep1);
-		if (ratchets[0].num) ratchet_destroy(ctx, ratchets[0].num);
-		if (ratchets[1].num) ratchet_destroy(ctx, ratchets[1].num);
+		if (ratchets)
+		{
+			if (ratchets[0].num) ratchet_destroy(ctx, ratchets[0].num);
+			if (ratchets[1].num) ratchet_destroy(ctx, ratchets[1].num);
+		}
 	}
 
 	if (ratchets)
@@ -777,9 +780,9 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	uint32_t nonce = be_unpacku32(message);
 
 	// process ecdh if needed
+	_mr_ratchet_state* _step = 0;
 	if (hasEcdh)
 	{
-		_mr_ratchet_state *_step;
 		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
 		memset(_step, 0, sizeof(_mr_ratchet_state));
 
@@ -803,6 +806,12 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
 				ctx->init.server->localratchetstep0 = 0;
 				ctx->init.server->localratchetstep1 = 0;
+				step = _step;
+			}
+			else
+			{
+				mr_free(ctx, _step);
+				return result;
 			}
 		}
 		else
@@ -825,17 +834,11 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 					mr_ecdh_destroy(newEcdh);
 					if (_step && _step->num) ratchet_destroy(ctx, _step->num);
 				}
-				else
-				{
-					memcpy(step, _step, sizeof(_mr_ratchet_state));
-				}
+				_C(result);
+				step = _step;
 			}
 		}
 
-		if (_step)
-		{
-			mr_free(ctx, _step);
-		}
 		_C(result);
 	}
 
@@ -848,6 +851,11 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	// get the inner payload key from the receive chain
 	uint8_t payloadKey[MSG_KEY_SIZE];
 	_C(chain_ratchetforreceiving(ctx, &step->receivingchain, nonce, payloadKey, sizeof(payloadKey)));
+
+	if (_step)
+	{
+		mr_free(ctx, _step);
+	}
 
 	// decrypt the payload
 	_C(crypt(ctx, message + payloadOffset, payloadSize, payloadKey, MSG_KEY_SIZE, message, NONCE_SIZE));

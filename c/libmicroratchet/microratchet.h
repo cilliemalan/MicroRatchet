@@ -3,6 +3,40 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// includes a specified file if desired. Use this by
+// adding, for example
+// -DMR_CONFIG=<myconfig.h> -Imyconfiglocation
+// to your compiler command line or cmake or whatever
+#ifdef MR_CONFIG
+#include MR_CONFIG
+#endif
+
+// The stuff directly below is configurable by defining them in 
+// the fabled config file above.
+
+// Prints debug messages. message will be null terminated, but amt is specified
+// for applications that can make use of that. amt does not include the null terminator.
+// example implementation: #define MR_WRITE(msg, amt) printf("%s\n", msg);
+#include <stdio.h>
+#define MR_WRITE(msg, amt) printf("%s\n", msg)
+#ifndef MR_WRITE
+#define MR_WRITE(msg, amt)
+#endif
+
+// define to enable trace messages (INSECURE). Trace messages print out
+// cryptographic key information for debugging purposes. You should not
+// enable this unless you are debugging crypto internals.
+// #define MR_TRACE
+
+// define to enable printing of debug messages (maybe INSECURE). This will print out
+// messages if a failure status code is returned.
+#define MR_DEBUG
+
+// define to an assert function enable assertions.
+#ifndef MR_ASSERT
+#define MR_ASSERT(condition)
+#endif
+
 // structures
 typedef void* mr_ctx;
 typedef void* mr_sha_ctx;
@@ -70,7 +104,7 @@ typedef enum mr_result_e {
 	extern "C" {
 #endif
 
-	// portable functions
+	// crypto functions
 
 	// these functions must be supplied by the integrating application by
 	// providing a custom implementation or by linking one of the supported
@@ -137,12 +171,14 @@ typedef enum mr_result_e {
 	void mr_rng_destroy(mr_rng_ctx ctx);
 
 
-	///// Memory
 
+	// platform functions
+
+	// these functions need to be provided by the integrating application.
+
+	mr_result mr_rng_seed(uint8_t* output, uint32_t sz);
 	mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer);
 	void mr_free(mr_ctx ctx, void* pointer);
-
-
 
 	
 

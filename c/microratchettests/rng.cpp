@@ -146,3 +146,68 @@ TEST(Rng, GenerateHuge) {
 	mr_rng_destroy(rng);
 	mr_ctx_destroy(mr_ctx);
 }
+
+
+
+#if defined(__x86_64__) || defined(_M_AMD64)
+#include <immintrin.h>
+
+static inline mr_result IntelRDseed64_r(uint64_t* rnd)
+{
+	for (int i = 0; i < 128; i++)
+	{
+		int ok = _rdseed64_step(rnd);
+		if (ok == 1) return MR_E_SUCCESS;
+	}
+	return MR_E_RNGFAIL;
+}
+
+#endif
+
+
+extern "C" mr_result mr_rng_seed(uint8_t* output, uint32_t sz)
+{
+#if defined(__x86_64__) || defined(_M_AMD64)
+
+	mr_result ret;
+	uint64_t rndTmp;
+
+	for (; (sz / sizeof(uint64_t)) > 0; sz -= sizeof(uint64_t),
+		output += sizeof(uint64_t)) {
+		ret = IntelRDseed64_r((uint64_t*)output);
+		if (ret != 0)
+			return ret;
+	}
+	if (sz == 0) return MR_E_SUCCESS;
+
+	/* handle unaligned remainder */
+	ret = IntelRDseed64_r(&rndTmp);
+	if (ret != 0) return ret;
+
+	memcpy(output, &rndTmp, sz);
+	*(volatile uint64_t*)(&rndTmp) = 0;
+
+	return MR_E_SUCCESS;
+
+#else
+
+	if ((sz % 4) == 0 && (((uint32_t)output) % 4) == 0)
+	{
+		uint32_t* uoutput = (uint32_t*)output;
+		sz /= 4;
+		for (int i = 0; i < sz; i++)
+		{
+			uoutput[i] = rand();
+		}
+	}
+	else
+	{
+		for (int i = 0; i < sz; i++)
+		{
+			output[i] = (uint8_t)rand();
+		}
+	}
+
+	return 0;
+#endif
+}

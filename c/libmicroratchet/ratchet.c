@@ -4,21 +4,20 @@
 
 static uint8_t _chain_context[] = { 0x7d, 0x93, 0x96, 0x05, 0xf5, 0xb6, 0xd2, 0xe2, 0x65, 0xd0, 0xde, 0xe6, 0xe4, 0x5d, 0x7a, 0x2c };
 
-static int keyallzeroes(const uint8_t* k)
+static inline bool keyallzeroes(const uint8_t k[KEY_SIZE])
 {
-	const uint32_t* ik = (const uint32_t* )k;
-	for (int i = 0; i < KEY_SIZE / (sizeof(int) / sizeof(char)); i++)
+	for (int i = 0; i < KEY_SIZE; i++)
 	{
-		if (ik[i] != 0) return 0;
+		if (k[i]) return false;
 	}
-	return 1;
+	return true;
 }
 
 mr_result ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes)
 {
 	FAILIF(!mr_ctx || !indexes, MR_E_INVALIDOP, "Some of the required arguments were null");
 	FAILIF(numindexes < NUM_RATCHETS, MR_E_INVALIDSIZE, "numindexes cannot be greater than the maximum number of stored ratchets");
-	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t mustbeunder = 0xffffffff;
 	for (int i = 0; i < NUM_RATCHETS; i++)
@@ -45,10 +44,10 @@ mr_result ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes)
 	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
+mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
 	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
-	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t minnum = 0xffffffff;
 	int minix = -1;
@@ -71,10 +70,10 @@ mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
+mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
 	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
-	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t maxnum = 0;
 	uint32_t nextmaxnum = 0;
@@ -112,10 +111,10 @@ mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
 	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state * *ratchet)
+mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
 	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
-	_mr_ctx * ctx = (_mr_ctx*)mr_ctx;
+	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
 	uint32_t maxnum = 0;
 	int maxix = -1;
@@ -158,6 +157,7 @@ mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
 	ratchet->num = maxnum + 1;
 	ctx->ratchets[minix] = *ratchet;
+
 	return MR_E_SUCCESS;
 }
 
@@ -170,7 +170,7 @@ bool ratchet_destroy(_mr_ctx* ctx, int num)
 		if (ctx->ratchets[i].num == num)
 		{
 			mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
-			ctx->ratchets[i] = (_mr_ratchet_state){ 0 };
+			memset(&ctx->ratchets[i], 0, sizeof(ctx->ratchets[i]));
 			return true;
 		}
 	}
@@ -179,7 +179,7 @@ bool ratchet_destroy(_mr_ctx* ctx, int num)
 }
 
 mr_result ratchet_initialize_server(mr_ctx mr_ctx,
-	_mr_ratchet_state * ratchet,
+	_mr_ratchet_state* ratchet,
 	mr_ecdh_ctx previouskeypair,
 	const uint8_t* rootkey, uint32_t rootkeysize,
 	const uint8_t* remotepubickey, uint32_t remotepubickeysize,
@@ -200,7 +200,7 @@ mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 	LOGD("Receive Header Key: ", receiveheaderkey, KEY_SIZE);
 	LOGD("Send Header Key:    ", sendheaderkey, KEY_SIZE);
 	LOGD("ECDH Public:        ", remotepubickey, KEY_SIZE);
-	
+
 	memset(ratchet, 0, sizeof(_mr_ratchet_state));
 	ratchet->num = 1;
 	ratchet->ecdhkey = keypair;
@@ -251,8 +251,8 @@ mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 }
 
 mr_result ratchet_initialize_client(mr_ctx mr_ctx,
-	_mr_ratchet_state * ratchet1,
-	_mr_ratchet_state * ratchet2,
+	_mr_ratchet_state* ratchet1,
+	_mr_ratchet_state* ratchet2,
 	const uint8_t* rootkey, uint32_t rootkeysize,
 	const uint8_t* remotepubickey0, uint32_t remotepubickey0size,
 	const uint8_t* remotepubickey1, uint32_t remotepubickey1size,
@@ -275,8 +275,8 @@ mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 	LOGD("ECDH Public 0:      ", remotepubickey0, KEY_SIZE);
 	LOGD("ECDH Public 1:      ", remotepubickey1, KEY_SIZE);
 
-	memset(ratchet2 , 0, sizeof(_mr_ratchet_state));
-	memset(ratchet1 , 0, sizeof(_mr_ratchet_state));
+	memset(ratchet2, 0, sizeof(_mr_ratchet_state));
+	memset(ratchet1, 0, sizeof(_mr_ratchet_state));
 	ratchet1->num = 1;
 	ratchet1->ecdhkey = keypair;
 	memcpy(ratchet1->sendheaderkey, sendheaderkey, KEY_SIZE);
@@ -315,7 +315,7 @@ mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 
 mr_result ratchet_initialize(
 	mr_ctx mr_ctx,
-	_mr_ratchet_state * ratchet,
+	_mr_ratchet_state* ratchet,
 	uint32_t num,
 	mr_ecdh_ctx ecdhkey,
 	const uint8_t* nextrootkey, uint32_t nextrootkeysize,
@@ -357,7 +357,7 @@ mr_result ratchet_initialize(
 	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratchet_state * nextratchet, const uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair)
+mr_result ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state* ratchet, _mr_ratchet_state* nextratchet, const uint8_t* remotepublickey, uint32_t remotepublickeysize, mr_ecdh_ctx keypair)
 {
 	FAILIF(!ratchet || !nextratchet || !remotepublickey || !keypair, MR_E_INVALIDARG, "Some of the required arguments were null");
 	FAILIF(keypair == ratchet->ecdhkey, MR_E_INVALIDARG, "The key pair cannot be equal to the ratchet ECDH key");
@@ -380,7 +380,7 @@ mr_result ratchet_ratchet(mr_ctx mr_ctx, _mr_ratchet_state * ratchet, _mr_ratche
 	return MR_E_SUCCESS;
 }
 
-mr_result chain_initialize(mr_ctx mr_ctx, _mr_chain_state * chain_state, const uint8_t* chainkey, uint32_t chainkeysize)
+mr_result chain_initialize(mr_ctx mr_ctx, _mr_chain_state* chain_state, const uint8_t* chainkey, uint32_t chainkeysize)
 {
 	FAILIF(!chain_state, MR_E_INVALIDARG, "Some of the required arguments were null");
 	FAILIF(chainkey && chainkeysize != KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
@@ -396,7 +396,7 @@ mr_result chain_initialize(mr_ctx mr_ctx, _mr_chain_state * chain_state, const u
 	return MR_E_SUCCESS;
 }
 
-mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state * chain, uint8_t* key, uint32_t keysize, uint32_t* generation)
+mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation)
 {
 	FAILIF(!mr_ctx || !chain || !key || !generation, MR_E_INVALIDARG, "Some of the required arguments were null");
 	FAILIF(keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
@@ -414,7 +414,7 @@ mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state * chain, uint8_
 	return MR_E_SUCCESS;
 }
 
-mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state * chain, uint32_t generation, uint8_t* key, uint32_t keysize)
+mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize)
 {
 	FAILIF(!mr_ctx || !chain || !key, MR_E_INVALIDARG, "Some of the required arguments were null");
 	FAILIF(keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
@@ -453,8 +453,8 @@ mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state * chain, uint
 	struct {
 		uint8_t nck[KEY_SIZE];
 		uint8_t key[MSG_KEY_SIZE];
-	} keys = {0};
-	for (;gen < generation; gen++)
+	} keys = { 0 };
+	for (; gen < generation; gen++)
 	{
 		_C(kdf_compute(mr_ctx, cku, KEY_SIZE, _chain_context, sizeof(_chain_context), keys.nck, sizeof(keys)));
 		cku = keys.nck;
