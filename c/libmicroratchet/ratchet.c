@@ -157,7 +157,7 @@ mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
 	ratchet->num = maxnum + 1;
 	// TODO: below uses a lot of stack
-	ctx->ratchets[minix] = *ratchet;
+	memcpy(&ctx->ratchets[minix], ratchet, sizeof(_mr_ratchet_state));
 
 	return MR_E_SUCCESS;
 }
