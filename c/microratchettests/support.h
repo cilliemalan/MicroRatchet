@@ -1,8 +1,8 @@
 #pragma once
 
 
-//#define DEBUGMEM
-//#define TRACEMEM
+#define DEBUGMEM
+// #define TRACEMEM
 
 #define SIZEOF(x) static_cast<uint32_t>(sizeof(x))
 

@@ -4,12 +4,21 @@
 #include <internal.h>
 #include <unordered_map>
 #include <gtest/gtest.h>
+#include <inttypes.h>
+#include <atomic>
 
 // allocation functions for mr
 #ifdef DEBUGMEM
-static std::unordered_map<void*, size_t> memory;
+struct allocation_info
+{
+	size_t size;
+	size_t num;
+};
+
+static std::unordered_map<void*, allocation_info> memory;
 static size_t allocated_memory = 0;
 static size_t max_allocated_memory = 0;
+static std::atomic<size_t> allocation_num = 0;
 #endif
 
 mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
@@ -28,17 +37,17 @@ mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 			if (*pointer)
 			{
 #ifdef DEBUGMEM
-				memory[*pointer] = amountrequested;
+				++allocation_num;
+				memory[*pointer] = { (size_t)amountrequested, allocation_num.load() };
 				allocated_memory += amountrequested;
 				if (allocated_memory > max_allocated_memory)
 				{
 					max_allocated_memory = allocated_memory;
 				}
 #ifdef TRACEMEM
-				printf("alloc 0x%x (%d bytes, total is %d bytes)\n", reinterpret_cast<size_t>(*pointer), amountrequested, allocated_memory);
+				printf("+++ 0x%" PRIxPTR " [%8" PRId32 "] -> [%8" PRIdPTR "]  #%" PRIdPTR "\n", reinterpret_cast<size_t>(*pointer), amountrequested, allocated_memory, allocation_num.load());
 #endif
 #endif
-
 				return MR_E_SUCCESS;
 			}
 			else
@@ -59,24 +68,36 @@ void mr_free(mr_ctx ctx, void* pointer)
 	{
 #ifdef DEBUGMEM
 		auto szptr = memory.find(pointer);
-#if defined(TRACEMEM)
-		if (szptr == memory.end())
+
+		bool valid = szptr != memory.end();
+		auto allocinfo = szptr->second;
+		if (valid)
 		{
-			printf("ATTEMPT TO FREE UNKNOWN MEMORY at 0x%x\n", reinterpret_cast<size_t>(pointer));
+			allocated_memory -= allocinfo.size;
+			memory.erase(szptr);
+		}
+
+		ASSERT_TRUE(valid);
+
+#if defined(TRACEMEM)
+		if (!valid)
+		{
+			printf("ATTEMPT TO FREE UNKNOWN MEMORY at 0x%" PRIxPTR "\n", reinterpret_cast<size_t>(pointer));
 		}
 		else
 		{
-			printf("freed 0x%x (%d bytes)\n", reinterpret_cast<size_t>(pointer), szptr->second);
+			printf("--- 0x%" PRIxPTR " [%8" PRIdPTR "] -> [%8" PRIdPTR "] (#%" PRIdPTR ")\n", reinterpret_cast<size_t>(pointer), allocinfo.size, allocated_memory, allocinfo.num);
 		}
 #endif 
-		ASSERT_NE(szptr, memory.end());
-		if (szptr != memory.end())
-		{
-			allocated_memory -= szptr->second;
-			memory.erase(szptr);
-		}
+
 #endif
+
+
 		delete[] reinterpret_cast<uint8_t*>(pointer);
+	}
+	else
+	{
+		printf("ATTEMPT TO FREE NULL POINTER\n");
 	}
 }
 
@@ -85,7 +106,7 @@ size_t calculate_memory_used()
 #if defined(DEBUGMEM) && defined(TRACEMEM)
 	if (max_allocated_memory > 0)
 	{
-		printf("maximum amount allocated: %d\n", max_allocated_memory);
+		printf("maximum amount allocated: %" PRIdPTR "\n", max_allocated_memory);
 	}
 	return allocated_memory;
 #else
@@ -99,9 +120,10 @@ void free_all()
 	for (auto m : memory)
 	{
 #ifdef TRACEMEM
-		printf("unfreed memory at 0x%x (%d bytes)\n", reinterpret_cast<size_t>(m.first), m.second);
+		printf("unfreed memory at 0x%" PRIxPTR " (%" PRIdPTR " bytes #%" PRIdPTR ")\n", reinterpret_cast<size_t>(m.first), m.second.size, m.second.num);
 #endif
-		delete[] reinterpret_cast<uint8_t*>(m.first);
+
+		// delete[] reinterpret_cast<uint8_t*>(m.first);
 	}
 
 	max_allocated_memory = 0;
