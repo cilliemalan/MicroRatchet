@@ -462,7 +462,7 @@ TEST(Storage, FullProcess)
 	auto serveridentity = mr_ecdsa_create(server);
 	ASSERT_EQ(MR_E_SUCCESS, mr_ecdsa_generate(serveridentity, serverpubkey, sizeof(serverpubkey)));
 	ASSERT_EQ(MR_E_SUCCESS, mr_ctx_set_identity(server, serveridentity, false));
-	run_on_exit _a{ [=] {
+	run_on_exit _a{ [&] {
 		mr_rng_destroy(rng);
 		mr_ctx_destroy(client);
 		mr_ctx_destroy(server);
