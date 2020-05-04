@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.15)
 
 # add PCH option if version is high enough
 if (DEFINED CMAKE_VERSION AND NOT "${CMAKE_VERSION}" VERSION_LESS "3.16.0")
@@ -15,6 +15,14 @@ set_property(CACHE TARGET PROPERTY STRINGS host embedded_arm linux_arm)
 if (POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif (POLICY CMP0077)
+if (POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif (POLICY CMP0091)
+set(CMAKE_ASM_MASM_COMPILE_OPTIONS_MSVC_RUNTIME_LIBRARY_MultiThreaded         "")
+set(CMAKE_ASM_MASM_COMPILE_OPTIONS_MSVC_RUNTIME_LIBRARY_MultiThreadedDLL      "")
+set(CMAKE_ASM_MASM_COMPILE_OPTIONS_MSVC_RUNTIME_LIBRARY_MultiThreadedDebug    "")
+set(CMAKE_ASM_MASM_COMPILE_OPTIONS_MSVC_RUNTIME_LIBRARY_MultiThreadedDebugDLL "")
+
 
 # CC=arm-none-eabi-gcc CXX=arm-none-eabi-g++ cmake -DTARGET=embedded_arm ..
 # qemu-system-arm -cpu cortex-a15 -machine virt -nographic -semihosting -kernel bin/microratchettests
@@ -120,6 +128,8 @@ if (BUILD_TESTS)
     add_subdirectory(thirdparty/googletest)
 endif (BUILD_TESTS)
 
+# visual studio stuff
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # generate list files
 if (EMBEDDED)
