@@ -156,9 +156,22 @@ mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 	FAILIF(minix < 0, MR_E_NOTFOUND, "Could not find the smallest ratchet");
 	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
 	ratchet->num = maxnum + 1;
+	// TODO: below uses a lot of stack
 	ctx->ratchets[minix] = *ratchet;
 
 	return MR_E_SUCCESS;
+}
+
+void ratchet_destroy_all(_mr_ctx* ctx)
+{
+	for (int i = 0; i < NUM_RATCHETS; i++)
+	{
+		if (ctx->ratchets[i].ecdhkey)
+		{
+			mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+		}
+		memset(&ctx->ratchets[i], 0, sizeof(ctx->ratchets[i]));
+	}
 }
 
 bool ratchet_destroy(_mr_ctx* ctx, int num)
@@ -169,7 +182,10 @@ bool ratchet_destroy(_mr_ctx* ctx, int num)
 	{
 		if (ctx->ratchets[i].num == num)
 		{
-			mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+			if (ctx->ratchets[i].ecdhkey)
+			{
+				mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+			}
 			memset(&ctx->ratchets[i], 0, sizeof(ctx->ratchets[i]));
 			return true;
 		}

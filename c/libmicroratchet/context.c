@@ -169,7 +169,7 @@ mr_result mr_ctx_set_identity(mr_ctx _ctx, mr_ecdsa_ctx identity, bool destroy_w
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, MR_E_INVALIDARG, "The context given was null");
 	FAILIF(!identity, MR_E_INVALIDARG, "The identity given was null");
-	
+
 	ctx->identity = identity;
 	ctx->owns_identity = destroy_with_context;
 	return MR_E_SUCCESS;
@@ -266,8 +266,17 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 		}
 		else
 		{
+			if (ctx->init.server->localratchetstep0)
+			{
+				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+			}
+			if (ctx->init.server->localratchetstep1)
+			{
+				mr_ecdh_destroy(ctx->init.server->localratchetstep1);
+			}
+
 			// the client wants to reinitialize. Reset state.
-			memset(ctx->init.server , 0, sizeof(_mr_initialization_state_server));
+			memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
 		}
 	}
 
@@ -347,11 +356,13 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	// this is enough for the server to generate a receiving chain key and sending
 	// chain key as soon as the client sends a sending chain key
 	uint8_t rre0[ECNUM_SIZE];
+	if (ctx->init.server->localratchetstep0) mr_ecdh_destroy(ctx->init.server->localratchetstep0);
 	ctx->init.server->localratchetstep0 = mr_ecdh_create(ctx);
 	FAILIF(!ctx->init.server->localratchetstep0, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep0, rre0, sizeof(rre0)));
 	LOGD("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
+	if (ctx->init.server->localratchetstep1) mr_ecdh_destroy(ctx->init.server->localratchetstep1);
 	ctx->init.server->localratchetstep1 = mr_ecdh_create(ctx);
 	FAILIF(!ctx->init.server->localratchetstep1, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep1, rre1, sizeof(rre1)));
@@ -495,7 +506,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* remoteRatchetEcdh0 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
 
-	_mr_ratchet_state *ratchets = 0;
+	_mr_ratchet_state* ratchets = 0;
 	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state) * 2, (void**)&ratchets));
 
 	_R(result, ratchet_initialize_client(ctx, &ratchets[0], &ratchets[1],
@@ -570,7 +581,7 @@ static mr_result send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint3
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
 	memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
-	_mr_ratchet_state *laststep;
+	_mr_ratchet_state* laststep;
 	_C(ratchet_getlast(ctx, &laststep));
 	_C(construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, false, laststep));
 
@@ -673,14 +684,14 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 }
 
 static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t amount,
-	 uint8_t** headerKeyUsed, _mr_ratchet_state** stepUsed, bool* usedNextHeaderKey)
+	uint8_t** headerKeyUsed, _mr_ratchet_state** stepUsed, bool* usedNextHeaderKey)
 {
 	*headerKeyUsed = 0;
 	*stepUsed = 0;
 	*usedNextHeaderKey = false;
 
 	bool macmatches = false;
-	
+
 	// check ratchet header keys
 	if (ctx->ratchets[0].num)
 	{
@@ -800,12 +811,19 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 				ctx->init.server->localratchetstep1,
 				ctx->init.server->firstreceiveheaderkey, KEY_SIZE,
 				ctx->init.server->firstsendheaderkey, KEY_SIZE));
+			if (result == 0)
+			{
+				// localratchetstep1 gets aliased by ratchet_initialize_server
+				ctx->init.server->localratchetstep1 = 0;
+				if (ctx->init.server->localratchetstep0)
+				{
+					mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+					ctx->init.server->localratchetstep0 = 0;
+				}
+			}
 			_R(result, ratchet_add(ctx, _step));
 			if (result == 0)
 			{
-				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
-				ctx->init.server->localratchetstep0 = 0;
-				ctx->init.server->localratchetstep1 = 0;
 				step = _step;
 			}
 			else
@@ -863,7 +881,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	*payloadsize = payloadSize;
 
 	LOGD("[payload]             ", message + payloadOffset, payloadSize);
-	
+
 	return MR_E_SUCCESS;
 }
 
@@ -879,10 +897,19 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			{
 				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
 			}
+			else
+			{
+				if (ctx->init.client->localecdhforinit)
+				{
+					mr_ecdh_destroy(ctx->init.client->localecdhforinit);
+				}
+			}
 
 			// reset client state
 			ctx->init.initialized = false;
+
 			memset(ctx->init.client, 0, sizeof(_mr_initialization_state_client));
+			ratchet_destroy_all(ctx);
 			memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
 
 			// step 1: send first init request from client
@@ -947,10 +974,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			ctx->init.initialized = false;
 
 			// reset ratchets if this is a reinitialization
-			if(ctx->ratchets[0].num)
-			{
-				memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
-			}
+			ratchet_destroy_all(ctx);
 
 			return MR_E_SENDBACK;
 		}
@@ -1057,6 +1081,14 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 		// received first normal message, free init state
 		if (!ctx->config.is_client && ctx->init.server)
 		{
+			if (ctx->init.server->localratchetstep0)
+			{
+				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
+			}
+			if (ctx->init.server->localratchetstep1)
+			{
+				mr_ecdh_destroy(ctx->init.server->localratchetstep1);
+			}
 			mr_free(ctx, ctx->init.server);
 			ctx->init.server = 0;
 		}
@@ -1120,13 +1152,7 @@ void mr_ctx_destroy(mr_ctx _ctx)
 			ctx->identity = 0;
 		}
 
-		for (int i = 0; i < NUM_RATCHETS; i++)
-		{
-			if (ctx->ratchets[i].ecdhkey)
-			{
-				mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
-			}
-		}
+		ratchet_destroy_all(ctx);
 
 		if (ctx->config.is_client && ctx->init.client)
 		{

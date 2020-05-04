@@ -128,6 +128,7 @@
 	mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
 	mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
+	void ratchet_destroy_all(_mr_ctx* ctx);
 	bool ratchet_destroy(_mr_ctx* ctx, int num);
 	mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
