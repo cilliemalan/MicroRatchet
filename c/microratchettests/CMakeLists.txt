@@ -1,5 +1,4 @@
 # microratchet unit tests
-# currently builds against wolfssl
 
 cmake_minimum_required(VERSION 3.0)
 include(GoogleTest)
@@ -37,13 +36,16 @@ endif (EMBEDDED)
 add_executable(microratchettestswolfssl ${SOURCES})
 add_executable(microratchettestmbed ${SOURCES})
 add_executable(microratchettestopenssl ${SOURCES})
+add_executable(microratchettescrypto ${SOURCES})
 
 
 if (EMBEDDED)
     target_link_options(microratchettestswolfssl PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
     target_link_options(microratchettestmbed PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
+    target_link_options(microratchettescrypto PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
     target_compile_definitions(microratchettestswolfssl PUBLIC EMBEDDED)
     target_compile_definitions(microratchettestmbed PUBLIC EMBEDDED)
+    target_compile_definitions(microratchettescrypto PUBLIC EMBEDDED)
 endif (EMBEDDED)
 
 # with gtest cmake can discover tests automatically
@@ -52,6 +54,7 @@ if (NOT EMBEDDED AND NOT ARM)
     gtest_discover_tests(microratchettestswolfssl)
     gtest_discover_tests(microratchettestmbed)
     gtest_discover_tests(microratchettestopenssl)
+    gtest_discover_tests(microratchettescrypto)
 endif ()
 
 include_directories(
@@ -80,13 +83,21 @@ target_link_libraries(microratchettestopenssl
     gtest
     gmock
     gtest_main)
+target_link_libraries(microratchettescrypto
+    microratchet
+    microratchetcrypto
+    gtest
+    gmock
+    gtest_main)
 	
 target_compile_definitions(microratchettestswolfssl PUBLIC WOLFSSL)
 target_compile_definitions(microratchettestmbed PUBLIC MBEDCRYPTO)
 target_compile_definitions(microratchettestopenssl PUBLIC OPENSSL)
+target_compile_definitions(microratchettescrypto PUBLIC CUSTOMCRYPTO DOES_NOT_SUPPORT_192)
 
 # we have our own TEST definition that tracks memory allocations
 # so we prevent gtest from defining its own
 target_compile_definitions(microratchettestswolfssl PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_definitions(microratchettestmbed PUBLIC GTEST_DONT_DEFINE_TEST)
 target_compile_definitions(microratchettestopenssl PUBLIC GTEST_DONT_DEFINE_TEST)
+target_compile_definitions(microratchettescrypto PUBLIC GTEST_DONT_DEFINE_TEST)

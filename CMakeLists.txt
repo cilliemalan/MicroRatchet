@@ -114,6 +114,8 @@ add_subdirectory(thirdparty/mbed-crypto)
 add_subdirectory(c/microratchetmbed)
 # openssl
 add_subdirectory(c/microratchetopenssl)
+# custom
+add_subdirectory(c/microratchetcrypto)
 
 # mbed config
 target_compile_definitions(mbedcrypto PUBLIC "MBEDTLS_USER_CONFIG_FILE=<user_config.h>")

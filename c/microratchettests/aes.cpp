@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <microratchet.h>
+#include <internal.h>
 #include "support.h"
 
 static mr_config _cfg{ true };
@@ -24,7 +25,7 @@ TEST(Aes, Init256) {
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto aes = mr_aes_create(mr_ctx);
 	EXPECT_NE(nullptr, aes);
-	int result = mr_aes_init(aes, key, SIZEOF(key));
+	int result = mr_aes_init(aes, key, SIZEOF(key)); 
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);
@@ -124,6 +125,8 @@ TEST(Aes, ReferenceTest4) {
 	processTest(key, sizeof(key), input, sizeof(input), expected, sizeof(expected));
 }
 
+#ifndef DOES_NOT_SUPPORT_192
+
 TEST(Aes, ReferenceTest5) {
 	const uint8_t key[]{
 		0x8e, 0x73, 0xb0, 0xf7, 0xda, 0x0e, 0x64, 0x52, 0xc8, 0x10, 0xf3, 0x2b, 0x80, 0x90, 0x79, 0xe5, 0x62, 0xf8, 0xea, 0xd2, 0x52, 0x2c, 0x6b, 0x7b,
@@ -180,6 +183,8 @@ TEST(Aes, ReferenceTest8) {
 	processTest(key, sizeof(key), input, sizeof(input), expected, sizeof(expected));
 }
 
+#endif
+
 TEST(Aes, ReferenceTest9) {
 	const uint8_t key[]{
 		0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4,
@@ -234,4 +239,64 @@ TEST(Aes, ReferenceTest12) {
 	};
 
 	processTest(key, sizeof(key), input, sizeof(input), expected, sizeof(expected));
+}
+
+
+static constexpr uint32_t numinits = 10000000;
+static constexpr uint32_t numcrypts = 10000000;
+void performanceTest(const uint8_t* key, uint32_t keysize)
+{
+	MR_ALIGN(16)
+	uint8_t data[]{
+		0xf6, 0x9f, 0x24, 0x45, 0xdf, 0x4f, 0x9b, 0x17, 0xad, 0x2b, 0x41, 0x7b, 0xe6, 0x6c, 0x37, 0x10,
+	};
+
+	auto mr_ctx = mr_ctx_create(&_cfg);
+	auto aes = mr_aes_create(mr_ctx);
+	EXPECT_NE(nullptr, aes);
+
+	int result;
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (uint32_t i = 0; i < numinits; i++)
+	{
+		result = mr_aes_init(aes, key, keysize);
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	auto time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	auto seconds = time_passed.count();
+	printf("Did %d initializations in %.0fms (%.0f per second)\n", numinits, seconds * 1000.0, numinits / seconds);
+	EXPECT_EQ(MR_E_SUCCESS, result);
+
+
+	t1 = std::chrono::high_resolution_clock::now();
+	for (uint32_t i = 0; i < numcrypts; i++)
+	{
+		result = mr_aes_process(aes, data, sizeof(data), data, sizeof(data));
+	}
+	t2 = std::chrono::high_resolution_clock::now();
+	time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	seconds = time_passed.count();
+	printf("Did %d encryptions in %.0fms (%.0f per second)\n", numinits, seconds * 1000.0, numcrypts / seconds);
+	EXPECT_EQ(MR_E_SUCCESS, result);
+
+	mr_aes_destroy(aes);
+	mr_ctx_destroy(mr_ctx);
+
+}
+
+TEST(Aes, PerformanceTest128) {
+
+	const uint8_t key[]{
+		0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+	};
+
+	performanceTest(key, sizeof(key));
+}
+
+TEST(Aes, PerformanceTest256) {
+	const uint8_t key[]{
+		0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4,
+	};
+
+	performanceTest(key, sizeof(key));
 }

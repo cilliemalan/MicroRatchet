@@ -804,5 +804,5 @@ TEST(Context, InitializationPerformanceTest) {
 		if (seconds > 1) break;
 	}
 
-	printf("Ran %i initializations in %.3f seconds", i, seconds);
+	printf("Ran %i initializations in %.3f seconds\n", i, seconds);
 }

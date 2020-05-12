@@ -8,10 +8,16 @@
 #define DEBUG
 #endif
 
+#if defined(__amd64__) || defined(__x86_64__) || defined(_M_AMD64)
+#define MR_X64
+#endif
+
 #if defined(_MSC_VER)
 #define STATIC_ASSERT(e, r) static_assert(e, r)
+#define MR_ALIGN(n) __declspec(align(n))
 #elif defined(__GNUC__)
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
+#define MR_ALIGN(n) __attribute__((aligned(n))
 #else
 #define STATIC_ASSERT(e, r)
 #endif
