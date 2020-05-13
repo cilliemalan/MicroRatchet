@@ -15,11 +15,19 @@
 #if defined(_MSC_VER)
 #define STATIC_ASSERT(e, r) static_assert(e, r)
 #define MR_ALIGN(n) __declspec(align(n))
+#define MR_HTON _byteswap_ulong
 #elif defined(__GNUC__)
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
 #define MR_ALIGN(n) __attribute__((aligned(n))
+#define MR_HTON __builtin_bswap32
 #else
 #define STATIC_ASSERT(e, r)
+#define MR_ALIGN(n)
+#define MR_HTON(x) (uint32_t)(\
+	((((uint32_t)(x)) >> 24) & 0xff) | \
+	((((uint32_t)(x)) >> 16) & 0xff) | \
+	((((uint32_t)(x)) >> 8) & 0xff) | \
+	((((uint32_t)(x)) >> 0) & 0xff))
 #endif
 
 #define KEY_SIZE 32
