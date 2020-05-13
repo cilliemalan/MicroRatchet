@@ -1,24 +1,17 @@
 #include "pch.h"
-#include <microratchet.h>
+#include "aes.h"
 
 #ifdef MR_X64
 #include <intrin.h>
 #include <wmmintrin.h>
+#else
 #endif
-
-
-typedef struct {
-	mr_ctx mr_ctx;
-	uint32_t numrounds;
-	uint32_t* roundkeys;
-} _mr_aes_ctx;
 
 
 
 #ifndef MR_X64
 
 #define align16(ptr) ptr
-#define roundkeyoffset 0
 
 static const uint8_t fsb[256] =
 {
@@ -178,7 +171,6 @@ static const uint8_t rc[16] = {
 #else
 
 #define align16(ptr) ((void*)(((size_t)(ptr) + 16 - 1) & -16))
-#define roundkeyoffset 16
 
 #endif
 
@@ -202,17 +194,8 @@ mr_result mr_aes_init(mr_aes_ctx _ctx, const uint8_t* key, uint32_t keysize)
 	FAILIF(!key, MR_E_INVALIDARG, "key must not be null");
 	FAILIF(keysize != 16 && keysize != 32, MR_E_INVALIDSIZE, "keysize != 16 && keysize != 24 && keysize != 32");
 
-	// unlike every other implementation under the sun
-	// we allocate round keys dynamically.
 	ctx->numrounds = keysize == 16 ? 10 : 14;
-	// amount is increased by 16 for alignment on x64
-	uint32_t roundkeybytes = (keysize == 16 ? 176 : 256) + roundkeyoffset;
 	const uint32_t* userkey = (const uint32_t*)key;
-
-	if (!ctx->roundkeys)
-	{
-		_C(mr_allocate(ctx->mr_ctx, roundkeybytes, &ctx->roundkeys));
-	}
 
 #ifdef MR_X64
 	__m128i* xrk = (__m128i*)align16(ctx->roundkeys);
@@ -427,11 +410,6 @@ void mr_aes_destroy(mr_aes_ctx _ctx)
 	{
 		_mr_aes_ctx* ctx = (_mr_aes_ctx*)_ctx;
 		mr_ctx mrctx = ctx->mr_ctx;
-
-		if (ctx->roundkeys)
-		{
-			mr_free(mrctx, ctx->roundkeys);
-		}
 
 		memset(ctx, 0, sizeof(_mr_aes_ctx));
 		mr_free(mrctx, ctx);
