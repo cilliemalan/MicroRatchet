@@ -131,40 +131,27 @@ TEST(Sha, ReferenceTestLong) {
 	testsha(input, output);
 }
 
-/* MBED tls fails and not sure we need this functionality anyway.
-TEST(Sha, ReferenceTestTwice) {
-	const uint8_t input1[]{ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
-	const uint8_t expected1[32]{
-		0x66, 0x84, 0x0D, 0xDA, 0x15, 0x4E, 0x8A, 0x11,
-		0x3C, 0x31, 0xDD, 0x0A, 0xD3, 0x2F, 0x7F, 0x3A,
-		0x36, 0x6A, 0x80, 0xE8, 0x13, 0x69, 0x79, 0xD8,
-		0xF5, 0xA1, 0x01, 0xD3, 0xD2, 0x9D, 0x6F, 0x72
+static constexpr uint32_t numshas = 1000000;
+TEST(Sha, PerformanceTest) {
+	uint8_t data[32]{
+	   0x3B, 0x7F, 0xFF, 0xD4, 0xFC, 0x0D, 0xCB, 0xD5,
+	   0x2D, 0xAD, 0xB0, 0xCC, 0xC6, 0xFF, 0xC3, 0x40,
+	   0x69, 0x67, 0x6A, 0x4A, 0x1D, 0xFD, 0x44, 0x64,
+	   0x57, 0xB4, 0xC9, 0xBE, 0x46, 0x04, 0xDD, 0xA1
 	};
-	const uint8_t input2[]{ 0xF1, 0x02, 0xF3, 0x04, 0xF5, 0x06, 0xF7, 0x08 };
-	uint8_t expected2[32]{
-		0xAE, 0xB6, 0xB8, 0xE3, 0xE2, 0xF5, 0x96, 0x04,
-		0xA3, 0xDD, 0x7F, 0xCC, 0xD7, 0x9A, 0x77, 0x19,
-		0x81, 0x89, 0xC5, 0xCF, 0x44, 0x8C, 0x8A, 0x62,
-		0x7D, 0xF8, 0x42, 0x86, 0x60, 0x4F, 0x8F, 0x7A
-	};
-	uint8_t output[32];
 
 	auto mr_ctx = mr_ctx_create(&_cfg);
 	auto sha = mr_sha_create(mr_ctx);
-	int result = mr_sha_init(sha);
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	result = mr_sha_process(sha, input1, SIZEOF(input1));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_BUFFEREQ(expected1, sizeof(expected1), output, sizeof(output));
-	result = mr_sha_process(sha, input2, SIZEOF(input2));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	result = mr_sha_compute(sha, output, SIZEOF(output));
-	EXPECT_EQ(MR_E_SUCCESS, result);
-	EXPECT_BUFFEREQ(expected2, sizeof(expected2), output, sizeof(output));
 
-	mr_sha_destroy(sha);
-	mr_ctx_destroy(mr_ctx);
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (uint32_t i = 0; i < numshas; i++)
+	{
+		mr_sha_init(sha);
+		mr_sha_process(sha, data, sizeof(data));
+		mr_sha_compute(sha, data, sizeof(data));
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	auto time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	auto seconds = time_passed.count();
+	printf("Did %d hashes in %.0fms (%.0f per second)\n", numshas, seconds * 1000.0, numshas / seconds);
 }
-*/
