@@ -1,40 +1,20 @@
 #include "pch.h"
 #include <microratchet.h>
 
-typedef struct
-{
-	mr_ctx mr_ctx;
-} _mr_rng_ctx;
-
 mr_rng_ctx mr_rng_create(mr_ctx mr_ctx)
 {
-	_mr_rng_ctx* ctx;
-	int r = mr_allocate(mr_ctx, sizeof(_mr_rng_ctx), (void**)&ctx);
-	if (r != MR_E_SUCCESS)
-		return 0;
-
-    memset(ctx, 0, sizeof(_mr_rng_ctx));
-    ctx->mr_ctx = mr_ctx;
-
-	return ctx;
+	return (mr_rng_ctx)0xffffffff;
 }
 
 mr_result mr_rng_generate(mr_rng_ctx _ctx, uint8_t* output, uint32_t outputsize)
 {
-	_mr_rng_ctx* ctx = _ctx;
-	FAILIF(outputsize < 1, MR_E_INVALIDSIZE, "outputsize < 1");
-	FAILIF(!output, MR_E_INVALIDARG, "!output");
+	// because random is used so infrequently, our implementation
+	// just spits the seed material out directly
+	mr_rng_seed(output, outputsize);
 
 	return MR_E_SUCCESS;
 }
 
 void mr_rng_destroy(mr_rng_ctx _ctx)
 {
-	if (_ctx)
-	{
-		_mr_rng_ctx* ctx = _ctx;
-		mr_ctx mrctx = ctx->mr_ctx;
-		memset(ctx , 0, sizeof(_mr_rng_ctx));
-		mr_free(mrctx, ctx);
-	}
 }
