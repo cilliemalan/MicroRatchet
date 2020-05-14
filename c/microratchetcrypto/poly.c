@@ -1,6 +1,15 @@
 #include "pch.h"
 #include <microratchet.h>
 
+
+
+// the pol1305 implementation in this file is based on the openssl poly1305
+// implementation which is Copyright 2015-2018 The OpenSSL Project Authors
+// and is Licensed under the Apache License 2.0.
+
+
+
+
 typedef struct {
 	uint32_t r[4];
 	uint32_t n[4];
