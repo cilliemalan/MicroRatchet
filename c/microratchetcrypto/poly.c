@@ -89,7 +89,7 @@ static void poly1305_update_internal(_mr_poly_ctx* ctx, const uint8_t* data, uin
 		d[3] = ((uint64_t)h[0] * r[3]) +
 			((uint64_t)h[1] * r[2]) +
 			((uint64_t)h[2] * r[1]) +
-			((uint64_t)h[3] * s[0]) +
+			((uint64_t)h[3] * r[0]) +
 			((uint64_t)h[4] * s[2]);
 		h[4] *= r[0];
 
