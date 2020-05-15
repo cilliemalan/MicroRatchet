@@ -149,10 +149,16 @@ TEST(Ecc, Sqrt) {
 #endif
 
 
+#if defined(OPENSSL) || defined(CUSTOMCRYPTO)
+
 #ifdef OPENSSL
-
-
 #include "../microratchetopenssl/ecc_common.h"
+#endif
+
+#ifdef CUSTOMCRYPTO
+#include "../microratchetcrypto/ecc_common.h"
+#endif
+
 static uint8_t zeroes[32] = { 0 };
 
 TEST(Ecc, CreateDestroy) {
@@ -160,16 +166,11 @@ TEST(Ecc, CreateDestroy) {
 	ecc_point point{};
 
 	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
-	EXPECT_NE(nullptr, key.key);
-
 	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&point));
-	EXPECT_NE(nullptr, point.point);
 
 	ecc_free(&key);
 	ecc_free_point(&point);
 
-	EXPECT_EQ(nullptr, key.key);
-	EXPECT_EQ(nullptr, point.point);
 }
 
 TEST(Ecc, Generate) {
