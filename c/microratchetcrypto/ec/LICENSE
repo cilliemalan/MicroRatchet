@@ -1,0 +1,3 @@
+The files in this directory are derived from libsecp256k1 which is Copyright (c) 2013 Pieter Wuille and licensed
+under the MIT license. Individual files may have their own copyright notices. The original sources may
+be found at https://github.com/bitcoin-core/secp256k1

@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.0)
 
 set(SOURCES
 	aes.c
+	ec/secp256k1.c
 	ecc_common.c
 	ecdh.c
 	ecdsa.c
@@ -15,3 +16,5 @@ set(SOURCES
 include_directories(../libmicroratchet)
 
 add_library(microratchetcrypto STATIC ${SOURCES})
+
+target_compile_definitions(microratchetcrypto PUBLIC HAVE_CONFIG_H)

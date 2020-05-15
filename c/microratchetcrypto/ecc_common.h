@@ -1,5 +1,10 @@
 #pragma once
 
+
+// EC configuration
+#include "ec/libsecp256k1-config.h"
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

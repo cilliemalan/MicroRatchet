@@ -75,6 +75,7 @@ mr_result ecc_verify(const ecc_point* pub, const uint8_t* signature, uint32_t si
 	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64");
 	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digestsize != 32");
 
+
 	return MR_E_NOTIMPL;
 }
 
@@ -84,6 +85,7 @@ mr_result ecc_verify_other(const uint8_t* signature, uint32_t signaturesize, con
 	FAILIF(signaturesize != 64, MR_E_INVALIDSIZE, "signaturesize != 64");
 	FAILIF(digestsize != 32, MR_E_INVALIDSIZE, "digestsize != 32");
 	FAILIF(publickeysize != 32, MR_E_INVALIDSIZE, "publickeysize != 32");
+
 
 	return MR_E_NOTIMPL;
 }
