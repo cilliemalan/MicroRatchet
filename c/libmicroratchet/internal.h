@@ -84,68 +84,68 @@
 // if (r == success) r = x
 #define _R(r, x) do { if (r == MR_E_SUCCESS) r = x; } while (0)
 
-	typedef struct _mr_initialization_state_server {
-		uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
-		// the order of these is important
-		uint8_t rootkey[KEY_SIZE];
-		uint8_t firstsendheaderkey[KEY_SIZE];
-		uint8_t firstreceiveheaderkey[KEY_SIZE];
+typedef struct _mr_initialization_state_server {
+	uint8_t nextinitializationnonce[INITIALIZATION_NONCE_SIZE];
+	// the order of these is important
+	uint8_t rootkey[KEY_SIZE];
+	uint8_t firstsendheaderkey[KEY_SIZE];
+	uint8_t firstreceiveheaderkey[KEY_SIZE];
 
-		mr_ecdh_ctx localratchetstep0;
-		mr_ecdh_ctx localratchetstep1;
-		uint8_t clientpublickey[ECNUM_SIZE];
-	} _mr_initialization_state_server;
+	mr_ecdh_ctx localratchetstep0;
+	mr_ecdh_ctx localratchetstep1;
+	uint8_t clientpublickey[ECNUM_SIZE];
+} _mr_initialization_state_server;
 
-	typedef struct _mr_initialization_state_client {
-		uint8_t initializationnonce[INITIALIZATION_NONCE_SIZE];
-		mr_ecdh_ctx localecdhforinit;
-	} _mr_initialization_state_client;
+typedef struct _mr_initialization_state_client {
+	uint8_t initializationnonce[INITIALIZATION_NONCE_SIZE];
+	mr_ecdh_ctx localecdhforinit;
+} _mr_initialization_state_client;
 
-	typedef struct _mr_initialization_state {
-		bool initialized;
-		union {
-			_mr_initialization_state_server* server;
-			_mr_initialization_state_client* client;
-		};
-	} _mr_initialization_state;
+typedef struct _mr_initialization_state {
+	bool initialized;
+	union {
+		_mr_initialization_state_server* server;
+		_mr_initialization_state_client* client;
+	};
+} _mr_initialization_state;
 
-	typedef struct _mr_chain_state {
-		uint32_t generation;
-		uint8_t chainkey[KEY_SIZE];
-		uint32_t oldgeneration;
-		uint8_t oldchainkey[KEY_SIZE];
-	} _mr_chain_state;
+typedef struct _mr_chain_state {
+	uint32_t generation;
+	uint8_t chainkey[KEY_SIZE];
+	uint32_t oldgeneration;
+	uint8_t oldchainkey[KEY_SIZE];
+} _mr_chain_state;
 
-	typedef struct _mr_ratchet_state {
-		uint32_t num;
-		mr_ecdh_ctx ecdhkey;
-		uint8_t nextrootkey[KEY_SIZE];
-		uint8_t sendheaderkey[KEY_SIZE];
-		uint8_t nextsendheaderkey[KEY_SIZE];
-		uint8_t receiveheaderkey[KEY_SIZE];
-		uint8_t nextreceiveheaderkey[KEY_SIZE];
-		_mr_chain_state sendingchain;
-		_mr_chain_state receivingchain;
-	} _mr_ratchet_state;
+typedef struct _mr_ratchet_state {
+	uint32_t num;
+	mr_ecdh_ctx ecdhkey;
+	uint8_t nextrootkey[KEY_SIZE];
+	uint8_t sendheaderkey[KEY_SIZE];
+	uint8_t nextsendheaderkey[KEY_SIZE];
+	uint8_t receiveheaderkey[KEY_SIZE];
+	uint8_t nextreceiveheaderkey[KEY_SIZE];
+	_mr_chain_state sendingchain;
+	_mr_chain_state receivingchain;
+} _mr_ratchet_state;
 
-	typedef struct s_mr_ctx {
-		mr_config config;
-		mr_sha_ctx sha_ctx;
-		mr_rng_ctx rng_ctx;
-		_mr_initialization_state init;
-		_mr_ratchet_state ratchets[NUM_RATCHETS];
-		mr_ecdsa_ctx identity;
-		bool owns_identity;
-	} _mr_ctx;
+typedef struct s_mr_ctx {
+	mr_config config;
+	mr_sha_ctx sha_ctx;
+	mr_rng_ctx rng_ctx;
+	_mr_initialization_state init;
+	_mr_ratchet_state ratchets[NUM_RATCHETS];
+	mr_ecdsa_ctx identity;
+	bool owns_identity;
+} _mr_ctx;
 
-	typedef struct _mr_aesctr_ctx {
-		mr_aes_ctx aes_ctx;
-		uint8_t ctr[16];
-		uint32_t ctrix;
-	} _mr_aesctr_ctx;
+typedef struct _mr_aesctr_ctx {
+	mr_aes_ctx aes_ctx;
+	uint8_t ctr[16];
+	uint32_t ctrix;
+} _mr_aesctr_ctx;
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 	// AES KDF
