@@ -16,7 +16,7 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 	if (r != MR_E_SUCCESS) return 0;
 
 	ctx->mr_ctx = mr_ctx;
-	memset(&ctx->key, 0, sizeof(ctx->key));
+	mr_memzero(&ctx->key, sizeof(ctx->key));
 	return ctx;
 }
 
@@ -101,7 +101,7 @@ void mr_ecdh_destroy(mr_ecdh_ctx ctx)
 	if (ctx)
 	{
 		_mr_ecdh_ctx* _ctx = (_mr_ecdh_ctx*)ctx;
-		memset(_ctx, 0, sizeof(_mr_ecdh_ctx));
+		mr_memzero(_ctx, sizeof(_mr_ecdh_ctx));
 		mr_free(_ctx->mr_ctx, _ctx);
 	}
 }

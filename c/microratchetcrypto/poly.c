@@ -35,7 +35,7 @@ static void poly1305_init(_mr_poly_ctx* ctx, const uint8_t key[32])
 	ctx->n[1] = ukey[5];
 	ctx->n[2] = ukey[6];
 	ctx->n[3] = ukey[7];
-	memset(ctx->d, 0, sizeof(ctx->d));
+	mr_memzero(ctx->d, sizeof(ctx->d));
 	ctx->h[0] = 0;
 	ctx->h[1] = 0;
 	ctx->h[2] = 0;
@@ -200,7 +200,7 @@ static void poly1305_update(_mr_poly_ctx* ctx, const uint8_t* data, uint32_t len
 		uint32_t rest = 16 - num;
 		if (len >= num)
 		{
-			memcpy(ctx->d + num, data, rest);
+			mr_memcpy(ctx->d + num, data, rest);
 			poly1305_update_internal(ctx, ctx->d, 16, true);
 			data += rest;
 			len -= rest;
@@ -208,7 +208,7 @@ static void poly1305_update(_mr_poly_ctx* ctx, const uint8_t* data, uint32_t len
 		}
 		else
 		{
-			memcpy(ctx->d, data, len);
+			mr_memcpy(ctx->d, data, len);
 			ctx->num += rest;
 			return;
 		}
@@ -226,7 +226,7 @@ static void poly1305_update(_mr_poly_ctx* ctx, const uint8_t* data, uint32_t len
 	// put leftovers in buffer
 	if (len > 0)
 	{
-		memcpy(ctx->d, data, len);
+		mr_memcpy(ctx->d, data, len);
 		ctx->num = len;
 	}
 }
@@ -255,7 +255,7 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	mr_result r = mr_allocate(mr_ctx, sizeof(_mr_poly_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-    memset(ctx, 0, sizeof(_mr_poly_ctx));
+	mr_memzero(ctx, sizeof(_mr_poly_ctx));
     ctx->mr_ctx = mr_ctx;
 
 	return ctx;
@@ -270,7 +270,7 @@ mr_result mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, c
 
 	mr_result result = MR_E_SUCCESS;
 	uint8_t tkey[32];
-	memcpy(tkey, key, 16);
+	mr_memcpy(tkey, key, 16);
 
 	mr_aes_ctx aes = mr_aes_create(ctx->mr_ctx);
 	if (!aes)
@@ -307,10 +307,10 @@ mr_result mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail
 
 	uint8_t o[16];
 	poly1305_final(ctx, o);
-	memcpy(output, o, spaceavail < 16 ? spaceavail : 16);
+	mr_memcpy(output, o, spaceavail < 16 ? spaceavail : 16);
 
 	// reset
-	memset(ctx->d, 0, sizeof(ctx->d));
+	mr_memzero(ctx->d, sizeof(ctx->d));
 	ctx->h[0] = 0;
 	ctx->h[1] = 0;
 	ctx->h[2] = 0;
@@ -326,7 +326,7 @@ void mr_poly_destroy(mr_poly_ctx ctx)
 	{
 		_mr_poly_ctx* _ctx = (_mr_poly_ctx*)ctx;
         mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_poly_ctx));
+		mr_memzero(_ctx, sizeof(_mr_poly_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

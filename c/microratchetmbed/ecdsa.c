@@ -112,7 +112,7 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 	{
 		_mr_ecdsa_ctx* _ctx = (_mr_ecdsa_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_ecdsa_ctx));
+		mr_memzero(_ctx, sizeof(_mr_ecdsa_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

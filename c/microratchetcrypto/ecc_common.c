@@ -9,7 +9,7 @@ static int nophashfun(unsigned char* output, const unsigned char* x32, const uns
 {
 	if (x32 != output)
 	{
-		memcpy(output, x32, 32);
+		mr_memcpy(output, x32, 32);
 	}
 	return 1;
 }
@@ -59,7 +59,7 @@ mr_result ecc_initialize(mr_ctx ctx)
 mr_result ecc_new(ecc_key* key)
 {
 	FAILIF(!key, MR_E_INVALIDARG, "key cannot be null");
-	memset(key, 0, sizeof(ecc_key));
+	mr_memzero(key, sizeof(ecc_key));
 
 	return MR_E_SUCCESS;
 }
@@ -67,7 +67,7 @@ mr_result ecc_new(ecc_key* key)
 mr_result ecc_new_point(ecc_point* point)
 {
 	FAILIF(!point, MR_E_INVALIDARG, "point cannot be null");
-	memset(point, 0, sizeof(ecc_point));
+	mr_memzero(point, sizeof(ecc_point));
 
 	return MR_E_SUCCESS;
 }
@@ -160,7 +160,7 @@ uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t size)
 	FAILIF(!data, MR_E_INVALIDARG, "!data");
 	FAILIF(size < 32, MR_E_INVALIDARG, "size must be at least 32 bytes");
 
-	memcpy(key->d, data, 32);
+	mr_memcpy(key->d, data, 32);
 
 	return 32;
 }
@@ -175,7 +175,7 @@ mr_result ecc_store(const ecc_key* key, uint8_t* data, uint32_t spaceavail)
 	FAILIF(!key || !data, MR_E_INVALIDARG, "!key || !data");
 	FAILIF(spaceavail < 32, MR_E_INVALIDSIZE, "spaceavail < 32");
 
-	memcpy(data, key->d, 32);
+	mr_memcpy(data, key->d, 32);
 
 	return MR_E_SUCCESS;
 }
@@ -280,7 +280,7 @@ void ecc_free_point(ecc_point* point)
 {
 	if (point)
 	{
-		memset(point, 0, sizeof(ecc_point));
+		mr_memzero(point, sizeof(ecc_point));
 	}
 }
 
@@ -288,6 +288,6 @@ void ecc_free(ecc_key* key)
 {
 	if (key)
 	{
-		memset(key, 0, sizeof(ecc_key));
+		mr_memzero(key, sizeof(ecc_key));
 	}
 }

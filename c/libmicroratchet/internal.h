@@ -189,6 +189,9 @@
 	mr_result chain_ratchetforsending(mr_ctx mr_ctx, _mr_chain_state* chain, uint8_t* key, uint32_t keysize, uint32_t* generation);
 	mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint32_t generation, uint8_t* key, uint32_t keysize);
 
+	void mr_memcpy(void* dst, const void* src, size_t amt);
+	void mr_memzero(void* dst, size_t amt);
+
 #ifdef __cplusplus
 }
 #endif

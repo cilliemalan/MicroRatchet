@@ -16,7 +16,7 @@ mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 	if (r != MR_E_SUCCESS) return 0;
 
 	ctx->mr_ctx = mr_ctx;
-	memset(&ctx->key, 0, sizeof(ctx->key));
+	mr_memzero(&ctx->key, sizeof(ctx->key));
 	return ctx;
 }
 
@@ -101,7 +101,7 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 	{
 		_mr_ecdsa_ctx* _ctx = (_mr_ecdsa_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_ecdsa_ctx));
+		mr_memzero(_ctx , sizeof(_mr_ecdsa_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }
@@ -112,7 +112,7 @@ mr_result mr_ecdsa_verify_other(const uint8_t* signature, uint32_t signaturesize
 	mr_result mrr = mr_allocate(0, sizeof(ecc_key), (void**)&key);
 	if (mrr) return mrr;
 
-	memset(key, 0, sizeof(ecc_key));
+	mr_memzero(key, sizeof(ecc_key));
 	key->type = ECC_PUBLICKEY;
 	int res = wc_ecc_set_curve(key, 32, ECC_SECP256R1);
 

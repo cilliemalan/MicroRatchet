@@ -203,7 +203,7 @@ ptr += amt;
 
 #define WRITEDATA(data, amt) \
 if (space < amt) return MR_E_INVALIDSIZE; \
-memcpy(ptr, data, amt); \
+mr_memcpy(ptr, data, amt); \
 INCPTR(amt);
 
 #define WRITEECDH(ecdh) { \
@@ -373,7 +373,7 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 
 #define READDATA(data, amt) \
 if (space < amt) return MR_E_INVALIDSIZE; \
-memcpy(data, ptr, amt); \
+mr_memcpy(data, ptr, amt); \
 INCPTR(amt);
 
 #define READECDH(ecdh) \
@@ -420,7 +420,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 
 				_mr_initialization_state_client* c = ctx->init.client;
 
-				memset(c, 0, sizeof(_mr_initialization_state_client));
+				mr_memzero(c, sizeof(_mr_initialization_state_client));
 
 				if (mainheader & HAS_INITIALIZATION_NONCE_BIT)
 				{
@@ -447,7 +447,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 				if (!ctx->init.server)
 				{
 					_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
-					memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
+					mr_memzero(ctx->init.server, sizeof(_mr_initialization_state_server));
 				}
 				else
 				{
@@ -463,7 +463,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 
 				_mr_initialization_state_server* c = ctx->init.server;
 
-				memset(c, 0, sizeof(_mr_initialization_state_server));
+				mr_memzero(c, sizeof(_mr_initialization_state_server));
 
 				if (mainheader & HAS_NEXT_INITIALIZATION_NONCE_BIT)
 				{
@@ -519,7 +519,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 			mr_ecdh_destroy(r->ecdhkey);
 		}
 
-		memset(r , 0, sizeof(_mr_ratchet_state));
+		mr_memzero(r, sizeof(_mr_ratchet_state));
 
 		if (i < numRatchets)
 		{

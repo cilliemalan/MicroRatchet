@@ -154,10 +154,10 @@ mr_ctx mr_ctx_create(const mr_config* config)
 	if (r != MR_E_SUCCESS || !ctx) return 0;
 
 	// clear
-	memset(ctx, 0, sizeof(_mr_ctx));
+	mr_memzero(ctx, sizeof(_mr_ctx));
 
 	// asign some stuff
-	memcpy(&ctx->config, config, sizeof(mr_config));
+	mr_memcpy(&ctx->config, config, sizeof(mr_config));
 	ctx->sha_ctx = mr_sha_create(ctx);
 	ctx->rng_ctx = mr_rng_create(ctx);
 
@@ -206,9 +206,9 @@ static mr_result send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint
 
 	// nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
 	uint32_t macOffset = spaceavail - MAC_SIZE;
-	memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
-	memcpy(output + INITIALIZATION_NONCE_SIZE, pubkey, ECNUM_SIZE);
-	memcpy(output + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE, clientEcdhPub, ECNUM_SIZE);
+	mr_memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(output + INITIALIZATION_NONCE_SIZE, pubkey, ECNUM_SIZE);
+	mr_memcpy(output + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE, clientEcdhPub, ECNUM_SIZE);
 
 	// sign the message
 	_C(sign(ctx, output, macOffset, ctx->identity));
@@ -276,7 +276,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 			}
 
 			// the client wants to reinitialize. Reset state.
-			memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
+			mr_memzero(ctx->init.server, sizeof(_mr_initialization_state_server));
 		}
 	}
 
@@ -288,7 +288,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 		&sigvalid));
 
 	// store the client public key
-	memcpy(ctx->init.server->clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE);
+	mr_memcpy(ctx->init.server->clientpublickey, data + clientPublicKeyOffset, ECNUM_SIZE);
 
 	// set all the pointers
 	*initializationnonce = data;
@@ -316,7 +316,7 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	// store the passed in parms because we're going to overwrite the buffer
 	// this is because initializationnonce is inside output
 	uint8_t tmp1[INITIALIZATION_NONCE_SIZE];
-	memcpy(tmp1, initializationnonce, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(tmp1, initializationnonce, INITIALIZATION_NONCE_SIZE);
 	initializationnonce = tmp1;
 
 	// message format:
@@ -373,21 +373,21 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	uint32_t encryptedPayloadSize = macOffset - encryptedPayloadOffset;
 
 	// construct the message
-	memcpy(output, serverNonce, INITIALIZATION_NONCE_SIZE);
-	memcpy(output + INITIALIZATION_NONCE_SIZE, rootPreEcdhPubkey, ECNUM_SIZE);
+	mr_memcpy(output, serverNonce, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(output + INITIALIZATION_NONCE_SIZE, rootPreEcdhPubkey, ECNUM_SIZE);
 
 	// construct the to-be-encrypted part
 	uint8_t* encryptedPayload = output + encryptedPayloadOffset;
 	// server nonce
-	memcpy(encryptedPayload,
+	mr_memcpy(encryptedPayload,
 		initializationnonce, INITIALIZATION_NONCE_SIZE);
 	// server public key
 	_C(mr_ecdsa_getpublickey(ctx->identity, encryptedPayload + INITIALIZATION_NONCE_SIZE, ECNUM_SIZE));
 	// server ratchet 0
-	memcpy(encryptedPayload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE,
+	mr_memcpy(encryptedPayload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE,
 		rre0, ECNUM_SIZE);
 	// server ratchet 1
-	memcpy(encryptedPayload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2,
+	mr_memcpy(encryptedPayload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2,
 		rre1, ECNUM_SIZE);
 
 	// sign the message
@@ -474,7 +474,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	}
 
 	// store the nonce we got from the server
-	memcpy(ctx->init.client->initializationnonce, data, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(ctx->init.client->initializationnonce, data, INITIALIZATION_NONCE_SIZE);
 	LOGD("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
 
 	// we now have enough information to construct our double ratchet
@@ -549,7 +549,7 @@ static mr_result send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32
 	_mr_ratchet_state* secondToLast;
 	_C(ratchet_getsecondtolast(ctx, &secondToLast));
 
-	memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	return construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, true, secondToLast);
 }
@@ -580,7 +580,7 @@ static mr_result send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint3
 	FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can send the first server response");
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
-	memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
+	mr_memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
 	_mr_ratchet_state* laststep;
 	_C(ratchet_getlast(ctx, &laststep));
 	_C(construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, false, laststep));
@@ -649,7 +649,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 
 	// build the payload <payload, padding>
 	memmove(message + headersize, message, amount);
-	memset(message + headersize + amount, 0, amountAfterPayload);
+	mr_memzero(message + headersize + amount, amountAfterPayload);
 	LOGD("[payload]             ", message + headersize, amount);
 
 	// copy in the nonce
@@ -795,7 +795,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	if (hasEcdh)
 	{
 		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
-		memset(_step, 0, sizeof(_mr_ratchet_state));
+		mr_memzero(_step, sizeof(_mr_ratchet_state));
 
 		if (!step)
 		{
@@ -908,9 +908,9 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			// reset client state
 			ctx->init.initialized = false;
 
-			memset(ctx->init.client, 0, sizeof(_mr_initialization_state_client));
+			mr_memzero(ctx->init.client, sizeof(_mr_initialization_state_client));
 			ratchet_destroy_all(ctx);
-			memset(ctx->ratchets, 0, sizeof(ctx->ratchets));
+			mr_memzero(ctx->ratchets, sizeof(ctx->ratchets));
 
 			// step 1: send first init request from client
 			_C(send_initialization_request(ctx, message, spaceavail));
@@ -1037,7 +1037,7 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 		if (!ctx->init.server)
 		{
 			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
-			memset(ctx->init.server, 0, sizeof(_mr_initialization_state_server));
+			mr_memzero(ctx->init.server, sizeof(_mr_initialization_state_server));
 		}
 
 		// if the application key was used this is an initialization message
@@ -1180,7 +1180,7 @@ void mr_ctx_destroy(mr_ctx _ctx)
 			ctx->init.server = 0;
 		}
 
-		memset(ctx, 0, sizeof(_mr_ctx));
+		mr_memzero(ctx, sizeof(_mr_ctx));
 		mr_free(ctx, ctx);
 	}
 }

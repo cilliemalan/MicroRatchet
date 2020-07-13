@@ -31,7 +31,7 @@ mr_result mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, c
 	FAILIF(!key || !_ctx || !iv, MR_E_INVALIDARG, "!key || !_ctx || !iv");
 
 	uint8_t tkey[32];
-	memcpy(tkey, key, 16);
+	mr_memcpy(tkey, key, 16);
 	mbedtls_aes_context aes;
 	mbedtls_aes_init(&aes);
 	int r = mbedtls_aes_setkey_enc(&aes, key + 16, 16 * 8);
@@ -65,7 +65,7 @@ mr_result mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail
 	uint8_t tmp[16];
 	int r = mbedtls_poly1305_finish(&ctx->poly_ctx, tmp);
 	FAILIF(r, MR_E_INVALIDOP, "Failed to finish poly1305");
-	memcpy(output, tmp, spaceavail < 16 ? spaceavail : 16);
+	mr_memcpy(output, tmp, spaceavail < 16 ? spaceavail : 16);
 
 	return MR_E_SUCCESS;
 }
@@ -76,7 +76,7 @@ void mr_poly_destroy(mr_poly_ctx ctx)
 	{
 		_mr_poly_ctx* _ctx = (_mr_poly_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_poly_ctx));
+		mr_memzero(_ctx, sizeof(_mr_poly_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

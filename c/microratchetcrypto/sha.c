@@ -52,7 +52,7 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_sha_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	memset(ctx, 0, sizeof(_mr_sha_ctx));
+	mr_memzero(ctx, sizeof(_mr_sha_ctx));
 	ctx->mr_ctx = mr_ctx;
 
 	return ctx;
@@ -64,7 +64,7 @@ mr_result mr_sha_init(mr_sha_ctx _ctx)
 	_mr_sha_ctx* ctx = (_mr_sha_ctx*)_ctx;
 
 	ctx->total = 0;
-	memcpy(ctx->state, sh256initstate, sizeof(ctx->state));
+	mr_memcpy(ctx->state, sh256initstate, sizeof(ctx->state));
 
 	return MR_E_SUCCESS;
 }
@@ -137,7 +137,7 @@ mr_result mr_sha_process(mr_sha_ctx _ctx, const uint8_t* data, uint32_t howmuch)
 	{
 		uint32_t blockremain = 64 - blockpart;
 		uint32_t copyamount = blockremain > howmuch ? blockremain : howmuch;
-		memcpy(buffer + blockpart, data, copyamount);
+		mr_memcpy(buffer + blockpart, data, copyamount);
 		blockpart += copyamount;
 		blockremain -= copyamount;
 		data += copyamount;
@@ -161,7 +161,7 @@ mr_result mr_sha_process(mr_sha_ctx _ctx, const uint8_t* data, uint32_t howmuch)
 	// buffer the remaining stuff
 	if (howmuch > 0)
 	{
-		memcpy(buffer, data, howmuch);
+		mr_memcpy(buffer, data, howmuch);
 		ctx->total += howmuch;
 	}
 
@@ -195,11 +195,11 @@ mr_result mr_sha_compute(mr_sha_ctx _ctx, uint8_t* output, uint32_t spaceavail)
 
 		sha_process_internal(ctx->state, ctx->buffer);
 		blockpart = 0;
-		memset(buffer, 0, 60);
+		mr_memzero(buffer, 60);
 	}
 	else
 	{
-		memset(buffer + blockpart, 0, blockremain - 4);
+		mr_memzero(buffer + blockpart, blockremain - 4);
 	}
 
 	// put length at the end as big endian number
@@ -233,7 +233,7 @@ void mr_sha_destroy(mr_sha_ctx ctx)
 	{
 		_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx, 0, sizeof(_mr_sha_ctx));
+		mr_memzero(_ctx,sizeof(_mr_sha_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

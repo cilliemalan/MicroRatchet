@@ -32,6 +32,17 @@ void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t amt)
 	}
 
 	printf("\n");
-}
 
 #endif
+
+void mr_memcpy(void* dst, const void* src, size_t amt)
+{
+	// TODO: don't use stdlib
+	memcpy(dst, src, amt);
+}
+
+void mr_memzero(void* dst, size_t amt)
+{
+	// TODO: don't use stdlib
+	memset(dst, 0, amt);
+}

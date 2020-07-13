@@ -819,7 +819,7 @@ void* MBEDTLS_PLATFORM_STD_CALLOC(size_t a, size_t b)
 	void* ptr;
 	mr_result result = mr_allocate(0, (int)amt, &ptr);
 	FAILIF(result || !ptr, 0, "Allocation failure");
-	memset(ptr, 0, amt);
+	mr_memzero(ptr, amt);
 	return ptr;
 }
 

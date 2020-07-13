@@ -102,7 +102,7 @@ mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspace
 	if (publickey && publickeyspaceavail)
 	{
 		result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
-		if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
+		if (pubkeylen < 32) mr_memzero(publickey, 32 - pubkeylen);
 		FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 	}
 
@@ -111,7 +111,7 @@ mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspace
 
 uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 {
-	memset(key , 0, sizeof(ecc_key));
+	mr_memzero(key , sizeof(ecc_key));
 
 	if (spaceavail < 32) return 0;
 	int result = wc_ecc_import_private_key_ex(data, 32, 0, 0, key, ECC_SECP256R1);
@@ -154,12 +154,12 @@ mr_result ecc_sign(const ecc_key *key, const uint8_t* digest, uint32_t digestsiz
 	uint32_t l = (uint32_t)mp_unsigned_bin_size(&r);
 	FAILIF(l > 32, MR_E_INVALIDOP, "l > 32");
 	result = mp_to_unsigned_bin(&r, signature + (32 - l));
-	if (l < 32) memset(signature, 0, 32 - l);
+	if (l < 32) mr_memzero(signature, 32 - l);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 	l = mp_unsigned_bin_size(&s);
 	FAILIF(l > 32, MR_E_INVALIDOP, "l > 32");
 	result = mp_to_unsigned_bin(&s, signature + (64 - l));
-	if (l < 32) memset(signature + 32, 0, 32 - l);
+	if (l < 32) mr_memzero(signature + 32, 32 - l);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 
 	return MR_E_SUCCESS;
@@ -205,7 +205,7 @@ mr_result ecc_getpublickey(ecc_key* key, uint8_t* publickey, uint32_t publickeys
 
 	uint32_t pubkeylen = (uint32_t)mp_unsigned_bin_size(key->pubkey.x);
 	result = mp_to_unsigned_bin(key->pubkey.x, publickey + (32 - pubkeylen));
-	if (pubkeylen < 32) memset(publickey, 0, 32 - pubkeylen);
+	if (pubkeylen < 32) mr_memzero(publickey, 32 - pubkeylen);
 	FAILIF(result != 0, MR_E_INVALIDOP, "result != 0");
 	return MR_E_SUCCESS;
 }

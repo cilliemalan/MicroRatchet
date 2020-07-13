@@ -13,7 +13,7 @@ mr_sha_ctx mr_sha_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_sha_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-    memset(ctx, 0, sizeof(_mr_sha_ctx));
+    mr_memzero(ctx, sizeof(_mr_sha_ctx));
     ctx->mr_ctx = mr_ctx;
 
 	return ctx;
@@ -58,7 +58,7 @@ void mr_sha_destroy(mr_sha_ctx ctx)
 		_mr_sha_ctx* _ctx = (_mr_sha_ctx*)ctx;
 		wc_Sha256Free(&_ctx->wc_sha);
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_sha_ctx));
+		mr_memzero(_ctx , sizeof(_mr_sha_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

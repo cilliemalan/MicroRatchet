@@ -13,7 +13,7 @@ mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 	mr_result r = mr_allocate(mr_ctx, sizeof(_mr_ecdsa_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	memset(ctx, 0, sizeof(_mr_ecdsa_ctx));
+	mr_memzero(ctx, sizeof(_mr_ecdsa_ctx));
 	ctx->mr_ctx = mr_ctx;
 
 	r = ecc_new(&ctx->key);
@@ -93,7 +93,7 @@ void mr_ecdsa_destroy(mr_ecdsa_ctx ctx)
 		ecc_free(&_ctx->key);
 
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_ecdsa_ctx));
+		mr_memzero(_ctx, sizeof(_mr_ecdsa_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

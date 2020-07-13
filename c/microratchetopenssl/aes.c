@@ -12,7 +12,7 @@ mr_aes_ctx mr_aes_create(mr_ctx mr_ctx)
 	_mr_aes_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_aes_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
-	memset(ctx, 0, sizeof(_mr_aes_ctx));
+	mr_memzero(ctx, sizeof(_mr_aes_ctx));
 
 	ctx->mr_ctx = mr_ctx;
 
@@ -50,7 +50,7 @@ void mr_aes_destroy(mr_aes_ctx ctx)
 	{
 		_mr_aes_ctx* _ctx = (_mr_aes_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_aes_ctx));
+		mr_memzero(_ctx, sizeof(_mr_aes_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

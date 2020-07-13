@@ -50,7 +50,7 @@ mr_result kdf_compute(mr_ctx mr_ctx, const uint8_t* key, uint32_t keylen, const 
 		{
 			int r = mr_aes_process(aes, ctr, sizeof(ctr), ctr, sizeof(ctr));
 			if (r != MR_E_SUCCESS) goto exit;
-			memcpy(output + output_offset, ctr, outputlen - output_offset);
+			mr_memcpy(output + output_offset, ctr, outputlen - output_offset);
 		}
 		output_offset += 16;
 	}

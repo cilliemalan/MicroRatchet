@@ -17,7 +17,7 @@ mr_poly_ctx mr_poly_create(mr_ctx mr_ctx)
 	int r = mr_allocate(mr_ctx, sizeof(_mr_poly_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-    memset(ctx, 0, sizeof(_mr_poly_ctx));
+    mr_memzero(ctx, sizeof(_mr_poly_ctx));
     ctx->mr_ctx = mr_ctx;
 
 	return ctx;
@@ -31,7 +31,7 @@ mr_result mr_poly_init(mr_poly_ctx _ctx, const uint8_t* key, uint32_t keysize, c
 	FAILIF(!key || !_ctx || !iv, MR_E_INVALIDARG, "!key || !_ctx || !iv");
 
 	uint8_t tkey[32];
-	memcpy(tkey, key, 16);
+	mr_memcpy(tkey, key, 16);
 	Aes* aes;
 	int r = mr_allocate(ctx->mr_ctx, sizeof(Aes), (void**)&aes);
 	if (r) return r;
@@ -68,7 +68,7 @@ mr_result mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail
 		uint8_t tmp[16];
 		int r = wc_Poly1305Final(&ctx->wc_poly, tmp);
 		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
-		memcpy(output, tmp, spaceavail);
+		mr_memcpy(output, tmp, spaceavail);
 	}
 	else if (spaceavail == 16)
 	{
@@ -79,7 +79,7 @@ mr_result mr_poly_compute(mr_poly_ctx _ctx, uint8_t* output, uint32_t spaceavail
 	{
 		int r = wc_Poly1305Final(&ctx->wc_poly, output);
 		FAILIF(r != 0, MR_E_INVALIDOP, "r != 0");
-		memset(output + 16, 0, spaceavail - 16);
+		mr_memzero(output + 16, spaceavail - 16);
 	}
 	return MR_E_SUCCESS;
 }
@@ -90,7 +90,7 @@ void mr_poly_destroy(mr_poly_ctx ctx)
 	{
 		_mr_poly_ctx* _ctx = (_mr_poly_ctx*)ctx;
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_poly_ctx));
+		mr_memzero(_ctx , sizeof(_mr_poly_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }

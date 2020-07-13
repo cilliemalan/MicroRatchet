@@ -13,7 +13,7 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 	mr_result r = mr_allocate(mr_ctx, sizeof(_mr_ecdh_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
 
-	memset(ctx, 0, sizeof(_mr_ecdh_ctx));
+	mr_memzero(ctx, sizeof(_mr_ecdh_ctx));
 	ctx->mr_ctx = mr_ctx;
 	
 	r = ecc_new(&ctx->key);
@@ -98,7 +98,7 @@ void mr_ecdh_destroy(mr_ecdh_ctx ctx)
 		ecc_free(&_ctx->key);
 
 		mr_ctx mrctx = _ctx->mr_ctx;
-		memset(_ctx , 0, sizeof(_mr_ecdh_ctx));
+		mr_memzero(_ctx, sizeof(_mr_ecdh_ctx));
 		mr_free(mrctx, _ctx);
 	}
 }
