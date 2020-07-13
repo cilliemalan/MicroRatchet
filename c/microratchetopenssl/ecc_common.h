@@ -19,6 +19,7 @@ extern "C" {
 		EC_KEY* key;
 	} ecc_key;
 
+	static inline mr_result ecc_initialize(mr_ctx ctx) { return MR_E_SUCCESS; }
 	mr_result ecc_new(ecc_key* key);
 	mr_result ecc_new_point(ecc_point* point);
 	mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublickeysize, ecc_point* pub);

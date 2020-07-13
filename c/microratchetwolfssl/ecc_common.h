@@ -1,5 +1,6 @@
 #pragma once
 
+static inline mr_result ecc_initialize(mr_ctx ctx) { return MR_E_SUCCESS; }
 mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublickeysize, ecc_point *pub);
 mr_result ecc_generate(ecc_key* key, uint8_t* publickey, uint32_t publickeyspaceavail);
 uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail);
