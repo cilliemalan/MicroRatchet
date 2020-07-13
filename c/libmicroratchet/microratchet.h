@@ -23,8 +23,11 @@ typedef void* mr_rng_ctx;
 
 // functions
 typedef void(*data_callback_fn)(const uint8_t* data, uint32_t amount, void* user);
-typedef uint32_t(*data_fn)(const uint8_t* data, uint32_t amount, void* user);
-typedef bool(*waitnotify_fn)(void* user);
+typedef uint32_t(*transmit_fn)(const uint8_t* data, uint32_t amount, void* user);
+typedef uint32_t(*receive_fn)(uint8_t* data, uint32_t amount, void* user);
+typedef void* (*waithandle_fn)(void* user);
+typedef bool (*wait_fn)(void* handle, uint32_t timeout, void* user);
+typedef void (*notify_fn)(void* handle, void* user);
 typedef bool(*checkkey_fn)(const uint8_t* pubkey, uint32_t len, void* user);
 
 // main configuration
@@ -42,19 +45,31 @@ typedef struct t_mr_hlconfig {
 	// user defined data used in callbacks.
 	void* user;
 
-	// wait for notification function. This function will be called by the main
-	// loop and should block until notify is called from another thread.
-	waitnotify_fn wait;
+	// the number of times to retry an operation.
+	uint32_t num_retries;
+
+	// create a wait handle to be waited upon by wait and notified by notify.
+	// This can, for example, create a ciritcal section in windows, a mutex
+	// or semaphore on another operating system, or just return the thread ID
+	// for something like RTOS where threads can be unblocked directly.
+	waithandle_fn create_wait_handle;
+
+	// wait for notification function. When this function is called it should
+	// block until notify is called. It should also free the wait handle upon
+	// return. The return value should indicate whether a notification was 
+	// received. Timeout is assumed to be in milliseconds.
+	wait_fn wait;
 
 	// notify function. When this function is called the wait function above should
-	// unblock.
-	waitnotify_fn notify;
+	// unblock. Also call this function when data is received.
+	notify_fn notify;
 
 	// transmit function called by the main loop to transmit data.
-	data_fn transmit;
+	transmit_fn transmit;
 
-	// receive function called by the main loop to receive data.
-	data_fn receive;
+	// receive function called by the main loop to receive data. This is called
+	// by the main loop process when mr_hl_receive is called.
+	receive_fn receive;
 
 	// data callback function called when a mesage has been received.
 	data_callback_fn data_callback;
@@ -62,6 +77,15 @@ typedef struct t_mr_hlconfig {
 	// check key callback called when establishing session to verify
 	// trust for the remote public key.
 	checkkey_fn checkkey_callback;
+
+	// the amount which to round up message sizes. Set to 1 to always send
+	// the exact amount. Set to a larger number (e.g. 16) to pad messages
+	// to a multiple of that.
+	uint32_t message_quantization;
+
+	// how often to send new ECDH paramters. if 0 or 1, ECDH parameters will
+	// be sent every message.
+	uint32_t ecdh_frequency;
 } mr_hl_config;
 
 // The result of an operation. Note: when an error is returned and MR_DEBUG
@@ -73,6 +97,11 @@ typedef enum mr_result_e {
 	// data back over the wire. The data to send will
 	// be in the payload and payloadsize arguments.
 	MR_E_SENDBACK = 1,
+	// returned when a high-level function is called with
+	// a timeout of zero. Indicates that the requested action
+	// was enqueued but does not indicate whether or not the
+	// action succeeded.
+	MR_E_ACTION_ENQUEUED = 2,
 	// one of the arguments passed was invalid.
 	MR_E_INVALIDARG = -1,
 	// one of the sizes passed was invalid or too small.
@@ -90,7 +119,9 @@ typedef enum mr_result_e {
 	// the function is not implemented.
 	MR_E_NOTIMPL = -8,
 	// a call to an external library function failed (i.e. a call to wolfssl or openssl failed).
-	MR_E_FAIL = -9
+	MR_E_FAIL = -9,
+	// a high-level function has timed out.
+	MR_E_TIMEOUT = -10
 } mr_result;
 
 // the minimum amount of overhead. The message space
@@ -401,11 +432,24 @@ extern "C" {
 	// from another thread.
 	mr_result mr_hl_mainloop(mr_ctx ctx, const mr_hl_config* config);
 
-	// buffers a send instruction to be executed.
-	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize);
+	// buffers a send instruction to be executed. 
+	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
+	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize, uint32_t timeout);
+
+	// notifies the main loop that data is available. 
+	// config->receive will be called to retrieve the data.
+	// available specifies the number of bytes available.
+	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
+	mr_result mr_hl_receive(mr_ctx ctx, uint32_t available, uint32_t timeout);
+
+	// notifies the main loop that data is available.
+	// config->receive will NOT be called to retrieve the data, the data provided will be used.
+	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
+	mr_result mr_hl_receive_data(mr_ctx ctx, const uint8_t* data, uint32_t size, uint32_t timeout);
 
 	// Causes the main loop to exit.
-	mr_result mr_hl_deactivate(mr_ctx ctx);
+	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
+	mr_result mr_hl_deactivate(mr_ctx ctx, uint32_t timeout);
 
 #ifdef __cplusplus
 }
