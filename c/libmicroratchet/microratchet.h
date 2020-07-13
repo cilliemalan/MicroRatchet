@@ -21,6 +21,11 @@ typedef void* mr_ecdh_ctx;
 typedef void* mr_ecdsa_ctx;
 typedef void* mr_rng_ctx;
 
+// functions
+typedef void(*data_callback_fn)(const uint8_t* data, uint32_t amount, void* user);
+typedef uint32_t(*data_fn)(const uint8_t* data, uint32_t amount, void* user);
+typedef bool(*waitnotify_fn)(void* user);
+
 // main configuration
 typedef struct t_mr_config {
 
@@ -30,6 +35,30 @@ typedef struct t_mr_config {
 	// the application key. Must match the key for the server.
 	uint8_t applicationKey[32];
 } mr_config;
+
+// high-level configuration
+typedef struct t_mr_hlconfig {
+	// user defined data used in callbacks.
+	void* user;
+
+	// wait for notification function. This function will be called by the main
+	// loop and should block until notify is called.
+	waitnotify_fn wait;
+
+	// notify function. This function will be called by various functions when
+	// there is something for the main loop to do. When this function is called
+	// the main loop should unblock.
+	waitnotify_fn notify;
+
+	// transmit function called by the main loop to transmit data.
+	data_fn transmit;
+
+	// receive function called by the main loop to receive data.
+	data_fn receive;
+
+	// data callback function called when a mesage has been received.
+	data_callback_fn data_callback;
+} mr_hl_config;
 
 // constants
 typedef enum mr_result_e {
@@ -359,6 +388,19 @@ extern "C" {
 	// will not be destroyed.
 	void mr_ctx_destroy(mr_ctx ctx);
 
+
+	//////////////////////////
+	// HIGH-LEVEL FUNCTIONS //
+	//////////////////////////
+
+	// run the main loop for MicroRatchet.
+	mr_result mr_hl_mainloop(mr_ctx ctx, const mr_hl_config* config);
+
+	// buffers a send instruction to be executed.
+	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize);
+
+	// Causes the main loop to exit.
+	mr_result mr_hl_deactivate(mr_ctx ctx);
 
 #ifdef __cplusplus
 }
