@@ -8,7 +8,7 @@ mr_result aesctr_init(_mr_aesctr_ctx *ctx, mr_aes_ctx aes, const uint8_t *iv, ui
 	FAILIF(!iv || !ctx || !aes, MR_E_INVALIDARG, "!iv || !ctx || !aes");
 
 	ctx->aes_ctx = aes;
-	mr_memcpy(ctx->ctr, 0, sizeof(ctx->ctr));
+	mr_memzero(ctx->ctr, sizeof(ctx->ctr));
 	mr_memcpy(ctx->ctr, iv, ivsize > 16 ? 16 : ivsize);
 	ctx->ctrix = 0;
 	
