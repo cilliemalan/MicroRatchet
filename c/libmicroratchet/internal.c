@@ -30,6 +30,16 @@ void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t amt)
 
 #endif
 
+size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b, size_t c)
+{
+	size_t r = *a;
+	if (r == c) {
+		*a = b;
+	}
+
+	return r;
+}
+
 void mr_memcpy(void* dst, const void* src, size_t amt)
 {
 	// TODO: don't use stdlib
