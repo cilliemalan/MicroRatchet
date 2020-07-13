@@ -136,6 +136,7 @@ typedef struct s_mr_ctx {
 	_mr_ratchet_state ratchets[NUM_RATCHETS];
 	mr_ecdsa_ctx identity;
 	bool owns_identity;
+	void* highlevel;
 } _mr_ctx;
 
 typedef struct _mr_aesctr_ctx {
