@@ -25,6 +25,7 @@ typedef void* mr_rng_ctx;
 typedef void(*data_callback_fn)(const uint8_t* data, uint32_t amount, void* user);
 typedef uint32_t(*data_fn)(const uint8_t* data, uint32_t amount, void* user);
 typedef bool(*waitnotify_fn)(void* user);
+typedef bool(*checkkey_fn)(const uint8_t* pubkey, uint32_t len, void* user);
 
 // main configuration
 typedef struct t_mr_config {
@@ -42,12 +43,11 @@ typedef struct t_mr_hlconfig {
 	void* user;
 
 	// wait for notification function. This function will be called by the main
-	// loop and should block until notify is called.
+	// loop and should block until notify is called from another thread.
 	waitnotify_fn wait;
 
-	// notify function. This function will be called by various functions when
-	// there is something for the main loop to do. When this function is called
-	// the main loop should unblock.
+	// notify function. When this function is called the wait function above should
+	// unblock.
 	waitnotify_fn notify;
 
 	// transmit function called by the main loop to transmit data.
@@ -58,9 +58,14 @@ typedef struct t_mr_hlconfig {
 
 	// data callback function called when a mesage has been received.
 	data_callback_fn data_callback;
+
+	// check key callback called when establishing session to verify
+	// trust for the remote public key.
+	checkkey_fn checkkey_callback;
 } mr_hl_config;
 
-// constants
+// The result of an operation. Note: when an error is returned and MR_DEBUG
+// is defined, MR_WRITE will be called with the reason for the failure.
 typedef enum mr_result_e {
 	// everything is fine.
 	MR_E_SUCCESS = 0,
@@ -393,7 +398,8 @@ extern "C" {
 	// HIGH-LEVEL FUNCTIONS //
 	//////////////////////////
 
-	// run the main loop for MicroRatchet.
+	// run the main loop for MicroRatchet. Will block until mr_hl_deactivate is called
+	// from another thread.
 	mr_result mr_hl_mainloop(mr_ctx ctx, const mr_hl_config* config);
 
 	// buffers a send instruction to be executed.
