@@ -435,8 +435,8 @@ mr_result chain_ratchetforreceiving(mr_ctx mr_ctx, _mr_chain_state* chain, uint3
 	FAILIF(!mr_ctx || !chain || !key, MR_E_INVALIDARG, "Some of the required arguments were null");
 	FAILIF(keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
 
-	uint32_t gen;
-	uint8_t* ck;
+	uint32_t gen = 0;
+	uint8_t* ck = 0;
 	int oldkeyallzeroes = keyallzeroes(chain->oldchainkey);
 
 	// figure out if we're starting to ratchet from the chain key or the "old chain key"
