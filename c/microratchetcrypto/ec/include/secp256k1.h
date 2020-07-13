@@ -174,6 +174,7 @@ typedef int (*secp256k1_nonce_function)(
 
 /** Flag to pass to secp256k1_ec_pubkey_serialize. */
 #define SECP256K1_EC_COMPRESSED (SECP256K1_FLAGS_TYPE_COMPRESSION | SECP256K1_FLAGS_BIT_COMPRESSION)
+#define SECP256K1_EC_MORECOMPRESSED (SECP256K1_FLAGS_TYPE_COMPRESSION | SECP256K1_FLAGS_BIT_COMPRESSION)
 #define SECP256K1_EC_UNCOMPRESSED (SECP256K1_FLAGS_TYPE_COMPRESSION)
 
 /** Prefix byte used to tag various encoded curvepoints for specific purposes */

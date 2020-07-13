@@ -25,6 +25,7 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
     cb->fn(text, (void*)cb->data);
 }
 
+#if !defined(VERIFY_CHECK) && !defined(VERIFY_SETUP)
 #ifdef DETERMINISTIC
 #define TEST_FAILURE(msg) do { \
     fprintf(stderr, "%s\n", msg); \
@@ -67,6 +68,7 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 #else
 #define VERIFY_CHECK(cond) do { (void)(cond); } while(0)
 #define VERIFY_SETUP(stmt)
+#endif
 #endif
 
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
@@ -174,5 +176,7 @@ static SECP256K1_INLINE void memczero(void *s, size_t len, int flag) {
         len--;
     }
 }
+
+
 
 #endif /* SECP256K1_UTIL_H */

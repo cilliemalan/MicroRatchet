@@ -15,7 +15,11 @@
 #include "ecmult_gen.h"
 
 static int secp256k1_eckey_pubkey_parse(secp256k1_ge *elem, const unsigned char *pub, size_t size) {
-    if (size == 33 && (pub[0] == SECP256K1_TAG_PUBKEY_EVEN || pub[0] == SECP256K1_TAG_PUBKEY_ODD)) {
+    if (size == 32) {
+        secp256k1_fe x;
+        bool odd = false;
+        return secp256k1_fe_set_b32(&x, pub) && secp256k1_ge_set_xo_var(elem, &x, odd);
+    } else if (size == 33 && (pub[0] == SECP256K1_TAG_PUBKEY_EVEN || pub[0] == SECP256K1_TAG_PUBKEY_ODD)) {
         secp256k1_fe x;
         return secp256k1_fe_set_b32(&x, pub+1) && secp256k1_ge_set_xo_var(elem, &x, pub[0] == SECP256K1_TAG_PUBKEY_ODD);
     } else if (size == 65 && (pub[0] == SECP256K1_TAG_PUBKEY_UNCOMPRESSED || pub[0] == SECP256K1_TAG_PUBKEY_HYBRID_EVEN || pub[0] == SECP256K1_TAG_PUBKEY_HYBRID_ODD)) {
@@ -40,13 +44,21 @@ static int secp256k1_eckey_pubkey_serialize(secp256k1_ge *elem, unsigned char *p
     }
     secp256k1_fe_normalize_var(&elem->x);
     secp256k1_fe_normalize_var(&elem->y);
-    secp256k1_fe_get_b32(&pub[1], &elem->x);
-    if (compressed) {
+    if (compressed == 1) {
         *size = 33;
         pub[0] = secp256k1_fe_is_odd(&elem->y) ? SECP256K1_TAG_PUBKEY_ODD : SECP256K1_TAG_PUBKEY_EVEN;
+        secp256k1_fe_get_b32(&pub[1], &elem->x);
+    } else if (compressed == 2) {
+        if (secp256k1_fe_is_odd(&elem->y)) {
+            return 0;
+        } else {
+            *size = 32;
+            secp256k1_fe_get_b32(&pub[0], &elem->x);
+        }
     } else {
         *size = 65;
         pub[0] = SECP256K1_TAG_PUBKEY_UNCOMPRESSED;
+        secp256k1_fe_get_b32(&pub[1], &elem->x);
         secp256k1_fe_get_b32(&pub[33], &elem->y);
     }
     return 1;

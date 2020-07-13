@@ -291,7 +291,7 @@ int secp256k1_ec_pubkey_serialize(const secp256k1_context* ctx, unsigned char *o
 
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(outputlen != NULL);
-    ARG_CHECK(*outputlen >= ((flags & SECP256K1_FLAGS_BIT_COMPRESSION) ? 33 : 65));
+    ARG_CHECK(*outputlen >= ((flags & SECP256K1_FLAGS_BIT_COMPRESSION) ? 32 : 65));
     len = *outputlen;
     *outputlen = 0;
     ARG_CHECK(output != NULL);
@@ -299,7 +299,11 @@ int secp256k1_ec_pubkey_serialize(const secp256k1_context* ctx, unsigned char *o
     ARG_CHECK(pubkey != NULL);
     ARG_CHECK((flags & SECP256K1_FLAGS_TYPE_MASK) == SECP256K1_FLAGS_TYPE_COMPRESSION);
     if (secp256k1_pubkey_load(ctx, &Q, pubkey)) {
-        ret = secp256k1_eckey_pubkey_serialize(&Q, output, &len, flags & SECP256K1_FLAGS_BIT_COMPRESSION);
+        int compression = !!(flags & SECP256K1_FLAGS_BIT_COMPRESSION);
+        if (compression && len == 32) {
+            compression = 2;
+        }
+        ret = secp256k1_eckey_pubkey_serialize(&Q, output, &len, compression);
         if (ret) {
             *outputlen = len;
         }
