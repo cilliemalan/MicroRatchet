@@ -3,6 +3,9 @@
 
 // EC configuration
 #include "ec/libsecp256k1-config.h"
+#include "ec/include/secp256k1.h"
+#include "ec/include/secp256k1_preallocated.h"
+#include "ec/include/secp256k1_ecdh.h"
 
 
 #ifdef __cplusplus
@@ -11,15 +14,15 @@ extern "C" {
 
 	typedef struct ecc_point
 	{
-		uint32_t x[8];
-		uint32_t y[8];
+		secp256k1_pubkey pubkey;
 	} ecc_point;
 
 	typedef struct ecc_key
 	{
-		uint32_t d[8];
+		uint8_t d[32];
 	} ecc_key;
 
+	mr_result ecc_initialize(mr_ctx ctx);
 	mr_result ecc_new(ecc_key* key);
 	mr_result ecc_new_point(ecc_point* point);
 	mr_result ecc_import_public(const uint8_t* otherpublickey, uint32_t otherpublickeysize, ecc_point* pub);

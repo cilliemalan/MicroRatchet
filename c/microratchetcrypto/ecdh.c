@@ -9,6 +9,8 @@ typedef struct {
 
 mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 {
+	ecc_initialize(mr_ctx);
+
 	_mr_ecdh_ctx* ctx;
 	mr_result r = mr_allocate(mr_ctx, sizeof(_mr_ecdh_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
