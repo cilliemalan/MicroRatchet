@@ -28,9 +28,7 @@ static int noncefun(
 
 void errorcallback(const char* message, void* data)
 {
-#ifdef MR_WRITE
 	MR_WRITE(message, strlen(message));
-#endif
 	MR_ABORT();
 }
 

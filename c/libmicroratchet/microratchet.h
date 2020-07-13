@@ -7,34 +7,9 @@
 // adding, for example
 // -DMR_CONFIG=<myconfig.h> -Imyconfiglocation
 // to your compiler command line or cmake or whatever
+// an example config file is given in config.example.h
 #ifdef MR_CONFIG
 #include MR_CONFIG
-#endif
-
-// The stuff directly below is configurable by defining them in 
-// the fabled config file above.
-
-// Prints debug messages. message will be null terminated, but amt is specified
-// for applications that can make use of that. amt does not include the null terminator.
-// example implementation: #define MR_WRITE(msg, amt) printf("%s\n", msg);
-#include <stdio.h>
-#define MR_WRITE(msg, amt) printf("%s\n", msg)
-#ifndef MR_WRITE
-#define MR_WRITE(msg, amt)
-#endif
-
-// define to enable trace messages (INSECURE). Trace messages print out
-// cryptographic key information for debugging purposes. You should not
-// enable this unless you are debugging crypto internals.
-// #define MR_TRACE
-
-// define to enable printing of debug messages (maybe INSECURE). This will print out
-// messages if a failure status code is returned.
-#define MR_DEBUG
-
-// define to an assert function enable assertions.
-#ifndef MR_ASSERT
-#define MR_ASSERT(condition)
 #endif
 
 // structures
@@ -115,7 +90,7 @@ typedef enum mr_result_e {
 #define MR_PUBLIC_KEY_SIZE 32
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 	// crypto functions
@@ -276,7 +251,6 @@ typedef enum mr_result_e {
 
 
 	///// PLATFORM FUNCTIONS
-
 	// these functions need to be provided by the integrating application.
 
 	// get a few random numbers from somewhere. This is for crypto libraries
@@ -291,13 +265,16 @@ typedef enum mr_result_e {
 	// free memory allocated with mr_allocate.
 	void mr_free(mr_ctx ctx, void* pointer);
 
-	
 
 
 
 
 
-	///// IMPLEMENTATION FUNCTIONS
+
+	/////////////////////////////////////
+	// DIRECT IMPLEMENTATION FUNCTIONS //
+	/////////////////////////////////////
+
 	// Call these functions from your application.
 	//
 	// To use MR, first you need to create a context. Configuration contains the application key and whether
@@ -315,7 +292,7 @@ typedef enum mr_result_e {
 	//      a) receive any messages received
 	//      b) passing the message to mr_ctx_receive
 	//      c) if mr_ctx_receive receives an initialization message it will return MR_SENDBACK.
-    //         in this case the application must send back the payload.
+	//         in this case the application must send back the payload.
 	//         if mr_ctx_receive receives application data, payload will contain the decrypted data.
 	//   3) when sending data, pass it to mr_ctx_send. This will encrypt a message to be sent.
 	//
@@ -334,7 +311,7 @@ typedef enum mr_result_e {
 	// - for transferring messages over the internet, an MTU of ~1k is advised to make sure a packet doesn't exceed the
 	//   Ethernet MTU of 1500 bytes. If very large (>1k && <64k) messages are required it is advisable to 
 	//   implement fragmentation and re-assembly INSIDE your system rather than leaving this up to something
-    //   else like UDP or IP.
+	//   else like UDP or IP.
 	// - If your messages are larger than 64k you should probably be using TLS.
 	// - If you are considering using TCP, you should also probably consider TLS or DTLS as both maintain the streaming semantics of TCP.
 	// - some of the padded space may be used for transferring a new ECDH key. This is only done if there is enough space

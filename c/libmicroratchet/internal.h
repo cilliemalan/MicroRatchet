@@ -2,10 +2,20 @@
 
 #include "microratchet.h"
 
-#define HAS_SERVER
-
 #if defined(MR_DEBUG) && !defined(DEBUG)
 #define DEBUG
+#endif
+
+#if !defined(MR_ASSERT)
+#define MR_ASSERT(a)
+#endif
+
+#if !defined(MR_WRITE)
+#define MR_WRITE(a, b)
+#endif
+
+#if !defined(MR_ABORT)
+#define MR_ABORT()
 #endif
 
 #if defined(__amd64__) || defined(__x86_64__) || defined(_M_AMD64)
@@ -83,9 +93,7 @@
 	typedef struct _mr_initialization_state {
 		bool initialized;
 		union {
-#ifdef HAS_SERVER
 			_mr_initialization_state_server* server;
-#endif
 			_mr_initialization_state_client* client;
 		};
 	} _mr_initialization_state;
@@ -187,7 +195,7 @@
 
 
 // fail messages to fail a function with a reason message
-#if defined(MR_WRITE) && defined(MR_DEBUG)
+#if defined(MR_DEBUG)
 
 #define MR_STRINGIZE(x) MR_STRINGIZE2(x)
 #define MR_STRINGIZE2(x) #x
@@ -203,7 +211,7 @@
 #endif
 
 // trace messages to debug crypto internals
-#if defined(MR_TRACE) && defined (MR_WRITE)
+#if defined(MR_TRACE)
 void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
 #define LOG(msg) _mrlog(msg, sizeof(msg) - 1, 0, 0)
 #define LOGD(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)

@@ -2,7 +2,7 @@
 #include "microratchet.h"
 #include "internal.h"
 
-#if defined(MR_TRACE) && defined(MR_WRITE)
+#if defined(MR_TRACE)
 
 #include <stdio.h>
 
