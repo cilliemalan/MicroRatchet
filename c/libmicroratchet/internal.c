@@ -4,13 +4,6 @@
 
 #if defined(MR_TRACE)
 
-#include <stdio.h>
-
-void mr_write(const char* msg, uint32_t msglen)
-{
-	printf("%s\n", msg);
-}
-
 void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t amt)
 {
 	MR_WRITE(msg, msglen);
@@ -31,7 +24,9 @@ void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t amt)
 		amt -= numcharsleft;
 	}
 
-	printf("\n");
+	const char nl[2] = { '\n', 0 };
+	MR_WRITE(nl, 1);
+}
 
 #endif
 
