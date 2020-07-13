@@ -42,7 +42,7 @@ TEST(SymmetricRatchet, BasicSend) {
 	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	uint8_t key[MSG_KEY_SIZE]{};
-	uint32_t gen;
+	uint32_t gen = 0;
 	r = chain_ratchetforsending(ctx, &chain, key, sizeof(key), &gen);
 	ASSERT_EQ(r, MR_E_SUCCESS);
 
@@ -67,7 +67,7 @@ TEST(SymmetricRatchet, ChainKeyModulation) {
 	ASSERT_EQ(r, MR_E_SUCCESS);
 
 	uint8_t key[MSG_KEY_SIZE]{};
-	uint32_t gen;
+	uint32_t gen = 0;
 	r = chain_ratchetforsending(ctx, &chain, key, sizeof(key), &gen);
 	ASSERT_EQ(r, MR_E_SUCCESS);
 
@@ -257,7 +257,7 @@ TEST(SymmetricRatchet, BasicSymmetry) {
 	ASSERT_EQ(MR_E_SUCCESS, r);
 
 	uint8_t keya[MSG_KEY_SIZE]{};
-	uint32_t gen;
+	uint32_t gen = 0;
 	uint8_t keyb[MSG_KEY_SIZE]{};
 	uint8_t zeroes[MSG_KEY_SIZE]{};
 	r = chain_ratchetforsending(ctx, &chaina, keya, sizeof(keya), &gen);
