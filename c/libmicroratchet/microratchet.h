@@ -289,12 +289,11 @@ extern "C" {
 
 	// get a few random numbers from somewhere. This is for crypto libraries
 	// that do not have non-deterministic random number generation and will only
-	// ever be called from a crypto library. If your crypto library never calls
-	// mr_rng_seed you don't need to implement it. An example x64 implementation
+	// ever be called from a crypto library. An example x64 implementation
 	// is given in microratchettests/rng.cpp
 	mr_result mr_rng_seed(uint8_t* output, uint32_t sz);
 	// allocate memory. mr_ctx is generally provided but could be null (for example
-	// when called from mr_ctx_create.
+	// when called from mr_ctx_create).
 	mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer);
 	// free memory allocated with mr_allocate.
 	void mr_free(mr_ctx ctx, void* pointer);
