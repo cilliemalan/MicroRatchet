@@ -11,6 +11,7 @@ set(SOURCES
     internal.c
     kdf.c
     pch.c
-    ratchet.c)
+    ratchet.c
+    highlevel.c)
 
 add_library(microratchet STATIC ${SOURCES})
