@@ -162,6 +162,8 @@ TEST(Ecc, Sqrt) {
 static uint8_t zeroes[32] = { 0 };
 
 TEST(Ecc, CreateDestroy) {
+	ecc_initialize(nullptr);
+
 	ecc_key key{};
 	ecc_point point{};
 
@@ -174,6 +176,8 @@ TEST(Ecc, CreateDestroy) {
 }
 
 TEST(Ecc, Generate) {
+	ecc_initialize(nullptr);
+
 	ecc_key key{};
 
 	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
@@ -183,11 +187,12 @@ TEST(Ecc, Generate) {
 
 	EXPECT_BUFFERNES(zeroes, pub);
 
-
 	ecc_free(&key);
 }
 
 TEST(Ecc, StoreLoad) {
+	ecc_initialize(nullptr);
+
 	ecc_key key1{};
 	ecc_key key2{};
 
@@ -207,18 +212,19 @@ TEST(Ecc, StoreLoad) {
 	EXPECT_EQ(MR_E_SUCCESS, ecc_getpublickey(&key2, pub2, sizeof(pub2)));
 	EXPECT_BUFFEREQS(pub1, pub2);
 
-
 	ecc_free(&key1);
 	ecc_free(&key2);
 }
 
 TEST(Ecc, ImportPublic) {
+	ecc_initialize(nullptr);
+
 	ecc_key key{};
 	ecc_point pnt{};
 
 	EXPECT_EQ(MR_E_SUCCESS, ecc_new(&key));
 	EXPECT_EQ(MR_E_SUCCESS, ecc_new_point(&pnt));
-
+	 
 	uint8_t pub[32] = { 0 };
 	EXPECT_EQ(MR_E_SUCCESS, ecc_generate(&key, pub, sizeof(pub)));
 
@@ -230,6 +236,7 @@ TEST(Ecc, ImportPublic) {
 }
 
 TEST(Ecc, SignVerify) {
+	ecc_initialize(nullptr);
 
 	uint8_t digest[32] = {
 		1,2,3,4,5,6,7,8,
@@ -264,6 +271,7 @@ TEST(Ecc, SignVerify) {
 }
 
 TEST(Ecc, SignVerifyInvalid) {
+	ecc_initialize(nullptr);
 
 	uint8_t digest[32] = {
 		1,2,3,4,5,6,7,8,
@@ -301,6 +309,7 @@ TEST(Ecc, SignVerifyInvalid) {
 }
 
 TEST(Ecc, SignVerifyOther) {
+	ecc_initialize(nullptr);
 
 	uint8_t digest[32] = {
 		1,2,3,4,5,6,7,8,
@@ -333,6 +342,7 @@ TEST(Ecc, SignVerifyOther) {
 }
 
 TEST(Ecc, ComputeShared) {
+	ecc_initialize(nullptr);
 
 	ecc_key key1{};
 	ecc_key key2{};
