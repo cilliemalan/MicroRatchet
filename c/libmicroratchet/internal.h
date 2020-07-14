@@ -218,9 +218,11 @@ extern "C" {
 
 #define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
 
-#define FAILIF(condition, error, messageonfailure) if (condition) { MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " messageonfailure); return (error); }
-#define FAILMSG(error, messageonfailure) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " messageonfailure); return (error);
+#define MRMSG(message) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " message)
+#define FAILIF(condition, error, messageonfailure) if (condition) { MRMSG(messageonfailure); return (error); }
+#define FAILMSG(error, messageonfailure) MRMSG(messageonfailure); return (error);
 #else
+#define MRMSG(message)
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
 #define FAILMSG(error, messageonfailure) return (error);
 #endif
