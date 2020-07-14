@@ -45,9 +45,6 @@ struct t_action {
 
 		// the amount of data available if receive is called
 		uint32_t receiveamount;
-
-		// the wait handle to notify after initialization completes
-		void* initialize_notify;
 	};
 
 	// if set, notify will be called with this argument
@@ -293,7 +290,6 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				case HL_ACTION_INITIALIZE:
 				{
 					hl->state = HL_STATE_INITIALIZING;
-					hl->initialize_notify = item->initialize_notify;
 					if (hl->initialize_buffer)
 					{
 						mr_free(ctx, hl->initialize_buffer);
@@ -418,8 +414,12 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 					{
 						if (hl->state == HL_STATE_INITIALIZING)
 						{
-							// TODO: initialization is now complete
 							hl->state = HL_STATE_INITIALIZED;
+							void* initnotify = hl->initialize_notify;
+							if (initnotify)
+							{
+								hl->config->notify(initnotify, hl->config->user);
+							}
 						}
 						else
 						{
@@ -485,11 +485,13 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 	FAILIF(!ctx, MR_E_INVALIDARG, "ctx must be provided");
 	FAILIF(!ctx->highlevel, MR_E_INVALIDOP, "The high level event loop is not running");
 	hlctx* hl = (hlctx*)ctx->highlevel;
+	FAILIF(hl->initialize_notify, MR_E_INVALIDOP, "initialization already in process");
 	void* wh = hl->config->create_wait_handle(hl->config->user);
+	
+	hl->initialize_notify = wh;
 
 	action newaction = {
-		.naction = HL_ACTION_INITIALIZE,
-		.initialize_notify = wh
+		.naction = HL_ACTION_INITIALIZE
 	};
 	mr_result result = hl_action_add(_ctx, &newaction, 0);
 	if (result == MR_E_ACTION_ENQUEUED)
@@ -508,6 +510,7 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 		hl->config->wait(wh, 0, hl->config->user);
 	}
 
+	hl->initialize_notify = 0;
 	return result;
 }
 
