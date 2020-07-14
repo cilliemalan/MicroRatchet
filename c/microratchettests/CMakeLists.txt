@@ -15,6 +15,7 @@ set(SOURCES
     ecdsa.cpp
 	ecc.cpp
     initialization.cpp
+    memcpy.cpp
     pch.cpp
     poly.cpp
     reference.cpp
