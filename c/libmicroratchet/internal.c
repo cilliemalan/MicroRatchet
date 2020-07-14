@@ -41,75 +41,12 @@ size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b, size_t c)
 	return r;
 }
 
-#define is_aligned(wut) ((((size_t)(wut)) % sizeof(size_t)) == 0)
-
 void mr_memcpy(void* dst, const void* src, size_t amt)
 {
-	ptrdiff_t iamt = (ptrdiff_t)amt;
-	if (is_aligned(dst) && is_aligned(src))
-	{
-		if (is_aligned(iamt))
-		{
-			for (ptrdiff_t a = 0; a < iamt / sizeof(size_t); a++)
-			{
-				((size_t*)dst)[a] = ((size_t*)src)[a];
-			}
-		}
-		else
-		{
-			for (ptrdiff_t a = 0; a < ((ptrdiff_t)(iamt / sizeof(size_t))) - 1; a++)
-			{
-				((size_t*)dst)[a] = ((size_t*)src)[a];
-			}
-			for (ptrdiff_t i = iamt / sizeof(size_t) * sizeof(size_t); i < iamt; i++)
-			{
-				((uint8_t*)dst)[i] = ((uint8_t*)src)[i];
-			}
-		}
-	}
-	else
-	{
-		for (ptrdiff_t i = 0; i < iamt; i++)
-		{
-			((uint8_t*)dst)[i] = ((uint8_t*)src)[i];
-		}
-	}
+	memcpy(dst, src, amt);
 }
 
 void mr_memzero(void* dst, size_t amt)
 {
-	ptrdiff_t iamt = (ptrdiff_t)amt;
-	if (!is_aligned(dst))
-	{
-		ptrdiff_t off = sizeof(size_t) - ((size_t)dst) % sizeof(size_t);
-		for (int i = 0; i < off && i < iamt; i++)
-		{
-			((uint8_t*)dst)[i] = 0;
-		}
-		dst = (void*)((size_t)dst + off);
-		iamt -= off < iamt ? off : iamt;
-	}
-
-	if (iamt > 0)
-	{
-		if (is_aligned(iamt))
-		{
-			for (ptrdiff_t a = 0; a < (ptrdiff_t)(iamt / sizeof(size_t)); a++)
-			{
-				((size_t*)dst)[a] = 0;
-			}
-		}
-		else
-		{
-			ptrdiff_t a;
-			for (a = 0; a < ((ptrdiff_t)(iamt / sizeof(size_t))) - 1; a++)
-			{
-				((size_t*)dst)[a] = 0;
-			}
-			for (ptrdiff_t i = a * sizeof(size_t); i < iamt; i++)
-			{
-				((uint8_t*)dst)[i] = 0;
-			}
-		}
-	}
+	memset(dst, 0, amt);
 }
