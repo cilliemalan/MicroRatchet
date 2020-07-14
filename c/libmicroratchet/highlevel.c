@@ -1,23 +1,33 @@
 #include "pch.h"
 #include "internal.h"
 
+// the amount of time to wait for action during initialization
+#define INITIALIZE_TIMEOUT 30000
+
 #define HL_ACTION_NONE 0
 #define HL_ACTION_SEND 1
 #define HL_ACTION_RECEIVE 2
 #define HL_ACTION_RECEIVE_DATA 3
 #define HL_ACTION_TERMINATE 4
+#define HL_ACTION_INITIALIZE 5
 
 #define HL_STATE_UNINITIALIZED 0
-#define HL_STATE_INITIALIZED 1
+#define HL_STATE_INITIALIZING 1
+#define HL_STATE_INITIALIZED 2
 
 typedef struct t_senddata {
+	// pointer to the buffer
 	uint8_t* data;
+	// the size of the data
 	uint32_t size;
+	// the size of the buffer (needs to be larger)
 	uint32_t messagesize;
 } senddata;
 
 typedef struct t_receivedata {
+	// data received
 	uint8_t* data;
+	// amount of data
 	uint32_t size;
 } receivedata;
 
@@ -27,12 +37,20 @@ struct t_action {
 
 	// arguments for the action
 	union {
+		// the data to send
 		senddata* senddata;
+
+		// the received data
 		receivedata* receivedata;
+
+		// the amount of data available if receive is called
 		uint32_t receiveamount;
+
+		// the wait handle to notify after initialization completes
+		void* initialize_notify;
 	};
 
-	// if set, notify will be called
+	// if set, notify will be called with this argument
 	void* notify;
 
 	// the result of the action
@@ -51,20 +69,19 @@ typedef struct t_hlctx {
 	// the main action list
 	action* head;
 
-	// the held action list for send actions
-	// performed while initialization is in
-	// progress
-	action* held;
-
 	// configuration passed to mr_hl_mainloop
 	const mr_hl_config* config;
 
 	uint32_t message_nr;
 
 	int state;
+
+	void* initialize_notify;
+	uint8_t* initialize_buffer;
+	mr_result initialize_result;
 } hlctx;
 
-static inline uint32_t quantize(uint32_t size, uint32_t multiple)
+static uint32_t quantize(uint32_t size, uint32_t multiple)
 {
 	if (multiple <= 1)
 	{
@@ -77,7 +94,7 @@ static inline uint32_t quantize(uint32_t size, uint32_t multiple)
 	}
 }
 
-static action* hl_action_pop(action** phead)
+static action* hl_action_dequeue(action** phead)
 {
 	action* act = *phead;
 	while (act)
@@ -85,22 +102,24 @@ static action* hl_action_pop(action** phead)
 		// replace the head if the head remains the head
 		if ((action*)ATOMIC_COMPARE_EXCHANGE(*phead, act->next, act) == act)
 		{
-			return act;
+			act->next = 0;
+			break;
 		}
+
+		act = *phead;
 	}
 
 	return act;
 }
 
-static void hl_action_append(action** phead, action* act)
+static void hl_action_enqueue(action** phead, action* act)
 {
 	for (;;)
 	{
-		// find the tail
 		action* head = *phead;
 		if (!head)
 		{
-			// this item is the first in the list
+			// this item is will be the first in the list
 			if (ATOMIC_COMPARE_EXCHANGE(*phead, act, 0) == 0)
 			{
 				break;
@@ -108,6 +127,7 @@ static void hl_action_append(action** phead, action* act)
 		}
 		else
 		{
+			// find the tail
 			action* item = head;
 			while (item->next) item = item->next;
 
@@ -117,6 +137,7 @@ static void hl_action_append(action** phead, action* act)
 				// if the head changed we tacked it onto the wrong list
 				if (*phead != head)
 				{
+					item->next = 0;
 					break;
 				}
 			}
@@ -124,12 +145,14 @@ static void hl_action_append(action** phead, action* act)
 	}
 }
 
-static mr_result hl_action_enqueue(mr_ctx _ctx, action* act, uint32_t timeout)
+static mr_result hl_action_add(mr_ctx _ctx, action* act, uint32_t timeout)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, MR_E_INVALIDARG, "ctx must be provided");
 	FAILIF(!ctx->highlevel, MR_E_INVALIDOP, "The high level event loop is not running");
 	hlctx* hl = (hlctx*)ctx->highlevel;
+
+	mr_result result = MR_E_SUCCESS;
 
 	// clone the action
 	action* newact;
@@ -138,28 +161,37 @@ static mr_result hl_action_enqueue(mr_ctx _ctx, action* act, uint32_t timeout)
 	newact->notify = 0;
 
 	// copy argument data
-	// TODO: possible memory leak
 	if (newact->naction == HL_ACTION_SEND)
 	{
 		senddata* newsenddata;
-		_C(mr_allocate(ctx, sizeof(senddata), &newsenddata));
+		_R(result, mr_allocate(ctx, sizeof(senddata), &newsenddata));
 
-		// we allocate a buffer slightly bigger for header, padding and (sometimes) ECDH
-		// we do it here because otherwise we would need to allocate AGAIN.
-		newsenddata->messagesize = act->senddata->messagesize + OVERHEAD_WITH_ECDH;
-		if (newsenddata->messagesize < MIN_MESSAGE_SIZE_WITH_ECDH)
+		if (result == MR_E_SUCCESS)
 		{
-			newsenddata->messagesize = MIN_MESSAGE_SIZE_WITH_ECDH;
+			// we allocate a buffer slightly bigger for header, padding and (sometimes) ECDH
+			// we do it here because otherwise we would need to allocate AGAIN.
+			newsenddata->messagesize = act->senddata->messagesize + OVERHEAD_WITH_ECDH;
+			if (newsenddata->messagesize < MIN_MESSAGE_SIZE_WITH_ECDH)
+			{
+				newsenddata->messagesize = MIN_MESSAGE_SIZE_WITH_ECDH;
+			}
+			newsenddata->messagesize = quantize(newsenddata->messagesize, hl->config->message_quantization);
+
+			// copy data
+			_R(result, mr_allocate(ctx, newsenddata->messagesize, &newsenddata->data));
+			if (result == MR_E_SUCCESS)
+			{
+				mr_memcpy(newsenddata->data, act->senddata->data, act->senddata->size);
+
+				newsenddata->size = act->senddata->size;
+
+				newact->senddata = newsenddata;
+			}
+			else
+			{
+				mr_free(ctx, newsenddata);
+			}
 		}
-		newsenddata->messagesize = quantize(newsenddata->messagesize, hl->config->message_quantization);
-
-		// copy data
-		_C(mr_allocate(ctx, newsenddata->messagesize, &newsenddata->data));
-		mr_memcpy(newsenddata->data, act->senddata->data, act->senddata->size);
-
-		newsenddata->size = act->senddata->size;
-
-		newact->senddata = newsenddata;
 	}
 	else if (newact->naction == HL_ACTION_RECEIVE)
 	{
@@ -168,36 +200,53 @@ static mr_result hl_action_enqueue(mr_ctx _ctx, action* act, uint32_t timeout)
 	else if (newact->naction == HL_ACTION_RECEIVE_DATA)
 	{
 		receivedata* newreceivedata;
-		_C(mr_allocate(ctx, sizeof(receivedata), &newreceivedata));
+		_R(result, mr_allocate(ctx, sizeof(receivedata), &newreceivedata));
 
 		// copy data
-		_C(mr_allocate(ctx, act->receivedata->size, &newreceivedata->data));
-		newreceivedata->size = act->receivedata->size;
-		mr_memcpy(newreceivedata->data, act->receivedata->data, newreceivedata->size);
-
-		newact->receivedata = newreceivedata;
-	}
-
-	if (timeout == 0)
-	{
-		hl_action_append(&hl->head, newact);
-		return MR_E_ACTION_ENQUEUED;
-	}
-	else
-	{
-		newact->notify = hl->config->create_wait_handle(hl->config->user);
-		hl_action_append(&hl->head, newact);
-		bool wait_success = hl->config->wait(newact->notify, timeout, hl->config->user);
-		if (wait_success)
+		_R(result, mr_allocate(ctx, act->receivedata->size, &newreceivedata->data));
+		if (result == MR_E_SUCCESS)
 		{
-			return newact->result;
+			newreceivedata->size = act->receivedata->size;
+			mr_memcpy(newreceivedata->data, act->receivedata->data, newreceivedata->size);
+
+			newact->receivedata = newreceivedata;
 		}
 		else
 		{
-			newact->timeout = true;
-			return MR_E_TIMEOUT;
+			mr_free(ctx, newreceivedata);
 		}
 	}
+
+	if (result == MR_E_SUCCESS)
+	{
+		if (timeout == 0)
+		{
+			hl_action_enqueue(&hl->head, newact);
+			result = MR_E_ACTION_ENQUEUED;
+		}
+		else
+		{
+			newact->notify = hl->config->create_wait_handle(hl->config->user);
+			hl_action_enqueue(&hl->head, newact);
+			bool wait_success = hl->config->wait(newact->notify, timeout, hl->config->user);
+			if (wait_success)
+			{
+				result = newact->result;
+			}
+			else
+			{
+				// TODO: possible use after free
+				newact->timeout = true;
+				result = MR_E_TIMEOUT;
+			}
+		}
+	}
+	else
+	{
+		mr_free(ctx, newact);
+	}
+
+	return result;
 }
 
 mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
@@ -222,30 +271,66 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	bool active = true;
 	while (active)
 	{
-		bool evt = config->wait(wh, 0xffffffff, config->user);
-		bool actionheld = false;
-		action* item = hl_action_pop(&hl->head);
-		mr_result result = MR_E_SUCCESS;
+		uint32_t timeout = hl->state == HL_STATE_INITIALIZING ? INITIALIZE_TIMEOUT : 0xffffffff;
 
-		uint8_t* data_received = 0;
-		uint32_t data_received_size = 0;
-		uint32_t data_received_spaceavailable = 0;
+		action* item = hl_action_dequeue(&hl->head);
 
 		if (item)
 		{
+			mr_result result = MR_E_SUCCESS;
+
 			if (!item->timeout)
 			{
+				uint8_t* data_received = 0;
+				uint32_t data_received_size = 0;
+				uint32_t data_received_spaceavailable = 0;
+
 				// execute the action
 				switch (item->naction)
 				{
 				case HL_ACTION_NONE:
 					break;
+				case HL_ACTION_INITIALIZE:
+				{
+					hl->state = HL_STATE_INITIALIZING;
+					hl->initialize_notify = item->initialize_notify;
+					if (hl->initialize_buffer)
+					{
+						mr_free(ctx, hl->initialize_buffer);
+					}
+					result = mr_allocate(ctx, 256, &hl->initialize_buffer);
+					if (result == MR_E_SUCCESS)
+					{
+						result = mr_ctx_initiate_initialization(ctx, hl->initialize_buffer, 256, true);
+
+						if (result == MR_E_SUCCESS)
+						{
+							if (hl->config->transmit(hl->initialize_buffer, 256, hl->config->user) == 256)
+							{
+								// that's it. Now we wait
+							}
+							else
+							{
+								MRMSG("transmit failed");
+								result = MR_E_FAIL;
+							}
+						}
+					}
+
+					if (result != MR_E_SUCCESS)
+					{
+						hl->initialize_result = result;
+						hl->config->notify(hl->initialize_notify, hl->config->user);
+						hl->state = HL_STATE_UNINITIALIZED;
+					}
+				}
+				break;
 				case HL_ACTION_SEND:
 				{
 					if (hl->state != HL_STATE_INITIALIZED)
 					{
-						hl_action_append(&hl->held, item);
-						actionheld = true;
+						MRMSG("Cannot send before initialization has completed");
+						result = MR_E_INVALIDOP;
 					}
 					else
 					{
@@ -259,9 +344,12 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 								messagesize -= ECNUM_SIZE;
 							}
 							result = mr_ctx_send(ctx, item->senddata->data, item->senddata->size, messagesize);
-							result = config->transmit(item->senddata->data, messagesize, config->user) == messagesize
-								? MR_E_SUCCESS
-								: MR_E_FAIL;
+							if (result == MR_E_SUCCESS)
+							{
+								result = config->transmit(item->senddata->data, messagesize, config->user) == messagesize
+									? MR_E_SUCCESS
+									: MR_E_FAIL;
+							}
 
 							if (result == MR_E_SUCCESS)
 							{
@@ -272,43 +360,42 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				}
 				break;
 				case HL_ACTION_RECEIVE:
-				{
-					data_received_size = item->receiveamount;
-					if (hl->state == HL_STATE_INITIALIZED)
-					{
-						data_received_spaceavailable = data_received_size;
-					}
-					else
-					{
-						MR_ASSERT(data_received_size <= 256);
-						data_received_spaceavailable = 256;
-					}
-					result = mr_allocate(ctx, data_received_spaceavailable, &data_received);
-					if (result == MR_E_SUCCESS)
-					{
-						if (config->receive(data_received, data_received_size, config->user) != data_received_size)
-						{
-							result = MR_E_FAIL;
-						}
-					}
-				}
-				break;
 				case HL_ACTION_RECEIVE_DATA:
 				{
-					data_received_size = item->receivedata->size;
-					if (hl->state == HL_STATE_INITIALIZED)
+					// get the amount of data
+					if (item->naction == HL_ACTION_RECEIVE)
 					{
-						data_received_spaceavailable = data_received_size;
+						data_received_size = item->receiveamount;
 					}
 					else
 					{
-						MR_ASSERT(data_received_size <= 256);
+						data_received_size = item->receivedata->size;
+					}
+
+					// the amount of space needed in the buffer is larger for init messages
+					data_received_spaceavailable = data_received_size;
+					if (hl->state != HL_STATE_INITIALIZED && data_received_spaceavailable < 256)
+					{
 						data_received_spaceavailable = 256;
 					}
+
+					// allocate the buffer for received data
 					result = mr_allocate(ctx, data_received_spaceavailable, &data_received);
 					if (result == MR_E_SUCCESS)
 					{
-						mr_memcpy(data_received, item->receivedata->data, data_received_size);
+						if (item->naction == HL_ACTION_RECEIVE)
+						{
+							// for RECEIVE we call receive
+							if (config->receive(data_received, data_received_size, config->user) != data_received_size)
+							{
+								result = MR_E_FAIL;
+							}
+						}
+						else
+						{
+							// for RECEIVE_DATA we copy
+							mr_memcpy(data_received, item->receivedata->data, data_received_size);
+						}
 					}
 				}
 				break;
@@ -329,16 +416,18 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 						&data_received_size);
 					if (result == MR_E_SUCCESS)
 					{
-						if (ctx->init.initialized && hl->held)
+						if (hl->state == HL_STATE_INITIALIZING)
 						{
-							// requeue held items
-							hl_action_append(&hl->head, hl->held);
-							hl->held = 0;
+							// TODO: initialization is now complete
+							hl->state = HL_STATE_INITIALIZED;
 						}
-
-						if (config->data_callback && data_received_size)
+						else
 						{
-							config->data_callback(payload, data_received_size, config->user);
+							// call the data callback
+							if (config->data_callback && data_received_size)
+							{
+								config->data_callback(payload, data_received_size, config->user);
+							}
 						}
 					}
 					else if (result == MR_E_SENDBACK)
@@ -354,10 +443,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 
 					mr_free(ctx, data_received);
 				}
-			}
 
-			if (!actionheld)
-			{
 				// set the result
 				item->result = result;
 
@@ -366,30 +452,63 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				{
 					config->notify(item->notify, config->user);
 				}
-
-				// free the item
-				if (item->naction == HL_ACTION_SEND && item->senddata)
-				{
-					mr_free(ctx, item->senddata->data);
-					mr_free(ctx, item->senddata);
-					item->senddata = 0;
-				}
-				else if (item->naction == HL_ACTION_RECEIVE_DATA && item->receivedata)
-				{
-					mr_free(ctx, item->receivedata->data);
-					mr_free(ctx, item->receivedata);
-					item->receivedata = 0;
-				}
-
-				mr_free(ctx, item);
-				item = 0;
 			}
+
+			// free the item
+			if (item->naction == HL_ACTION_SEND && item->senddata)
+			{
+				mr_free(ctx, item->senddata->data);
+				mr_free(ctx, item->senddata);
+			}
+			else if (item->naction == HL_ACTION_RECEIVE_DATA && item->receivedata)
+			{
+				mr_free(ctx, item->receivedata->data);
+				mr_free(ctx, item->receivedata);
+			}
+
+			mr_free(ctx, item);
+		}
+		else
+		{
+			config->wait(wh, 0xffffffff, config->user);
 		}
 	}
 
 	ctx->highlevel = 0;
 
 	return MR_E_SUCCESS;
+}
+
+mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
+{
+	_mr_ctx* ctx = (_mr_ctx*)_ctx;
+	FAILIF(!ctx, MR_E_INVALIDARG, "ctx must be provided");
+	FAILIF(!ctx->highlevel, MR_E_INVALIDOP, "The high level event loop is not running");
+	hlctx* hl = (hlctx*)ctx->highlevel;
+	void* wh = hl->config->create_wait_handle(hl->config->user);
+
+	action newaction = {
+		.naction = HL_ACTION_INITIALIZE,
+		.initialize_notify = wh
+	};
+	mr_result result = hl_action_add(_ctx, &newaction, 0);
+	if (result == MR_E_ACTION_ENQUEUED)
+	{
+		if (hl->config->wait(wh, timeout, hl->config->user))
+		{
+			result = MR_E_SUCCESS;
+		}
+		else
+		{
+			result = MR_E_TIMEOUT;
+		}
+	}
+	else
+	{
+		hl->config->wait(wh, 0, hl->config->user);
+	}
+
+	return result;
 }
 
 mr_result mr_hl_send(mr_ctx _ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize, uint32_t timeout)
@@ -403,7 +522,7 @@ mr_result mr_hl_send(mr_ctx _ctx, const uint8_t* data, const uint32_t size, cons
 		.naction = HL_ACTION_SEND,
 		.senddata = &actiondata
 	};
-	return hl_action_enqueue(_ctx, &newaction, timeout);
+	return hl_action_add(_ctx, &newaction, timeout);
 }
 
 mr_result mr_hl_receive(mr_ctx _ctx, uint32_t available, uint32_t timeout)
@@ -412,7 +531,7 @@ mr_result mr_hl_receive(mr_ctx _ctx, uint32_t available, uint32_t timeout)
 		.naction = HL_ACTION_RECEIVE,
 		.receiveamount = available
 	};
-	return hl_action_enqueue(_ctx, &newaction, timeout);
+	return hl_action_add(_ctx, &newaction, timeout);
 }
 
 mr_result mr_hl_receive_data(mr_ctx _ctx, const uint8_t* data, uint32_t size, uint32_t timeout)
@@ -425,11 +544,11 @@ mr_result mr_hl_receive_data(mr_ctx _ctx, const uint8_t* data, uint32_t size, ui
 		.naction = HL_ACTION_RECEIVE,
 		.receivedata = &actiondata
 	};
-	return hl_action_enqueue(_ctx, &newaction, timeout);
+	return hl_action_add(_ctx, &newaction, timeout);
 }
 
 mr_result mr_hl_deactivate(mr_ctx _ctx, uint32_t timeout)
 {
 	action newaction = { .naction = HL_ACTION_TERMINATE };
-	return hl_action_enqueue(_ctx, &newaction, timeout);
+	return hl_action_add(_ctx, &newaction, timeout);
 }

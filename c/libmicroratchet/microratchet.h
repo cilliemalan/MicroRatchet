@@ -432,7 +432,11 @@ extern "C" {
 	// from another thread.
 	mr_result mr_hl_mainloop(mr_ctx ctx, const mr_hl_config* config);
 
-	// buffers a send instruction to be executed. 
+	// performs initialization.
+	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
+	mr_result mr_hl_initialize(mr_ctx ctx, uint32_t timeout);
+
+	// buffers a message to send.
 	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
 	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize, uint32_t timeout);
 
