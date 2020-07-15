@@ -26,6 +26,7 @@ typedef void(*data_callback_fn)(const uint8_t* data, uint32_t amount, void* user
 typedef uint32_t(*transmit_fn)(const uint8_t* data, uint32_t amount, void* user);
 typedef uint32_t(*receive_fn)(uint8_t* data, uint32_t amount, void* user);
 typedef void* (*waithandle_fn)(void* user);
+typedef void (*waithandledestroy_fn)(void* waithandle, void* user);
 typedef bool (*wait_fn)(void* handle, uint32_t timeout, void* user);
 typedef void (*notify_fn)(void* handle, void* user);
 typedef bool(*checkkey_fn)(const uint8_t* pubkey, uint32_t len, void* user);
@@ -54,10 +55,13 @@ typedef struct t_mr_hlconfig {
 	// for something like RTOS where threads can be unblocked directly.
 	waithandle_fn create_wait_handle;
 
+	// destroy a waut handle created with create_wait_handle.
+	waithandledestroy_fn destroy_wait_handle;
+
 	// wait for notification function. When this function is called it should
 	// block until notify is called. It should also free the wait handle upon
 	// return. The return value should indicate whether a notification was 
-	// received. Timeout is assumed to be in milliseconds.
+	// received.
 	wait_fn wait;
 
 	// notify function. When this function is called the wait function above should
@@ -438,7 +442,7 @@ extern "C" {
 
 	// buffers a message to send.
 	// If timeout is 0, the action will execute asynchronously and MR_E_ACTION_ENQUEUED will be returned.
-	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, const uint32_t messagesize, uint32_t timeout);
+	mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, uint32_t timeout);
 
 	// notifies the main loop that data is available. 
 	// config->receive will be called to retrieve the data.
