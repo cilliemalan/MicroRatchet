@@ -245,6 +245,9 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 
 		// block until the action is completed or timed out
 		bool wait_success = hl->config->wait(newact->notify, timeout, hl->config->user);
+		void* ntfy = newact->notify;
+		newact->notify = 0;
+		hl->config->destroy_wait_handle(ntfy, hl->config->user);
 
 		// return the result of the action
 		if (wait_success)
@@ -371,14 +374,13 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				}
 				break;
 				case HL_ACTION_RECEIVE:
-				{
+
 					// for RECEIVE we call receive
 					if (config->receive(item->data, item->size, config->user) != item->size)
 					{
 						result = MR_E_FAIL;
 					}
-				}
-				// FALL THROUGH
+					// CASE FALL THROUGH -->
 				case HL_ACTION_RECEIVE_DATA:
 				{
 					if (result == MR_E_SUCCESS)
@@ -427,7 +429,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 						}
 					}
 				}
-					break;
+				break;
 				case HL_ACTION_TERMINATE:
 					active = false;
 					break;
@@ -452,6 +454,12 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		}
 	}
 
+	// destroy the wait handle
+	void* ntfy = hl.action_notify;
+	hl.action_notify = 0;
+	hl.config->destroy_wait_handle(ntfy, hl.config->user);
+
+	// remove the high level structure
 	ctx->highlevel = 0;
 
 	return MR_E_SUCCESS;
@@ -484,6 +492,10 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 	{
 		hl->config->wait(wh, 0, hl->config->user);
 	}
+
+	hl->initialize_notify = 0;
+	hl->config->destroy_wait_handle(wh, hl->config->user);
+
 	return result;
 }
 
