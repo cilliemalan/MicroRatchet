@@ -2,8 +2,28 @@
 
 #include "microratchet.h"
 
-#if defined(MR_DEBUG) && !defined(DEBUG)
+#ifndef MR_DEBUG
+#if defined(DEBUG) || defined(_DEBUG)
+#define MR_DEBUG 1
+#else
+#define MR_DEBUG 0
+#endif
+#endif
+
+#ifndef MR_TRACE
+#define MR_TRACE 0
+#endif
+
+#ifndef MR_TRACE_DATA
+#define MR_TRACE_DATA 0
+#endif
+
+#if MR_DEBUG && !defined(DEBUG)
 #define DEBUG
+#endif
+
+#if MR_DEBUG && !defined(_DEBUG)
+#define _DEBUG
 #endif
 
 #if !defined(MR_ASSERT)
@@ -212,9 +232,7 @@ extern "C" {
 }
 #endif
 
-
-// fail messages to fail a function with a reason message
-#if defined(MR_DEBUG)
+#if MR_DEBUG || MR_TRACE || MR_TRACE_DATA
 
 #define MR_STRINGIZE(x) MR_STRINGIZE2(x)
 #define MR_STRINGIZE2(x) #x
@@ -222,22 +240,33 @@ extern "C" {
 
 #define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
 
-#define DEBUGMSG(message) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " message)
-#define FAILIF(condition, error, messageonfailure) if (condition) { DEBUGMSG(messageonfailure); return (error); }
-#define FAILMSG(error, messageonfailure) DEBUGMSG(messageonfailure); return (error);
+void _mrlogctxid(mr_ctx ctx);
+
+#endif
+
+// fail messages to fail a function with a reason message
+#if MR_DEBUG
+#define DEBUGMSG(message) MR_WRITE1(message "\n")
+#define DEBUGMSGCTX(ctx, message) do { _mrlogctxid(ctx); MR_WRITE1(message "\n"); } while(0)
+#define FAILIF(condition, error, messageonfailure) if (condition) { DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error); }
+#define FAILMSG(error, messageonfailure) DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error);
 #else
 #define DEBUGMSG(message)
+#define DEBUGMSGCTX(ctx, message)
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
 #define FAILMSG(error, messageonfailure) return (error);
 #endif
 
 // trace messages to debug crypto internals
-#if defined(MR_TRACE)
-void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
-#define TRACEMSG(msg) do { static const char __msg[] = msg;  _mrlog(__msg, sizeof(__msg) - 1, 0, 0); } while(0)
-#define TRACEDATA(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
+#if MR_TRACE
+#define TRACEMSG(msg) MR_WRITE1(msg "\n")
 #else
 #define TRACEMSG(msg)
-#define TRACEDATA(msg, data, amt)
 #endif
 
+#if MR_TRACE_DATA
+void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
+#define TRACEDATA(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
+#else
+#define TRACEDATA(msg, data, amt)
+#endif

@@ -90,7 +90,7 @@ typedef struct t_mr_hlconfig {
 } mr_hl_config;
 
 // The result of an operation. Note: when an error is returned and MR_DEBUG
-// is defined, MR_WRITE will be called with the reason for the failure.
+// is set, MR_WRITE will be called with the reason for the failure.
 typedef enum mr_result_e {
 	// everything is fine.
 	MR_E_SUCCESS = 0,
