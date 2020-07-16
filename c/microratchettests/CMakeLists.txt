@@ -14,6 +14,7 @@ set(SOURCES
     ecdhratchet.cpp
     ecdsa.cpp
 	ecc.cpp
+    highlevel.cpp
     initialization.cpp
     memcpy.cpp
     pch.cpp
