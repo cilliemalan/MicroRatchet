@@ -46,9 +46,6 @@ typedef struct t_mr_hlconfig {
 	// user defined data used in callbacks.
 	void* user;
 
-	// the number of times to retry an operation.
-	uint32_t num_retries;
-
 	// create a wait handle to be waited upon by wait and notified by notify.
 	// This can, for example, create a ciritcal section in windows, a mutex
 	// or semaphore on another operating system, or just return the thread ID
