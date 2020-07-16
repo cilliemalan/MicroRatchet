@@ -230,8 +230,9 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	if (timeout == 0)
 	{
 		newact->notify = 0;
-		TRACEMSG("         #### enqueueing action without waiting");
+		TRACEMSG("         ####enqueueing action without waiting");
 		hl_action_enqueue(&hl->head, newact);
+		TRACEMSG("         --->notify hl->action_notify");
 		hl->config->notify(hl->config->user, hl->action_notify);
 		result = MR_E_ACTION_ENQUEUED;
 	}
@@ -243,6 +244,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		// enqueue the action
 		TRACEMSG("         #### enqueueing action");
 		hl_action_enqueue(&hl->head, newact);
+		TRACEMSG("         --->notify hl->action_notify");
 		hl->config->notify(hl->config->user, hl->action_notify);
 
 		// block until the action is completed or timed out
@@ -333,7 +335,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 					{
 						result = mr_ctx_initiate_initialization(ctx, hl.initialize_buffer, 256, true);
 
-						if (result == MR_E_SUCCESS)
+						if (result == MR_E_SENDBACK)
 						{
 							if (hl.config->transmit(hl.config->user, hl.initialize_buffer, 256) == 256)
 							{
@@ -341,15 +343,16 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 							}
 							else
 							{
-								TRACEMSGCTX("****transmit failed");
+								DEBUGMSG("Transmit failed");
 								result = MR_E_FAIL;
 							}
 						}
 					}
 
-					if (result != MR_E_SUCCESS)
+					if (result < 0)
 					{
 						hl.initialize_result = result;
+						TRACEMSGCTX(ctx,"--->hl.initialize_notify");
 						hl.config->notify(hl.config->user, hl.initialize_notify);
 						hl.state = HL_STATE_UNINITIALIZED;
 					}
@@ -427,6 +430,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 								if (hl.initialize_notify)
 								{
 									TRACEMSGCTX(ctx, "****notifying initialization is complete");
+									TRACEMSGCTX(ctx, "--->hl.initialize_notify");
 									hl.config->notify(hl.config->user, hl.initialize_notify);
 								}
 								mr_free(ctx, hl.initialize_buffer);
@@ -437,7 +441,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 								if (config->data_callback && data_received_size)
 								{
 									TRACEMSGCTX(ctx, "****invoking data callback");
-									config->data_callback(payload, data_received_size, config->user);
+									config->data_callback(config->user, payload, data_received_size);
 								}
 								else
 								{
@@ -479,7 +483,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				// notify that the action is completed
 				if (item->notify)
 				{
-					TRACEMSGCTX(ctx, "****notify action completed");
+					TRACEMSGCTX(ctx, "--->item->notify");
 					config->notify(config->user, item->notify);
 				}
 			}
@@ -503,7 +507,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	// destroy the wait handle
 	void* ntfy = hl.action_notify;
 	hl.action_notify = 0;
-	hl.config->destroy_wait_handle(ntfy, hl.config->user);
+	hl.config->destroy_wait_handle(hl.config->user, ntfy);
 
 	// remove the high level structure
 	ctx->highlevel = 0;
@@ -534,39 +538,38 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 		{
 			result = MR_E_TIMEOUT;
 		}
+
+		hl->initialize_notify = 0;
+		hl->config->destroy_wait_handle(hl->config->user, wh);
+		return result;
 	}
 	else
 	{
-		hl->config->destroy_wait_handle(wh, hl->config->user);
+		hl->config->destroy_wait_handle(hl->config->user, wh);
 		FAILMSG(result, "Failed to enqueue initialize action");
 	}
-
-	hl->initialize_notify = 0;
-	hl->config->destroy_wait_handle(wh, hl->config->user);
-
-	return result;
 }
 
-mr_result mr_hl_send(mr_ctx _ctx, const uint8_t* data, const uint32_t size, uint32_t timeout)
+mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, uint32_t timeout)
 {
 	TRACEMSGCTX(ctx, "####enqueueing SEND action");
-	return hl_action_add(_ctx, HL_ACTION_SEND, data, size, timeout);
+	return hl_action_add(ctx, HL_ACTION_SEND, data, size, timeout);
 }
 
-mr_result mr_hl_receive(mr_ctx _ctx, uint32_t available, uint32_t timeout)
+mr_result mr_hl_receive(mr_ctx ctx, uint32_t available, uint32_t timeout)
 {
 	TRACEMSGCTX(ctx, "####enqueueing RECEIVE action");
-	return hl_action_add(_ctx, HL_ACTION_RECEIVE, 0, available, timeout);
+	return hl_action_add(ctx, HL_ACTION_RECEIVE, 0, available, timeout);
 }
 
-mr_result mr_hl_receive_data(mr_ctx _ctx, const uint8_t* data, uint32_t size, uint32_t timeout)
+mr_result mr_hl_receive_data(mr_ctx ctx, const uint8_t* data, uint32_t size, uint32_t timeout)
 {
 	TRACEMSGCTX(ctx, "####enqueueing RECEIVE_DATA action");
-	return hl_action_add(_ctx, HL_ACTION_RECEIVE_DATA, data, size, timeout);
+	return hl_action_add(ctx, HL_ACTION_RECEIVE_DATA, data, size, timeout);
 }
 
-mr_result mr_hl_deactivate(mr_ctx _ctx, uint32_t timeout)
+mr_result mr_hl_deactivate(mr_ctx ctx, uint32_t timeout)
 {
 	TRACEMSGCTX(ctx, "####enqueueing TERMINATE action");
-	return hl_action_add(_ctx, HL_ACTION_TERMINATE, 0, 0, timeout);
+	return hl_action_add(ctx, HL_ACTION_TERMINATE, 0, 0, timeout);
 }
