@@ -230,6 +230,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	if (timeout == 0)
 	{
 		newact->notify = 0;
+		TRACEMSG("         #### enqueueing action without waiting");
 		hl_action_enqueue(&hl->head, newact);
 		hl->config->notify(hl->config->user, hl->action_notify);
 		result = MR_E_ACTION_ENQUEUED;
@@ -240,6 +241,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		newact->notify = hl->config->create_wait_handle(hl->config->user);
 
 		// enqueue the action
+		TRACEMSG("         #### enqueueing action");
 		hl_action_enqueue(&hl->head, newact);
 		hl->config->notify(hl->config->user, hl->action_notify);
 
@@ -248,6 +250,8 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		void* ntfy = newact->notify;
 		newact->notify = 0;
 		hl->config->destroy_wait_handle(hl->config->user, ntfy);
+
+		TRACEMSG("         #### action completed");
 
 		// return the result of the action
 		if (wait_success)
@@ -282,11 +286,11 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		config->checkkey_callback),
 		MR_E_INVALIDARG,
 		"all callbacks must be provided");
-	
+
 	// assign hl structure
 	hlctx hl;
-	FAILIF(ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, &hl, 0) != 0, 
-		MR_E_INVALIDOP, 
+	FAILIF(ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, &hl, 0) != 0,
+		MR_E_INVALIDOP,
 		"mr_hl_mainloop can only be called once for a given context");
 
 	// configure hl structure
@@ -295,6 +299,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	hl.state = ctx->init.initialized ? HL_STATE_INITIALIZED : HL_STATE_UNINITIALIZED;
 	hl.action_notify = config->create_wait_handle(config->user);
 
+	TRACEMSGCTX(ctx, "****entering high level loop");
 	bool active = true;
 	while (active)
 	{
@@ -311,9 +316,13 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				switch (item->naction)
 				{
 				case HL_ACTION_NONE:
-					break;
+				{
+					TRACEMSGCTX(ctx, "****dequeued NONE action");
+				}
+				break;
 				case HL_ACTION_INITIALIZE:
 				{
+					TRACEMSGCTX(ctx, "****dequeued INITIALIZE action");
 					hl.state = HL_STATE_INITIALIZING;
 					if (hl.initialize_buffer)
 					{
@@ -332,7 +341,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 							}
 							else
 							{
-								DEBUGMSG("transmit failed");
+								TRACEMSGCTX("****transmit failed");
 								result = MR_E_FAIL;
 							}
 						}
@@ -348,6 +357,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				break;
 				case HL_ACTION_SEND:
 				{
+					TRACEMSGCTX(ctx, "****dequeued SEND action");
 					if (hl.state != HL_STATE_INITIALIZED)
 					{
 						DEBUGMSG("Cannot send before initialization has completed");
@@ -378,15 +388,22 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				}
 				break;
 				case HL_ACTION_RECEIVE:
-
+				{
+					TRACEMSGCTX(ctx, "****dequeued RECEIVE action");
 					// for RECEIVE we call receive
 					if (config->receive(config->user, item->data, item->size) != item->size)
 					{
 						result = MR_E_FAIL;
 					}
-					// CASE FALL THROUGH -->
+				}
+				// CASE FALL THROUGH -->
 				case HL_ACTION_RECEIVE_DATA:
 				{
+					if (item->naction == HL_ACTION_RECEIVE_DATA)
+					{
+						TRACEMSGCTX(ctx, "****dequeued RECEIVE_DATA action");
+					}
+
 					if (result == MR_E_SUCCESS)
 					{
 						// process the received data
@@ -405,9 +422,11 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 							// it means that initialization has succeeded
 							if (hl.state == HL_STATE_INITIALIZING)
 							{
+								TRACEMSGCTX(ctx, "****initialization completed");
 								hl.state = HL_STATE_INITIALIZED;
 								if (hl.initialize_notify)
 								{
+									TRACEMSGCTX(ctx, "****notifying initialization is complete");
 									hl.config->notify(hl.config->user, hl.initialize_notify);
 								}
 								mr_free(ctx, hl.initialize_buffer);
@@ -417,15 +436,22 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 								// call the data callback
 								if (config->data_callback && data_received_size)
 								{
+									TRACEMSGCTX(ctx, "****invoking data callback");
 									config->data_callback(payload, data_received_size, config->user);
+								}
+								else
+								{
+									TRACEMSGCTX(ctx, "****NOT invoking data callback");
 								}
 							}
 						}
 						else if (result == MR_E_SENDBACK)
 						{
+							TRACEMSGCTX(ctx, "****transmitting sendback data");
 							// we need to send an initialization response
 							if (config->transmit(config->user, payload, data_received_size) != data_received_size)
 							{
+								DEBUGMSG("transmission of sendback data failed");
 								// if the transmit fails, the whole initialization process needs
 								// to start over. We rely on a timeout to make this happen.
 								result = MR_E_FAIL;
@@ -435,8 +461,16 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				}
 				break;
 				case HL_ACTION_TERMINATE:
+				{
+					TRACEMSGCTX(ctx, "****dequeued TERMINATE action");
 					active = false;
-					break;
+				}
+				break;
+				default:
+				{
+					TRACEMSGCTX(ctx, "****dequeued INVALID action");
+				}
+				break;
 				}
 
 				// set the result
@@ -445,8 +479,13 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				// notify that the action is completed
 				if (item->notify)
 				{
+					TRACEMSGCTX(ctx, "****notify action completed");
 					config->notify(config->user, item->notify);
 				}
+			}
+			else
+			{
+				TRACEMSGCTX(ctx, "****dequeued timed out action");
 			}
 
 			item->id = 0;
@@ -454,9 +493,12 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		}
 		else
 		{
+			TRACEMSGCTX(ctx, "****waiting for action");
 			config->wait(config->user, hl.action_notify, 0xffffffff);
 		}
 	}
+
+	TRACEMSGCTX(ctx, "exiting main loop");
 
 	// destroy the wait handle
 	void* ntfy = hl.action_notify;
@@ -480,6 +522,7 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 
 	hl->initialize_notify = wh;
 
+	TRACEMSGCTX(ctx, "####enqueueing INITIALIZE action");
 	mr_result result = hl_action_add(_ctx, HL_ACTION_INITIALIZE, 0, 0, 0);
 	if (result == MR_E_ACTION_ENQUEUED)
 	{
@@ -494,7 +537,8 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 	}
 	else
 	{
-		hl->config->wait(hl->config->user, wh, 0);
+		hl->config->destroy_wait_handle(wh, hl->config->user);
+		FAILMSG(result, "Failed to enqueue initialize action");
 	}
 
 	hl->initialize_notify = 0;
@@ -505,20 +549,24 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 
 mr_result mr_hl_send(mr_ctx _ctx, const uint8_t* data, const uint32_t size, uint32_t timeout)
 {
+	TRACEMSGCTX(ctx, "####enqueueing SEND action");
 	return hl_action_add(_ctx, HL_ACTION_SEND, data, size, timeout);
 }
 
 mr_result mr_hl_receive(mr_ctx _ctx, uint32_t available, uint32_t timeout)
 {
+	TRACEMSGCTX(ctx, "####enqueueing RECEIVE action");
 	return hl_action_add(_ctx, HL_ACTION_RECEIVE, 0, available, timeout);
 }
 
 mr_result mr_hl_receive_data(mr_ctx _ctx, const uint8_t* data, uint32_t size, uint32_t timeout)
 {
+	TRACEMSGCTX(ctx, "####enqueueing RECEIVE_DATA action");
 	return hl_action_add(_ctx, HL_ACTION_RECEIVE_DATA, data, size, timeout);
 }
 
 mr_result mr_hl_deactivate(mr_ctx _ctx, uint32_t timeout)
 {
+	TRACEMSGCTX(ctx, "####enqueueing TERMINATE action");
 	return hl_action_add(_ctx, HL_ACTION_TERMINATE, 0, 0, timeout);
 }
