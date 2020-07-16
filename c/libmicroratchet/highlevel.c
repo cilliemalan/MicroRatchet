@@ -210,7 +210,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 			mr_memcpy(newact->data, data, amount);
 		}
 	}
-	else if (naction == HL_ACTION_NONE || naction == HL_ACTION_TERMINATE)
+	else if (naction == HL_ACTION_NONE || naction == HL_ACTION_TERMINATE || naction == HL_ACTION_INITIALIZE)
 	{
 		// just allocate the action
 		_C(mr_allocate(ctx, sizeof(action), &newact));
@@ -282,14 +282,18 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		config->checkkey_callback),
 		MR_E_INVALIDARG,
 		"all callbacks must be provided");
-	FAILIF(ctx->highlevel, MR_E_INVALIDOP, "mr_hl_mainloop can only be called once for a given context");
+	
+	// assign hl structure
+	hlctx hl;
+	FAILIF(ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, &hl, 0) != 0, 
+		MR_E_INVALIDOP, 
+		"mr_hl_mainloop can only be called once for a given context");
 
-	// allocate hl structures
-	hlctx hl = {
-		.config = config,
-		.state = ctx->init.initialized ? HL_STATE_INITIALIZED : HL_STATE_UNINITIALIZED,
-		.action_notify = config->create_wait_handle(config->user)
-	};
+	// configure hl structure
+	mr_memzero(&hl, sizeof(hlctx));
+	hl.config = config;
+	hl.state = ctx->init.initialized ? HL_STATE_INITIALIZED : HL_STATE_UNINITIALIZED;
+	hl.action_notify = config->create_wait_handle(config->user);
 
 	bool active = true;
 	while (active)
