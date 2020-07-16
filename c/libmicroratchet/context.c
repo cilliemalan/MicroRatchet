@@ -183,7 +183,7 @@ static mr_result send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint
 	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
 	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
-	TRACEMSG("--send_initialization_request");
+	TRACEMSGCTX(ctx, "--send_initialization_request");
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
@@ -240,7 +240,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
-	TRACEMSG("--receive_initialization_request");
+	TRACEMSGCTX(ctx, "--receive_initialization_request");
 
 	*initializationnonce = 0;
 	*initializationnoncesize = 0;
@@ -311,7 +311,7 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	FAILIF(spaceavail < INIT_RES_MSG_SIZE, MR_E_INVALIDSIZE, "The amount of space available is less than the minimum space required for an initialization response");
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
-	TRACEMSG("--send_initialization_response");
+	TRACEMSGCTX(ctx, "--send_initialization_response");
 
 	// store the passed in parms because we're going to overwrite the buffer
 	// this is because initializationnonce is inside output
@@ -429,7 +429,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint32_t payloadSize = amount - headerSize - MAC_SIZE;
 	uint8_t* payload = data + headerSize;
 
-	TRACEMSG("--receive_initialization_response");
+	TRACEMSGCTX(ctx, "--receive_initialization_response");
 
 	// new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
 	// new ecdh pubkey(32) x2, signature(64)>, mac(12)
@@ -622,7 +622,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	FAILIF(includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the message there must be at least 48 bytes of extra space");
 	FAILIF(!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "When ECDH is not included there must be at least 16 bytes of extra space");
 
-	TRACEMSG("--construct_message");
+	TRACEMSGCTX(ctx, "--construct_message");
 
 	// message format:
 	// <nonce (4)>, <payload, padding>, mac(12)
@@ -662,6 +662,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	// copy in ecdh parms if needed
 	if (includeecdh)
 	{
+		TRACEMSGCTX(ctx, "  including ECDH");
 		_C(mr_ecdh_getpublickey(step->ecdhkey, message + NONCE_SIZE, ECNUM_SIZE));
 		TRACEDATA("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 		message[0] |= 0b10000000;
@@ -692,6 +693,8 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 
 	bool macmatches = false;
 
+	TRACEMSGCTX(ctx, "--interpret_mac");
+
 	// check ratchet header keys
 	if (ctx->ratchets[0].num)
 	{
@@ -702,6 +705,7 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 				_C(verifymac(ctx, message, amount, ctx->ratchets[i].receiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 				if (macmatches)
 				{
+					TRACEMSGCTX(ctx, "  MAC matches ratchet header key");
 					*headerKeyUsed = ctx->ratchets[i].receiveheaderkey;
 					*stepUsed = &ctx->ratchets[i];
 					return MR_E_SUCCESS;
@@ -711,6 +715,7 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 					_C(verifymac(ctx, message, amount, ctx->ratchets[i].nextreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 					if (macmatches)
 					{
+						TRACEMSGCTX(ctx, "  MAC matches ratchet next header key");
 						*headerKeyUsed = ctx->ratchets[i].nextreceiveheaderkey;
 						*stepUsed = &ctx->ratchets[i];
 						*usedNextHeaderKey = true;
@@ -725,6 +730,7 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 	_C(verifymac(ctx, message, amount, ctx->config.applicationKey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 	if (macmatches)
 	{
+		TRACEMSGCTX(ctx, "  MAC matches application key");
 		*headerKeyUsed = ctx->config.applicationKey;
 		return MR_E_SUCCESS;
 	}
@@ -735,12 +741,14 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 			_C(verifymac(ctx, message, amount, ctx->init.server->firstreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 			if (macmatches)
 			{
+				TRACEMSGCTX(ctx, "  MAC matches first receive header key");
 				*headerKeyUsed = ctx->init.server->firstreceiveheaderkey;
 				return MR_E_SUCCESS;
 			}
 		}
 	}
 
+	TRACEMSGCTX(ctx, "  MAC does not match");
 	FAILMSG(MR_E_NOTFOUND, "The message received had an unrecognized message authentication code.");
 }
 
@@ -753,6 +761,8 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	FAILIF(amount < MIN_MESSAGE_SIZE, MR_E_INVALIDSIZE, "A valid message is at least 16 bytes long");
 
 	uint32_t headerIvOffset = amount - MAC_SIZE - HEADERIV_SIZE;
+
+	TRACEMSGCTX(ctx, "--deconstruct_message");
 
 	// decrypt the header
 	mr_aes_ctx aes = mr_aes_create(ctx);
@@ -794,11 +804,13 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	_mr_ratchet_state* _step = 0;
 	if (hasEcdh)
 	{
+		TRACEMSGCTX(ctx, "  message has ECDH parameters");
 		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
 		mr_memzero(_step, sizeof(_mr_ratchet_state));
 
 		if (!step)
 		{
+			TRACEMSGCTX(ctx, "  initializaing server ratchet with new ECDH key");
 			// an override header key was used.
 			// this means we have to initialize the ratchet
 			FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can initialize a ratchet using an override header key");
@@ -836,6 +848,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 		{
 			if (usedNextKey)
 			{
+				TRACEMSGCTX(ctx, "  next header key was used, performing ratchet");
 				// perform ecdh ratchet
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
 				if (!newEcdh) result = MR_E_NOMEM;
@@ -889,12 +902,17 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 	const uint8_t* headerkey, uint32_t headerkeysize,
 	_mr_ratchet_state* step)
 {
+
+	TRACEMSGCTX(ctx, "--process_initialization");
+
 	if (ctx->config.is_client)
 	{
 		if (!amount)
 		{
+			TRACEMSGCTX(ctx, "  client initialization step 1");
 			if (!ctx->init.client)
 			{
+				TRACEMSGCTX(ctx, "  allocating client structures");
 				_C(mr_allocate(ctx, sizeof(_mr_initialization_state_client), (void**)&ctx->init.client));
 			}
 			else
@@ -922,6 +940,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			{
 				if (!ctx->ratchets[0].num)
 				{
+					TRACEMSGCTX(ctx, "  client initialization step 2");
 					// step 2: init response from server
 					_C(receive_initialization_response(ctx, message, amount));
 					_C(send_first_client_message(ctx, message, spaceavail));
@@ -934,6 +953,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 			}
 			else if (step)
 			{
+				TRACEMSGCTX(ctx, "  client initialization step 3");
 				// step 3: receive first message from server
 				_C(receive_first_server_response(ctx, message, amount, headerkey, headerkeysize, step));
 
@@ -948,6 +968,10 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 
 				return MR_E_SUCCESS;
 			}
+			else
+			{
+				FAILMSG(MR_E_INVALIDOP, "Unexpected message received during initialization");
+			}
 		}
 	}
 	else
@@ -958,6 +982,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 		}
 		else if (headerkey == ctx->config.applicationKey)
 		{
+			TRACEMSGCTX(ctx, "  server initialization step 1");
 			// step 1: client init request
 			uint8_t* initialization_nonce;
 			uint32_t initialization_nonce_size;
@@ -980,15 +1005,18 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 		}
 		else if (ctx->init.server && headerkey == ctx->init.server->firstreceiveheaderkey)
 		{
+			TRACEMSGCTX(ctx, "  server initialization step 2");
 			// step 2: first message from client
 			_C(receive_first_client_message(ctx, message, amount));
 			_C(send_first_server_response(ctx, message, spaceavail));
 			ctx->init.initialized = true;
 			return MR_E_SENDBACK;
 		}
+		else
+		{
+			FAILMSG(MR_E_INVALIDOP, "Unexpected message received during initialization");
+		}
 	}
-
-	FAILMSG(MR_E_INVALIDOP, "Unexpected message received during initialization");
 }
 
 mr_result mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t spaceavailable, bool force)
@@ -1004,6 +1032,7 @@ mr_result mr_ctx_initiate_initialization(mr_ctx _ctx, uint8_t* message, uint32_t
 		FAILMSG(MR_E_INVALIDOP, "Only a client can initiate initialization");
 	}
 
+	TRACEMSGCTX(ctx, "\n\n====INITIATE INITIALIZATION");
 	return process_initialization(ctx, message, 0, spaceavailable, 0, 0, 0);
 }
 
@@ -1016,8 +1045,8 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	FAILIF(spaceavailable < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The space available must be at least 32 bytes");
 	FAILIF(spaceavailable < messagesize, MR_E_INVALIDARG, "The space available must be at least as much as the message size");
 
-	if (ctx->config.is_client) TRACEMSG("\n\n====CLIENT RECEIVE");
-	else TRACEMSG("\n\n====SERVER RECEIVE");
+	if (ctx->config.is_client) TRACEMSGCTX(ctx, "\n\n====CLIENT RECEIVE");
+	else TRACEMSGCTX(ctx, "\n\n====SERVER RECEIVE");
 
 	// check the MAC and get info regarding the message header
 	uint8_t* headerkeyused = 0;
@@ -1034,8 +1063,10 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	}
 	else if (headerkeyused == ctx->config.applicationKey || !ctx->init.initialized)
 	{
-		if (!ctx->init.server)
+		TRACEMSGCTX(ctx, "=initialization process");
+		if (!ctx->config.is_client && !ctx->init.server)
 		{
+			TRACEMSGCTX(ctx, "=allocating server structures");
 			_C(mr_allocate(ctx, sizeof(_mr_initialization_state_server), (void**)&ctx->init.server));
 			mr_memzero(ctx->init.server, sizeof(_mr_initialization_state_server));
 		}
@@ -1076,11 +1107,13 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	}
 	else if (stepused)
 	{
+		TRACEMSGCTX(ctx, "=non-initialization process");
 		_C(deconstruct_message(ctx, message, messagesize, payload, payloadsize, headerkeyused, KEY_SIZE, stepused, usednextheaderkey));
 
 		// received first normal message, free init state
 		if (!ctx->config.is_client && ctx->init.server)
 		{
+			TRACEMSGCTX(ctx, "=releasing server structures");
 			if (ctx->init.server->localratchetstep0)
 			{
 				mr_ecdh_destroy(ctx->init.server->localratchetstep0);
@@ -1092,13 +1125,13 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 			mr_free(ctx, ctx->init.server);
 			ctx->init.server = 0;
 		}
+
+		return MR_E_SUCCESS;
 	}
 	else
 	{
 		FAILMSG(MR_E_INVALIDOP, "Could not identify the ECDH step used to send a message");
 	}
-
-	return MR_E_SUCCESS;
 }
 
 mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint32_t spaceavailable)
@@ -1109,8 +1142,8 @@ mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint3
 	FAILIF(!ctx->init.initialized, MR_E_INVALIDOP, "The session has not been initialized and cannot send yet");
 	FAILIF(spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "The amount of space available must be at least 16 bytes.");
 
-	if (ctx->config.is_client) TRACEMSG("\n\n====CLIENT SEND");
-	else TRACEMSG("\n\n====SERVER SEND");
+	if (ctx->config.is_client) TRACEMSGCTX(ctx, "\n\n====CLIENT SEND");
+	else TRACEMSGCTX(ctx, "\n\n====SERVER SEND");
 
 	bool canIncludeEcdh = spaceavailable - payloadsize >= OVERHEAD_WITH_ECDH;
 

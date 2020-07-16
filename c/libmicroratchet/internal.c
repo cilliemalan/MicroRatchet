@@ -24,39 +24,19 @@ static void writehex(const uint8_t* data, uint32_t amt)
 
 }
 
-
-#endif
-
-#if MR_DEBUG
-
 void _mrlogctxid(mr_ctx ctx)
 {
 	writehex(((uint8_t*)&ctx) + sizeof(size_t) - 4, 4);
 }
-
 #endif
 
 
-#if MR_TRACE
-
-void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t amt)
+#if MR_TRACE_DATA
+void _mrloghex(const uint8_t* data, uint32_t amt)
 {
-	MR_WRITE(msg, msglen);
 	writehex(data, amt);
-	MR_WRITE1("\n");
 }
-
 #endif
-
-size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b, size_t c)
-{
-	size_t r = *a;
-	if (r == c) {
-		*a = b;
-	}
-
-	return r;
-}
 
 void mr_memcpy(void* dst, const void* src, size_t amt)
 {

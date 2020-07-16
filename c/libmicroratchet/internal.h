@@ -57,13 +57,26 @@
 #define STATIC_ASSERT(e, r) static_assert(e, r)
 #define MR_ALIGN(n) __declspec(align(n))
 #define MR_HTON _byteswap_ulong
-#elif defined(__GNUC__)
+
+#elif defined(__GNUC__) || defined(__clang__)
+
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) __atomic_compare_exchange_n((size_t*)&(a), (size_t*)&(c), (size_t)(b), __ATOMIC_ACQ_REL)
 #define ATOMIC_INCREMENT(a) __atomic_add_fetch((ptrdiff_t*)&(a), 1, __ATOMIC_ACQ_REL)
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
 #define MR_ALIGN(n) __attribute__((aligned(n))
 #define MR_HTON __builtin_bswap32
+
 #else
+
+static inline size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b, size_t c)
+{
+	size_t r = *a;
+	if (r == c) {
+		*a = b;
+	}
+	return r;
+}
+
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) _mr_nonatomic_compare_exchange((size_t*)&(a),(b),(c))
 #define ATOMIC_INCREMENT(a) (a)++
 #define STATIC_ASSERT(e, r)
@@ -73,6 +86,7 @@
 	((((uint32_t)(x)) >> 16) & 0xff) | \
 	((((uint32_t)(x)) >> 8) & 0xff) | \
 	((((uint32_t)(x)) >> 0) & 0xff))
+
 #endif
 
 #define KEY_SIZE 32
@@ -247,7 +261,7 @@ void _mrlogctxid(mr_ctx ctx);
 // fail messages to fail a function with a reason message
 #if MR_DEBUG
 #define DEBUGMSG(message) MR_WRITE1(message "\n")
-#define DEBUGMSGCTX(ctx, message) do { _mrlogctxid(ctx); MR_WRITE1(message "\n"); } while(0)
+#define DEBUGMSGCTX(ctx, message) do { _mrlogctxid(ctx); MR_WRITE1(" " message "\n"); } while(0)
 #define FAILIF(condition, error, messageonfailure) if (condition) { DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error); }
 #define FAILMSG(error, messageonfailure) DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error);
 #else
@@ -257,16 +271,19 @@ void _mrlogctxid(mr_ctx ctx);
 #define FAILMSG(error, messageonfailure) return (error);
 #endif
 
-// trace messages to debug crypto internals
+// trace messages to debug internals
 #if MR_TRACE
 #define TRACEMSG(msg) MR_WRITE1(msg "\n")
+#define TRACECTX(ctx, msg) do { _mrlogctxid(ctx); MR_WRITE1(" " message "\n"); } while(0)
 #else
 #define TRACEMSG(msg)
+#define TRACEMSGCTX(ctx, msg)
 #endif
 
+// trace messages to debug crypto data
 #if MR_TRACE_DATA
-void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
-#define TRACEDATA(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
+void _mrloghex(const uint8_t* data, uint32_t datalen);
+#define TRACEDATA(msg, data, amt) do { MR_WRITE1(message " "); _mrloghex(data, amt); MR_WRITE1("\n"); } while(0)
 #else
 #define TRACEDATA(msg, data, amt)
 #endif
