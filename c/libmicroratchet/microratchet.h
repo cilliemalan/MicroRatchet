@@ -22,14 +22,14 @@ typedef void* mr_ecdsa_ctx;
 typedef void* mr_rng_ctx;
 
 // functions
-typedef void(*data_callback_fn)(const uint8_t* data, uint32_t amount, void* user);
-typedef uint32_t(*transmit_fn)(const uint8_t* data, uint32_t amount, void* user);
-typedef uint32_t(*receive_fn)(uint8_t* data, uint32_t amount, void* user);
+typedef void(*data_callback_fn)(void* user, const uint8_t* data, uint32_t amount);
+typedef uint32_t(*transmit_fn)(void* user, const uint8_t* data, uint32_t amount);
+typedef uint32_t(*receive_fn)(void* user, uint8_t* data, uint32_t amount);
 typedef void* (*waithandle_fn)(void* user);
-typedef void (*waithandledestroy_fn)(void* waithandle, void* user);
-typedef bool (*wait_fn)(void* handle, uint32_t timeout, void* user);
-typedef void (*notify_fn)(void* handle, void* user);
-typedef bool(*checkkey_fn)(const uint8_t* pubkey, uint32_t len, void* user);
+typedef void (*waithandledestroy_fn)(void* user, void* waithandle);
+typedef bool (*wait_fn)(void* user, void* handle, uint32_t timeout);
+typedef void (*notify_fn)(void* user, void* handle);
+typedef bool(*checkkey_fn)(void* user, const uint8_t* pubkey, uint32_t len);
 
 // main configuration
 typedef struct t_mr_config {

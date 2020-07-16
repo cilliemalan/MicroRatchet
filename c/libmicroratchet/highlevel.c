@@ -231,7 +231,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	{
 		newact->notify = 0;
 		hl_action_enqueue(&hl->head, newact);
-		hl->config->notify(hl->action_notify, hl->config->user);
+		hl->config->notify(hl->config->user, hl->action_notify);
 		result = MR_E_ACTION_ENQUEUED;
 	}
 	else
@@ -241,13 +241,13 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 
 		// enqueue the action
 		hl_action_enqueue(&hl->head, newact);
-		hl->config->notify(hl->action_notify, hl->config->user);
+		hl->config->notify(hl->config->user, hl->action_notify);
 
 		// block until the action is completed or timed out
-		bool wait_success = hl->config->wait(newact->notify, timeout, hl->config->user);
+		bool wait_success = hl->config->wait(hl->config->user, newact->notify, timeout);
 		void* ntfy = newact->notify;
 		newact->notify = 0;
-		hl->config->destroy_wait_handle(ntfy, hl->config->user);
+		hl->config->destroy_wait_handle(hl->config->user, ntfy);
 
 		// return the result of the action
 		if (wait_success)
@@ -322,7 +322,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 
 						if (result == MR_E_SUCCESS)
 						{
-							if (hl.config->transmit(hl.initialize_buffer, 256, hl.config->user) == 256)
+							if (hl.config->transmit(hl.config->user, hl.initialize_buffer, 256) == 256)
 							{
 								// that's it. Now we wait
 							}
@@ -337,7 +337,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 					if (result != MR_E_SUCCESS)
 					{
 						hl.initialize_result = result;
-						hl.config->notify(hl.initialize_notify, hl.config->user);
+						hl.config->notify(hl.config->user, hl.initialize_notify);
 						hl.state = HL_STATE_UNINITIALIZED;
 					}
 				}
@@ -361,7 +361,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 						result = mr_ctx_send(ctx, item->data, item->size, space_available);
 						if (result == MR_E_SUCCESS)
 						{
-							result = config->transmit(item->data, space_available, config->user) == space_available
+							result = config->transmit(config->user, item->data, space_available) == space_available
 								? MR_E_SUCCESS
 								: MR_E_FAIL;
 						}
@@ -376,7 +376,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				case HL_ACTION_RECEIVE:
 
 					// for RECEIVE we call receive
-					if (config->receive(item->data, item->size, config->user) != item->size)
+					if (config->receive(config->user, item->data, item->size) != item->size)
 					{
 						result = MR_E_FAIL;
 					}
@@ -404,7 +404,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 								hl.state = HL_STATE_INITIALIZED;
 								if (hl.initialize_notify)
 								{
-									hl.config->notify(hl.initialize_notify, hl.config->user);
+									hl.config->notify(hl.config->user, hl.initialize_notify);
 								}
 								mr_free(ctx, hl.initialize_buffer);
 							}
@@ -420,7 +420,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 						else if (result == MR_E_SENDBACK)
 						{
 							// we need to send an initialization response
-							if (config->transmit(payload, data_received_size, config->user) != data_received_size)
+							if (config->transmit(config->user, payload, data_received_size) != data_received_size)
 							{
 								// if the transmit fails, the whole initialization process needs
 								// to start over. We rely on a timeout to make this happen.
@@ -441,7 +441,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				// notify that the action is completed
 				if (item->notify)
 				{
-					config->notify(item->notify, config->user);
+					config->notify(config->user, item->notify);
 				}
 			}
 
@@ -450,7 +450,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		}
 		else
 		{
-			config->wait(hl.action_notify, 0xffffffff, config->user);
+			config->wait(config->user, hl.action_notify, 0xffffffff);
 		}
 	}
 
@@ -479,7 +479,7 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 	mr_result result = hl_action_add(_ctx, HL_ACTION_INITIALIZE, 0, 0, 0);
 	if (result == MR_E_ACTION_ENQUEUED)
 	{
-		if (hl->config->wait(wh, timeout, hl->config->user))
+		if (hl->config->wait(hl->config->user, wh, timeout))
 		{
 			result = MR_E_SUCCESS;
 		}
@@ -490,7 +490,7 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 	}
 	else
 	{
-		hl->config->wait(wh, 0, hl->config->user);
+		hl->config->wait(hl->config->user, wh, 0);
 	}
 
 	hl->initialize_notify = 0;
