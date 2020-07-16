@@ -222,11 +222,11 @@ extern "C" {
 
 #define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
 
-#define MRMSG(message) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " message)
-#define FAILIF(condition, error, messageonfailure) if (condition) { MRMSG(messageonfailure); return (error); }
-#define FAILMSG(error, messageonfailure) MRMSG(messageonfailure); return (error);
+#define DEBUGMSG(message) MR_WRITE1(__FILE__ ":" __LINE_STRING__ " " message)
+#define FAILIF(condition, error, messageonfailure) if (condition) { DEBUGMSG(messageonfailure); return (error); }
+#define FAILMSG(error, messageonfailure) DEBUGMSG(messageonfailure); return (error);
 #else
-#define MRMSG(message)
+#define DEBUGMSG(message)
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
 #define FAILMSG(error, messageonfailure) return (error);
 #endif
@@ -234,10 +234,10 @@ extern "C" {
 // trace messages to debug crypto internals
 #if defined(MR_TRACE)
 void _mrlog(const char* msg, uint32_t msglen, const uint8_t* data, uint32_t datalen);
-#define LOG(msg) _mrlog(msg, sizeof(msg) - 1, 0, 0)
-#define LOGD(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
+#define TRACEMSG(msg) do { static const char __msg[] = msg;  _mrlog(__msg, sizeof(__msg) - 1, 0, 0); } while(0)
+#define TRACEDATA(msg, data, amt) _mrlog(msg, sizeof(msg) - 1, data, amt)
 #else
-#define LOG(msg)
-#define LOGD(msg, data, amt)
+#define TRACEMSG(msg)
+#define TRACEDATA(msg, data, amt)
 #endif
 

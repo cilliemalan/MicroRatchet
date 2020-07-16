@@ -47,9 +47,9 @@ static mr_result computemac(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, cons
 	mr_poly_destroy(mac);
 	_C(result);
 
-	LOGD("mac iv                ", iv, ivsize);
-	LOGD("mac key               ", key, keysize);
-	LOGD("mac computed          ", data + datasize - MAC_SIZE, MAC_SIZE);
+	TRACEDATA("mac iv                ", iv, ivsize);
+	TRACEDATA("mac key               ", key, keysize);
+	TRACEDATA("mac computed          ", data + datasize - MAC_SIZE, MAC_SIZE);
 	return MR_E_SUCCESS;
 }
 
@@ -69,10 +69,10 @@ static mr_result verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize,
 	_R(rr, mr_poly_init(mac, key, keysize, iv, ivsize));
 	_R(rr, mr_poly_process(mac, data, datasize - MAC_SIZE));
 	_R(rr, mr_poly_compute(mac, computedmac, MAC_SIZE));
-	LOGD("verify mac iv         ", iv, ivsize);
-	LOGD("verify mac key        ", key, keysize);
-	LOGD("verify mac computed   ", computedmac, MAC_SIZE);
-	LOGD("verify mac compareto  ", data + datasize - MAC_SIZE, MAC_SIZE);
+	TRACEDATA("verify mac iv         ", iv, ivsize);
+	TRACEDATA("verify mac key        ", key, keysize);
+	TRACEDATA("verify mac computed   ", computedmac, MAC_SIZE);
+	TRACEDATA("verify mac compareto  ", data + datasize - MAC_SIZE, MAC_SIZE);
 	*result = memcmp(computedmac, data + datasize - MAC_SIZE, MAC_SIZE) == 0;
 	mr_poly_destroy(mac);
 	_C(rr);
@@ -98,8 +98,8 @@ static mr_result sign(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, mr_ecdsa_c
 	uint8_t sha[DIGEST_SIZE];
 	_C(digest(ctx, data, datasize - SIGNATURE_SIZE, sha, sizeof(sha)));
 	_C(mr_ecdsa_sign(signer, sha, DIGEST_SIZE, data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE));
-	LOGD("signature hash        ", sha, DIGEST_SIZE);
-	LOGD("signature             ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
+	TRACEDATA("signature hash        ", sha, DIGEST_SIZE);
+	TRACEDATA("signature             ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
 	return MR_E_SUCCESS;
 }
 
@@ -116,8 +116,8 @@ static mr_result verifysig(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize,
 		sha, DIGEST_SIZE,
 		pubkey, pubkeysize,
 		&sigresult));
-	LOGD("verify signature hash ", sha, DIGEST_SIZE);
-	LOGD(sigresult ? "verify signature GOOD " : "verify signature BAD  ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
+	TRACEDATA("verify signature hash ", sha, DIGEST_SIZE);
+	TRACEDATA(sigresult ? "verify signature GOOD " : "verify signature BAD  ", data + datasize - SIGNATURE_SIZE, SIGNATURE_SIZE);
 	*result = !!sigresult;
 	return MR_E_SUCCESS;
 }
@@ -129,8 +129,8 @@ static mr_result crypt(_mr_ctx* ctx, uint8_t* data, uint32_t datasize, const uin
 	FAILIF(keysize != KEY_SIZE && keysize != MSG_KEY_SIZE, MR_E_INVALIDSIZE, "The key size was invalid");
 	FAILIF(ivsize < NONCE_SIZE, MR_E_INVALIDSIZE, "The IV size was to small");
 
-	LOGD("crypt with iv         ", iv, ivsize);
-	LOGD("crypt with key        ", key, keysize);
+	TRACEDATA("crypt with iv         ", iv, ivsize);
+	TRACEDATA("crypt with key        ", key, keysize);
 
 	mr_aes_ctx aes = mr_aes_create(ctx);
 	_mr_aesctr_ctx cipher;
@@ -183,26 +183,26 @@ static mr_result send_initialization_request(_mr_ctx* ctx, uint8_t* output, uint
 	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
 	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
-	LOG("--send_initialization_request");
+	TRACEMSG("--send_initialization_request");
 
 	// message format:
 	// nonce(16), pubkey(32), ecdh(32), padding(...), signature(64), mac(12)
 
 	// 16 bytes nonce
 	_C(mr_rng_generate(ctx->rng_ctx, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE));
-	LOGD("Initialization Nonce  ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
+	TRACEDATA("Initialization Nonce  ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// get the public key
 	uint8_t pubkey[ECNUM_SIZE];
 	_C(mr_ecdsa_getpublickey(ctx->identity, pubkey, sizeof(pubkey)));
-	LOGD("client public key     ", pubkey, sizeof(pubkey));
+	TRACEDATA("client public key     ", pubkey, sizeof(pubkey));
 
 	// generate new ECDH keypair for init message and root key
 	uint8_t clientEcdhPub[ECNUM_SIZE];
 	if (ctx->init.client->localecdhforinit) mr_ecdh_destroy(ctx->init.client->localecdhforinit);
 	ctx->init.client->localecdhforinit = mr_ecdh_create(ctx);
 	_C(mr_ecdh_generate(ctx->init.client->localecdhforinit, clientEcdhPub, sizeof(clientEcdhPub)));
-	LOGD("client ecdh           ", clientEcdhPub, sizeof(clientEcdhPub));
+	TRACEDATA("client ecdh           ", clientEcdhPub, sizeof(clientEcdhPub));
 
 	// nonce(16), <pubkey(32), ecdh(32), signature(64)>, mac(12)
 	uint32_t macOffset = spaceavail - MAC_SIZE;
@@ -240,7 +240,7 @@ static mr_result receive_initialization_request(_mr_ctx* ctx, uint8_t* data, uin
 	FAILIF(!ctx->identity, MR_E_INVALIDOP, "The session does not have an identity");
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
-	LOG("--receive_initialization_request");
+	TRACEMSG("--receive_initialization_request");
 
 	*initializationnonce = 0;
 	*initializationnoncesize = 0;
@@ -311,7 +311,7 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	FAILIF(spaceavail < INIT_RES_MSG_SIZE, MR_E_INVALIDSIZE, "The amount of space available is less than the minimum space required for an initialization response");
 	FAILIF(!ctx->init.server, MR_E_INVALIDOP, "Server initialization state is null");
 
-	LOG("--send_initialization_response");
+	TRACEMSG("--send_initialization_response");
 
 	// store the passed in parms because we're going to overwrite the buffer
 	// this is because initializationnonce is inside output
@@ -328,13 +328,13 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	uint8_t* serverNonce = ctx->init.server->nextinitializationnonce;
 	uint8_t* rootKey = ctx->init.server->rootkey;
 	_C(mr_rng_generate(ctx->rng_ctx, serverNonce, INITIALIZATION_NONCE_SIZE));
-	LOGD("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
+	TRACEDATA("server nonce          ", serverNonce, INITIALIZATION_NONCE_SIZE);
 	uint8_t rootPreEcdhPubkey[ECNUM_SIZE];
 	mr_ecdh_ctx rootPreEcdh = mr_ecdh_create(ctx);
 	FAILIF(!rootPreEcdh, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	mr_result result = MR_E_SUCCESS;
 	_R(result, mr_ecdh_generate(rootPreEcdh, rootPreEcdhPubkey, sizeof(rootPreEcdhPubkey)));
-	LOGD("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
+	TRACEDATA("root pre ecdh pub     ", rootPreEcdhPubkey, ECNUM_SIZE);
 
 	// generate server ECDH for root key and root key
 	uint8_t rootPreKey[KEY_SIZE];
@@ -344,10 +344,10 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 		rootPreKey, KEY_SIZE,
 		serverNonce, INITIALIZATION_NONCE_SIZE,
 		rootKey, KEY_SIZE * 3)); //rootkey, firstsendheaderkey, firstreceiveheaderkey
-	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
-	LOGD("root key              ", ctx->init.server->rootkey, KEY_SIZE);
-	LOGD("first send header k   ", ctx->init.server->firstsendheaderkey, KEY_SIZE);
-	LOGD("first recv header k   ", ctx->init.server->firstreceiveheaderkey, KEY_SIZE);
+	TRACEDATA("root pre key          ", rootPreKey, KEY_SIZE);
+	TRACEDATA("root key              ", ctx->init.server->rootkey, KEY_SIZE);
+	TRACEDATA("first send header k   ", ctx->init.server->firstsendheaderkey, KEY_SIZE);
+	TRACEDATA("first recv header k   ", ctx->init.server->firstreceiveheaderkey, KEY_SIZE);
 
 	mr_ecdh_destroy(rootPreEcdh);
 	_C(result);
@@ -360,13 +360,13 @@ static mr_result send_initialization_response(_mr_ctx* ctx,
 	ctx->init.server->localratchetstep0 = mr_ecdh_create(ctx);
 	FAILIF(!ctx->init.server->localratchetstep0, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep0, rre0, sizeof(rre0)));
-	LOGD("rre0                  ", rre0, ECNUM_SIZE);
+	TRACEDATA("rre0                  ", rre0, ECNUM_SIZE);
 	uint8_t rre1[ECNUM_SIZE];
 	if (ctx->init.server->localratchetstep1) mr_ecdh_destroy(ctx->init.server->localratchetstep1);
 	ctx->init.server->localratchetstep1 = mr_ecdh_create(ctx);
 	FAILIF(!ctx->init.server->localratchetstep1, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_C(mr_ecdh_generate(ctx->init.server->localratchetstep1, rre1, sizeof(rre1)));
-	LOGD("rre1                  ", rre1, ECNUM_SIZE);
+	TRACEDATA("rre1                  ", rre1, ECNUM_SIZE);
 
 	uint32_t macOffset = spaceavail - MAC_SIZE;
 	uint32_t encryptedPayloadOffset = INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
@@ -429,7 +429,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint32_t payloadSize = amount - headerSize - MAC_SIZE;
 	uint8_t* payload = data + headerSize;
 
-	LOG("--receive_initialization_response");
+	TRACEMSG("--receive_initialization_response");
 
 	// new nonce(16), ecdh pubkey(32), <nonce(16), server pubkey(32), 
 	// new ecdh pubkey(32) x2, signature(64)>, mac(12)
@@ -446,15 +446,15 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 		data + ecdhOffset, ECNUM_SIZE,
 		rootPreKey, sizeof(rootPreKey)));
 	_C(digest(ctx, rootPreKey, sizeof(rootPreKey), rootPreKey, sizeof(rootPreKey)));
-	LOGD("remote ecdh pub       ", data + ecdhOffset, ECNUM_SIZE);
-	LOGD("root pre key          ", rootPreKey, KEY_SIZE);
+	TRACEDATA("remote ecdh pub       ", data + ecdhOffset, ECNUM_SIZE);
+	TRACEDATA("root pre key          ", rootPreKey, KEY_SIZE);
 	_C(crypt(ctx,
 		payload, payloadSize,
 		rootPreKey, KEY_SIZE,
 		data, INITIALIZATION_NONCE_SIZE));
 
-	LOGD("sent init nonce       ", payload, INITIALIZATION_NONCE_SIZE);
-	LOGD("client init nonce     ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
+	TRACEDATA("sent init nonce       ", payload, INITIALIZATION_NONCE_SIZE);
+	TRACEDATA("client init nonce     ", ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
 	// ensure the nonce matches
 	if (memcmp(payload, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE) != 0)
@@ -475,7 +475,7 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 
 	// store the nonce we got from the server
 	mr_memcpy(ctx->init.client->initializationnonce, data, INITIALIZATION_NONCE_SIZE);
-	LOGD("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
+	TRACEDATA("server init nonce     ", data, INITIALIZATION_NONCE_SIZE);
 
 	// we now have enough information to construct our double ratchet
 	mr_result result = MR_E_SUCCESS;
@@ -483,12 +483,12 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	mr_ecdh_ctx localStep0 = mr_ecdh_create(ctx);
 	FAILIF(!localStep0, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_R(result, mr_ecdh_generate(localStep0, localStep0Pub, sizeof(localStep0Pub)));
-	LOGD("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
+	TRACEDATA("local step0 pub       ", localStep0Pub, ECNUM_SIZE);
 	uint8_t localStep1Pub[ECNUM_SIZE];
 	mr_ecdh_ctx localStep1 = mr_ecdh_create(ctx);
 	FAILIF(!localStep1, MR_E_NOMEM, "Could not allocate ECDH parameters");
 	_R(result, mr_ecdh_generate(localStep1, localStep1Pub, sizeof(localStep1Pub)));
-	LOGD("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
+	TRACEDATA("local step1 pub       ", localStep1Pub, ECNUM_SIZE);
 
 	// initialize client root key and ecdh ratchet
 	uint8_t genKeys[KEY_SIZE * 3];
@@ -499,9 +499,9 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* rootKey = genKeys;
 	uint8_t* receiveHeaderKey = genKeys + KEY_SIZE;
 	uint8_t* sendHeaderKey = genKeys + KEY_SIZE * 2;
-	LOGD("root key              ", rootKey, KEY_SIZE);
-	LOGD("first recv header k   ", receiveHeaderKey, KEY_SIZE);
-	LOGD("first send header k   ", sendHeaderKey, KEY_SIZE);
+	TRACEDATA("root key              ", rootKey, KEY_SIZE);
+	TRACEDATA("first recv header k   ", receiveHeaderKey, KEY_SIZE);
+	TRACEDATA("first send header k   ", sendHeaderKey, KEY_SIZE);
 
 	uint8_t* remoteRatchetEcdh0 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
@@ -622,7 +622,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	FAILIF(includeecdh && spaceavail < amount + OVERHEAD_WITH_ECDH, MR_E_INVALIDSIZE, "When ECDH is included in the message there must be at least 48 bytes of extra space");
 	FAILIF(!includeecdh && spaceavail < amount + OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "When ECDH is not included there must be at least 16 bytes of extra space");
 
-	LOG("--construct_message");
+	TRACEMSG("--construct_message");
 
 	// message format:
 	// <nonce (4)>, <payload, padding>, mac(12)
@@ -650,11 +650,11 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	// build the payload <payload, padding>
 	memmove(message + headersize, message, amount);
 	mr_memzero(message + headersize + amount, amountAfterPayload);
-	LOGD("[payload]             ", message + headersize, amount);
+	TRACEDATA("[payload]             ", message + headersize, amount);
 
 	// copy in the nonce
 	be_packu32(generation, message);
-	LOGD("[nonce]               ", message, NONCE_SIZE);
+	TRACEDATA("[nonce]               ", message, NONCE_SIZE);
 
 	// encrypt the payload
 	_C(crypt(ctx, message + headersize, payloadSize, payloadKey, MSG_KEY_SIZE, message, NONCE_SIZE));
@@ -663,7 +663,7 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	if (includeecdh)
 	{
 		_C(mr_ecdh_getpublickey(step->ecdhkey, message + NONCE_SIZE, ECNUM_SIZE));
-		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
+		TRACEDATA("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 		message[0] |= 0b10000000;
 	}
 	else
@@ -674,11 +674,11 @@ static mr_result construct_message(_mr_ctx* ctx, uint8_t* message, uint32_t amou
 	// encrypt the header using the header key and using the
 	// last 16 bytes of the message as the nonce.
 	_C(crypt(ctx, message, headersize, step->sendheaderkey, KEY_SIZE, message + headerIvOffset, HEADERIV_SIZE));
-	LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
+	TRACEDATA("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 
 	// mac the message
 	_C(computemac(ctx, message, spaceavail, step->sendheaderkey, KEY_SIZE, message, MACIV_SIZE));
-	LOGD("[mac]                 ", message + spaceavail - MAC_SIZE, MAC_SIZE);
+	TRACEDATA("[mac]                 ", message + spaceavail - MAC_SIZE, MAC_SIZE);
 
 	return MR_E_SUCCESS;
 }
@@ -762,8 +762,8 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	_R(result, mr_aes_init(aes, headerkey, headerkeysize));
 	_R(result, aesctr_init(&cipher, aes, message + headerIvOffset, HEADERIV_SIZE));
 	_R(result, aesctr_process(&cipher, message, NONCE_SIZE, message, NONCE_SIZE));
-	LOGD("headerkey             ", headerkey, headerkeysize);
-	LOGD("headeriv              ", message + headerIvOffset, HEADERIV_SIZE);
+	TRACEDATA("headerkey             ", headerkey, headerkeysize);
+	TRACEDATA("headeriv              ", message + headerIvOffset, HEADERIV_SIZE);
 
 	// decrypt ecdh if needed
 	bool hasEcdh = message[0] & 0b10000000;
@@ -774,13 +774,13 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	uint32_t ecdhOffset = NONCE_SIZE;
 	uint32_t payloadOffset = NONCE_SIZE + (hasEcdh ? ECNUM_SIZE : 0);
 	uint32_t payloadSize = amount - payloadOffset - MAC_SIZE;
-	LOGD("[nonce]               ", message, NONCE_SIZE);
+	TRACEDATA("[nonce]               ", message, NONCE_SIZE);
 
 	if (hasEcdh)
 	{
-		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
+		TRACEDATA("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 		_R(result, aesctr_process(&cipher, message + NONCE_SIZE, ECNUM_SIZE, message + NONCE_SIZE, ECNUM_SIZE));
-		LOGD("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
+		TRACEDATA("[ecdh]                ", message + NONCE_SIZE, ECNUM_SIZE);
 	}
 	mr_aes_destroy(aes);
 	aes = 0;
@@ -880,7 +880,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	*payload = message + payloadOffset;
 	*payloadsize = payloadSize;
 
-	LOGD("[payload]             ", message + payloadOffset, payloadSize);
+	TRACEDATA("[payload]             ", message + payloadOffset, payloadSize);
 
 	return MR_E_SUCCESS;
 }
@@ -1016,8 +1016,8 @@ mr_result mr_ctx_receive(mr_ctx _ctx, uint8_t* message, uint32_t messagesize, ui
 	FAILIF(spaceavailable < MIN_MESSAGE_SIZE, MR_E_INVALIDARG, "The space available must be at least 32 bytes");
 	FAILIF(spaceavailable < messagesize, MR_E_INVALIDARG, "The space available must be at least as much as the message size");
 
-	if (ctx->config.is_client) LOG("\n\n====CLIENT RECEIVE");
-	else LOG("\n\n====SERVER RECEIVE");
+	if (ctx->config.is_client) TRACEMSG("\n\n====CLIENT RECEIVE");
+	else TRACEMSG("\n\n====SERVER RECEIVE");
 
 	// check the MAC and get info regarding the message header
 	uint8_t* headerkeyused = 0;
@@ -1109,8 +1109,8 @@ mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint3
 	FAILIF(!ctx->init.initialized, MR_E_INVALIDOP, "The session has not been initialized and cannot send yet");
 	FAILIF(spaceavailable - payloadsize < OVERHEAD_WITHOUT_ECDH, MR_E_INVALIDSIZE, "The amount of space available must be at least 16 bytes.");
 
-	if (ctx->config.is_client) LOG("\n\n====CLIENT SEND");
-	else LOG("\n\n====SERVER SEND");
+	if (ctx->config.is_client) TRACEMSG("\n\n====CLIENT SEND");
+	else TRACEMSG("\n\n====SERVER SEND");
 
 	bool canIncludeEcdh = spaceavailable - payloadsize >= OVERHEAD_WITH_ECDH;
 

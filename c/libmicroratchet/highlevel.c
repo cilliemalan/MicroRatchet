@@ -332,7 +332,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 							}
 							else
 							{
-								MRMSG("transmit failed");
+								DEBUGMSG("transmit failed");
 								result = MR_E_FAIL;
 							}
 						}
@@ -350,7 +350,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 				{
 					if (hl.state != HL_STATE_INITIALIZED)
 					{
-						MRMSG("Cannot send before initialization has completed");
+						DEBUGMSG("Cannot send before initialization has completed");
 						result = MR_E_INVALIDOP;
 					}
 					else
