@@ -17,7 +17,7 @@ static void writehex(const uint8_t* data, uint32_t amt)
 			buf[i * 2 + 1] = lookup[data[i] & 0xf];
 		}
 		buf[numcharsleft * 2] = 0;
-		MR_WRITE(msg, numcharsleft * 2);
+		MR_WRITE(buf, numcharsleft * 2);
 		data += numcharsleft;
 		amt -= numcharsleft;
 	}
@@ -26,7 +26,7 @@ static void writehex(const uint8_t* data, uint32_t amt)
 
 void _mrlogctxid(mr_ctx ctx)
 {
-	writehex(((uint8_t*)&ctx) + sizeof(size_t) - 4, 4);
+	writehex(((uint8_t*)&ctx), 4);
 }
 #endif
 

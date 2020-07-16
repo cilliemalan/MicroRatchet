@@ -274,7 +274,7 @@ void _mrlogctxid(mr_ctx ctx);
 // trace messages to debug internals
 #if MR_TRACE
 #define TRACEMSG(msg) MR_WRITE1(msg "\n")
-#define TRACECTX(ctx, msg) do { _mrlogctxid(ctx); MR_WRITE1(" " message "\n"); } while(0)
+#define TRACEMSGCTX(ctx, msg) do { _mrlogctxid(ctx); MR_WRITE1(" " msg "\n"); } while(0)
 #else
 #define TRACEMSG(msg)
 #define TRACEMSGCTX(ctx, msg)
