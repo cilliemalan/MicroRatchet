@@ -245,6 +245,8 @@ extern "C" {
 	void mr_memcpy(void* dst, const void* src, size_t amt);
 	void mr_memzero(void* dst, size_t amt);
 
+	void _mrlogctxid(mr_ctx ctx);
+	void _mrloghex(const uint8_t* data, uint32_t datalen);
 #ifdef __cplusplus
 }
 #endif
@@ -256,8 +258,6 @@ extern "C" {
 #define __LINE_STRING__ MR_STRINGIZE(__LINE__)
 
 #define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
-
-void _mrlogctxid(mr_ctx ctx);
 
 #endif
 
@@ -285,7 +285,6 @@ void _mrlogctxid(mr_ctx ctx);
 
 // trace messages to debug crypto data
 #if MR_TRACE_DATA
-void _mrloghex(const uint8_t* data, uint32_t datalen);
 #define TRACEDATA(msg, data, amt) do { MR_WRITE1(message " "); _mrloghex(data, amt); MR_WRITE1("\n"); } while(0)
 #else
 #define TRACEDATA(msg, data, amt)
