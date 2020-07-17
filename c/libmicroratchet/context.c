@@ -1162,6 +1162,16 @@ mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint3
 	return MR_E_SUCCESS;
 }
 
+mr_result mr_ctx_is_initialized(mr_ctx _ctx, bool* initialized)
+{
+	_mr_ctx* ctx = _ctx;
+	FAILIF(!ctx, MR_E_INVALIDARG, "The context must be provided");
+	FAILIF(!initialized, MR_E_INVALIDARG, "initialized must be provided");
+
+	*initialized = ctx->init.initialized;
+	return MR_E_SUCCESS;
+}
+
 void mr_ctx_destroy(mr_ctx _ctx)
 {
 	_mr_ctx* ctx = _ctx;

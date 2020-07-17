@@ -420,6 +420,9 @@ extern "C" {
 	// loads state for a context from a memory buffer.
 	mr_result mr_ctx_state_load(mr_ctx ctx, const uint8_t* data, uint32_t amount, uint32_t* amountread);
 
+	// indicates whether or not the context is initialized and data can be sent and received.
+	mr_result mr_ctx_is_initialized(mr_ctx ctx, bool* initialized);
+
 	// destroys a context and frees all related memory. The identity ECDH object
 	// will not be destroyed.
 	void mr_ctx_destroy(mr_ctx ctx);
