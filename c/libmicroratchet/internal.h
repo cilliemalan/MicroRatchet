@@ -51,7 +51,7 @@
 #define ATOMIC_INCREMENT(a) _InterlockedIncrement64((__int64 volatile *)&(a))
 #else
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) _InterlockedCompareExchange((__int32 volatile *)&(a), (__int32)(b), (__int32)(c))
-#define ATOMIC_INCREMENT(a) _InterlockedIncrement((__int64 volatile *)&(a))
+#define ATOMIC_INCREMENT(a) _InterlockedIncrement((__int32 volatile *)&(a))
 #endif
 
 #define STATIC_ASSERT(e, r) static_assert(e, r)
