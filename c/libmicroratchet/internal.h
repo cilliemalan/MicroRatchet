@@ -49,9 +49,11 @@
 #ifdef MR_X64
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) _InterlockedCompareExchange64((__int64 volatile *)&(a), (__int64)(b), (__int64)(c))
 #define ATOMIC_INCREMENT(a) _InterlockedIncrement64((__int64 volatile *)&(a))
+#define ATOMIC_DECREMENT(a) _InterlockedDecrement64((__int64 volatile *)&(a))
 #else
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) _InterlockedCompareExchange((__int32 volatile *)&(a), (__int32)(b), (__int32)(c))
 #define ATOMIC_INCREMENT(a) _InterlockedIncrement((__int32 volatile *)&(a))
+#define ATOMIC_DECREMENT(a) _InterlockedIncrement((__int32 volatile *)&(a))
 #endif
 
 #define STATIC_ASSERT(e, r) static_assert(e, r)
@@ -62,6 +64,7 @@
 
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) __atomic_compare_exchange_n((size_t*)&(a), (size_t*)&(c), (size_t)(b), __ATOMIC_ACQ_REL)
 #define ATOMIC_INCREMENT(a) __atomic_add_fetch((ptrdiff_t*)&(a), 1, __ATOMIC_ACQ_REL)
+#define ATOMIC_DECREMENT(a) __atomic_sub_fetch((ptrdiff_t*)&(a), 1, __ATOMIC_ACQ_REL)
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
 #define MR_ALIGN(n) __attribute__((aligned(n))
 #define MR_HTON __builtin_bswap32
