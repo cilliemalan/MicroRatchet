@@ -87,11 +87,11 @@ struct notifier
 	bool wait(uint32_t timeout)
 	{
 		std::unique_lock<std::mutex> lk(mutex);
-		notified = false;
 		auto result = cv.wait_for(
 			lk,
 			std::chrono::milliseconds(timeout),
 			[this]() { return notified; });
+		notified = false;
 
 		return result;
 	}
@@ -109,12 +109,12 @@ struct notifier
 class HighLevel
 {
 public:
-	HighLevel(mr_ctx ctx)
-		:ctx(ctx)
+	HighLevel(mr_ctx ctx, uint32_t data_flight_time = 0)
+		:ctx(ctx), data_flight_time(data_flight_time)
 	{
 	}
 
-public:
+private:
 	void* create_wait_handle()
 	{
 		auto mtx = new notifier();
@@ -143,9 +143,21 @@ public:
 	{
 		if (other)
 		{
-			std::lock_guard<std::mutex> mtx(other->mutex);
-			other->queue.emplace(data, amount);
-			mr_hl_receive(other->ctx, amount, 0);
+			TRACEMSGCTX(ctx, "++++transmit");
+			uint8_t* newdata = new uint8_t[amount];
+			memcpy(newdata, data, amount);
+			std::thread tmp([=]()
+				{
+					std::this_thread::sleep_for(std::chrono::milliseconds(data_flight_time));
+					{
+						std::lock_guard<std::mutex> mtx(other->mutex);
+						other->queue.emplace(newdata, amount);
+						TRACEMSGCTX(other->ctx, "++++receive");
+					}
+					mr_hl_receive(other->ctx, amount, 5000);
+					delete[] newdata;
+				});
+			tmp.detach();
 			return amount;
 		}
 		else
@@ -271,6 +283,7 @@ private:
 	std::queue<buffer> queue;
 	std::thread thread;
 	mr_ctx ctx;
+	uint32_t data_flight_time;
 
 	std::function<void(const uint8_t* data, uint32_t amount)> _data_callback_function;
 	std::function<bool(const uint8_t* pub, uint32_t len)> _checkkey_callback_function;
@@ -278,7 +291,7 @@ private:
 
 
 
-TEST(HighLevel, Basic)
+TEST(HighLevel, Initialization)
 {
 	TEST_PREAMBLE;
 
@@ -290,4 +303,205 @@ TEST(HighLevel, Basic)
 
 	mr_hl_initialize(client, 1000000);
 
+	bool server_initialized, client_initialized;
+	mr_ctx_is_initialized(client, &client_initialized);
+	mr_ctx_is_initialized(server, &server_initialized);
+	ASSERT_TRUE(client_initialized);
+	ASSERT_TRUE(server_initialized);
+
+	std::this_thread::sleep_for(100ms);
+	mr_hl_deactivate(client, 1000);
+	mr_hl_deactivate(server, 1000);
+	a.wait();
+	b.wait();
+}
+
+TEST(HighLevel, InitializationSlow)
+{
+	TEST_PREAMBLE;
+
+	HighLevel a(client, 150);
+	HighLevel b(server, 250);
+	HighLevel::connect(a, b);
+	a.run();
+	b.run();
+
+	mr_hl_initialize(client, 1000000);
+
+	bool server_initialized, client_initialized;
+	mr_ctx_is_initialized(client, &client_initialized);
+	mr_ctx_is_initialized(server, &server_initialized);
+	ASSERT_TRUE(client_initialized);
+	ASSERT_TRUE(server_initialized);
+
+	std::this_thread::sleep_for(100ms);
+	mr_hl_deactivate(client, 1000);
+	mr_hl_deactivate(server, 1000);
+	a.wait();
+	b.wait();
+}
+
+TEST(HighLevel, SendReceive)
+{
+	TEST_PREAMBLE;
+
+	HighLevel a(client);
+	HighLevel b(server);
+	HighLevel::connect(a, b);
+	a.run();
+	b.run();
+
+	mr_hl_initialize(client, 1000000);
+
+	bool server_initialized, client_initialized;
+	mr_ctx_is_initialized(client, &client_initialized);
+	mr_ctx_is_initialized(server, &server_initialized);
+	EXPECT_TRUE(client_initialized);
+	EXPECT_TRUE(server_initialized);
+
+	static constexpr size_t msgsize = 32;
+	uint8_t message1[msgsize];
+	uint8_t message2[msgsize];
+	auto rng = mr_rng_create(client);
+	mr_rng_generate(rng, message1, sizeof(message1));
+	mr_rng_generate(rng, message2, sizeof(message2));
+	mr_rng_destroy(rng);
+
+	bool message1_received = false;
+	bool message2_received = false;
+	a.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message1, msgsize);
+			message1_received = true;
+		});
+	b.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message2, msgsize);
+			message2_received = true;
+		});
+
+	mr_hl_send(client, message2, sizeof(message2), 1000);
+	mr_hl_send(server, message1, sizeof(message1), 1000);
+
+	std::this_thread::sleep_for(100ms);
+	EXPECT_TRUE(message1_received);
+	EXPECT_TRUE(message2_received);
+
+	std::this_thread::sleep_for(100ms);
+	mr_hl_deactivate(client, 1000);
+	mr_hl_deactivate(server, 1000);
+	a.wait();
+	b.wait();
+}
+
+TEST(HighLevel, SendReceive2)
+{
+	TEST_PREAMBLE;
+
+	HighLevel a(client);
+	HighLevel b(server);
+	HighLevel::connect(a, b);
+	a.run();
+	b.run();
+
+	mr_hl_initialize(client, 1000000);
+
+	bool server_initialized, client_initialized;
+	mr_ctx_is_initialized(client, &client_initialized);
+	mr_ctx_is_initialized(server, &server_initialized);
+	EXPECT_TRUE(client_initialized);
+	EXPECT_TRUE(server_initialized);
+
+	static constexpr size_t msgsize = 32;
+	uint8_t message1[msgsize];
+	uint8_t message2[msgsize];
+	auto rng = mr_rng_create(client);
+	mr_rng_generate(rng, message1, sizeof(message1));
+	mr_rng_generate(rng, message2, sizeof(message2));
+	mr_rng_destroy(rng);
+
+	bool message1_received = false;
+	bool message2_received = false;
+	a.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message1, msgsize);
+			message1_received = true;
+		});
+	b.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message2, msgsize);
+			message2_received = true;
+		});
+
+	mr_hl_send(server, message1, sizeof(message1), 1000);
+	mr_hl_send(client, message2, sizeof(message2), 1000);
+
+	std::this_thread::sleep_for(100ms);
+	EXPECT_TRUE(message1_received);
+	EXPECT_TRUE(message2_received);
+
+	std::this_thread::sleep_for(100ms);
+	mr_hl_deactivate(client, 1000);
+	mr_hl_deactivate(server, 1000);
+	a.wait();
+	b.wait();
+}
+
+TEST(HighLevel, SendReceiveSlow)
+{
+	TEST_PREAMBLE;
+
+	HighLevel a(client, 222);
+	HighLevel b(server, 111);
+	HighLevel::connect(a, b);
+	a.run();
+	b.run();
+
+	mr_hl_initialize(client, 1000000);
+
+	bool server_initialized, client_initialized;
+	mr_ctx_is_initialized(client, &client_initialized);
+	mr_ctx_is_initialized(server, &server_initialized);
+	EXPECT_TRUE(client_initialized);
+	EXPECT_TRUE(server_initialized);
+
+	static constexpr size_t msgsize = 32;
+	uint8_t message1[msgsize];
+	uint8_t message2[msgsize];
+	auto rng = mr_rng_create(client);
+	mr_rng_generate(rng, message1, sizeof(message1));
+	mr_rng_generate(rng, message2, sizeof(message2));
+	mr_rng_destroy(rng);
+
+	bool message1_received = false;
+	bool message2_received = false;
+	a.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message1, msgsize);
+			message1_received = true;
+		});
+	b.data_callback_function([&](auto d, auto a)
+		{
+			EXPECT_GE(a, msgsize);
+			EXPECT_BUFFEREQ(d, msgsize, message2, msgsize);
+			message2_received = true;
+		});
+
+	mr_hl_send(client, message2, sizeof(message2), 1000);
+	mr_hl_send(server, message1, sizeof(message1), 1000);
+
+	std::this_thread::sleep_for(250ms);
+	EXPECT_TRUE(message1_received);
+	EXPECT_TRUE(message2_received);
+
+	std::this_thread::sleep_for(300ms);
+	mr_hl_deactivate(client, 1000);
+	mr_hl_deactivate(server, 1000);
+	a.wait();
+	b.wait();
 }
