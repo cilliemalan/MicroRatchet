@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "internal.h"
 
+#include <Windows.h>
+
 // the amount of time to wait for action during initialization
 #define INITIALIZE_TIMEOUT 30000
 
@@ -15,13 +17,42 @@
 #define HL_STATE_INITIALIZING 1
 #define HL_STATE_INITIALIZED 2
 
+// some crude reference counting to ensure
+// objects can be referenced from multiple threads
+// safely
+static inline bool ref_acquire(void* ob)
+{
+	struct { ptrdiff_t ref; }*rob = ob;
+	bool acquired = ATOMIC_INCREMENT(rob->ref) > 0;
+	printf("\033[0;36macquire\033[0m %llx -> %s\n", ob, acquired ? "true" : "false");
+	return acquired;
+}
+
+static inline bool ref_release(void* ob)
+{
+	struct { ptrdiff_t ref; }*rob = ob;
+
+	if (ATOMIC_DECREMENT(rob->ref) == 0)
+	{
+		ptrdiff_t minint = -2147483648;
+		if (ATOMIC_COMPARE_EXCHANGE(rob->ref, minint, 0) == 0)
+		{
+			printf("\033[0;36mrelease and free\033[0m %llx\n", ob);
+			return true;
+		}
+	}
+
+	printf("\033[0;36mrelease\033[0m %llx\n", ob);
+	return false;
+}
+
+
 static ptrdiff_t action_id_counter = 0;
 
 struct t_action {
 
-	// action identifier used to prevent use-after-free
-	// and also reference counting
-	size_t id;
+	// reference count
+	ptrdiff_t ref;
 
 	// the action to perform
 	uint32_t naction;
@@ -50,6 +81,14 @@ struct t_action {
 typedef struct t_action action;
 
 typedef struct t_hlctx {
+
+	// reference count
+	ptrdiff_t ref;
+
+	// will be true when the main
+	// loop is running and false
+	// will exit.
+	bool active;
 
 	// the main action list
 	action* head;
@@ -88,7 +127,7 @@ static uint32_t quantize(uint32_t size, uint32_t multiple)
 	}
 }
 
-static action* hl_action_dequeue(action** phead)
+static action* hl_action_dequeue(_mr_ctx* ctx, hlctx* hl, action** phead)
 {
 	action* act = *phead;
 	while (act)
@@ -106,17 +145,22 @@ static action* hl_action_dequeue(action** phead)
 	return act;
 }
 
-static void hl_action_enqueue(action** phead, action* act)
+static bool hl_action_enqueue(_mr_ctx *ctx, hlctx *hl, action** phead, action* act)
 {
 	for (;;)
 	{
+		if (!hl->active)
+		{
+			return false;
+		}
+
 		action* head = *phead;
 		if (!head)
 		{
 			// this item is will be the first in the list
 			if (ATOMIC_COMPARE_EXCHANGE(*phead, act, 0) == 0)
 			{
-				break;
+				return true;
 			}
 		}
 		else
@@ -128,23 +172,56 @@ static void hl_action_enqueue(action** phead, action* act)
 			// tack on the new item if the tail remains the tail
 			if (ATOMIC_COMPARE_EXCHANGE(item->next, act, 0) == 0)
 			{
-				// if the head changed we tacked it onto the wrong list
-				if (*phead != head)
+				if (*phead)
 				{
-					item->next = 0;
-					break;
+					return true;
 				}
+				// if the head changed we tacked it onto the wrong list
 			}
 		}
 	}
+}
+
+static bool mr_hl_release(_mr_ctx* ctx, hlctx* hl)
+{
+	if (ref_release(hl))
+	{
+		printf("\033[0;32mfree\033[0m HL %llx\n", hl);
+		hl->config->destroy_wait_handle(hl->config->user, hl->action_notify);
+		hl->action_notify = 0;
+		memset(hl, 0xcc, sizeof(hl));
+		mr_free(ctx, hl);
+		ctx->highlevel = 0;
+		return true;
+	}
+
+	return false;
+}
+
+static bool mr_act_release(_mr_ctx* ctx, hlctx* hl, action* act)
+{
+	if (ref_release(act))
+	{
+		printf("\033[0;32mfree\033[0m AC %llx\n", act);
+		// we need to free
+		if (act->notify) hl->config->destroy_wait_handle(hl->config->user, act->notify);
+		memset(act, 0xcc, sizeof(action));
+		mr_free(ctx, act);
+		return true;
+	}
+
+	return false;
 }
 
 static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, uint32_t amount, uint32_t timeout)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, MR_E_INVALIDARG, "ctx must be provided");
-	FAILIF(!ctx->highlevel, MR_E_INVALIDOP, "The high level event loop is not running");
 	hlctx* hl = (hlctx*)ctx->highlevel;
+	FAILIF(!hl, MR_E_INVALIDOP, "The high level event loop is not running");
+	FAILIF(!ref_acquire(hl), MR_E_INVALIDOP, "The high level event loop has exited");
+
+	mr_hl_config* hlconfig = hl->config;
 
 	mr_result result = MR_E_SUCCESS;
 	size_t actionid = (size_t)ATOMIC_INCREMENT(action_id_counter);
@@ -164,12 +241,13 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		{
 			space_available = MIN_MESSAGE_SIZE_WITH_ECDH;
 		}
-		space_available = quantize(space_available, hl->config->message_quantization);
+		space_available = quantize(space_available, hlconfig->message_quantization);
 
 		// allocate space for the message and its data
 		uint8_t* buffer;
 		_C(mr_allocate(ctx, sizeof(action) + space_available, &buffer));
 		newact = (action*)buffer;
+		mr_memzero(newact, sizeof(action));
 		newact->data = buffer + sizeof(action);
 		newact->size = amount;
 		newact->space_available = space_available;
@@ -198,6 +276,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		uint8_t* buffer;
 		_C(mr_allocate(ctx, sizeof(action) + spaceavailable, &buffer));
 		newact = (action*)buffer;
+		mr_memzero(newact, sizeof(action));
 		newact->data = buffer + sizeof(action);
 		newact->size = amount;
 		newact->space_available = spaceavailable;
@@ -212,6 +291,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	{
 		// just allocate the action
 		_C(mr_allocate(ctx, sizeof(action), &newact));
+		mr_memzero(newact, sizeof(action));
 	}
 	else
 	{
@@ -219,7 +299,6 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	}
 
 	// setup other action paramters
-	newact->id = actionid << 4;
 	newact->naction = naction;
 	newact->next = 0;
 	newact->result = MR_E_SUCCESS;
@@ -229,77 +308,68 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	{
 		newact->notify = 0;
 		TRACEMSGCTX(ctx, "####enqueueing action without waiting");
-		hl_action_enqueue(&hl->head, newact);
-		TRACEMSGCTX(ctx, "--->notify hl->action_notify");
-		hl->config->notify(hl->config->user, hl->action_notify);
-		result = MR_E_ACTION_ENQUEUED;
+		if (hl_action_enqueue(ctx, hl, &hl->head, newact))
+		{
+			TRACEMSGCTX(ctx, "--->notify hl->action_notify");
+			hlconfig->notify(hlconfig->user, hl->action_notify);
+			result = MR_E_ACTION_ENQUEUED;
+		}
+		else
+		{
+			// free the item
+			newact->ref = 1;
+			mr_act_release(ctx, hl, newact);
+			FAILMSGNOEXIT("Could not enqueue the item beause the main loop is exiting");
+			result - MR_E_INVALIDOP;
+		}
 	}
 	else
 	{
-		// id doubles as a reference counter
-		// if action is HL_ACTION_TERMINATE the
-		// main loop must free otherwise we
-		// free if we wait on the action
-		if (naction != HL_ACTION_TERMINATE)
-		{
-			newact->id++;
-		}
+		ref_acquire(newact);
 
 		// create a wait handle for the action
-		newact->notify = hl->config->create_wait_handle(hl->config->user);
+		newact->notify = hlconfig->create_wait_handle(hlconfig->user);
 
 		// enqueue the action
 		TRACEMSGCTX(ctx, "####enqueueing action");
-		hl_action_enqueue(&hl->head, newact);
-		TRACEMSGCTX(ctx, "--->notify hl->action_notify");
-		hl->config->notify(hl->config->user, hl->action_notify);
-
-		// block until the action is completed or timed out
-		bool wait_success = hl->config->wait(hl->config->user, newact->notify, timeout);
-
-		TRACEMSGCTX(ctx, "####action completed");
-
-		// return the result of the action
-		if (wait_success)
+		if (hl_action_enqueue(ctx, hl, &hl->head, newact))
 		{
-			result = newact->result;
-			
-			// atomic decrement to decide who frees the action.
-			// terminate must be freed by the main loop because
-			// it will destroy the hl context soon after, meaning
-			// it will be invalid below.
-			if (naction != HL_ACTION_TERMINATE && !(ATOMIC_DECREMENT(newact->id) & 0xf))
+			TRACEMSGCTX(ctx, "--->notify hl->action_notify");
+			hlconfig->notify(hlconfig->user, hl->action_notify);
+
+			// block until the action is completed or timed out
+			bool wait_success = hl->active &&  hlconfig->wait(hlconfig->user, newact->notify, timeout);
+
+			TRACEMSGCTX(ctx, "####action completed");
+
+			// return the result of the action
+			if (wait_success)
 			{
-				TRACEMSGCTX(ctx, "####free item from outside mainloop");
-				// we need to free
-				hl->config->destroy_wait_handle(hl->config->user, newact->notify);
-				mr_free(ctx, newact);
+				result = newact->result;
+			}
+			else
+			{
+				newact->timeout = true;
+				result = MR_E_TIMEOUT;
 			}
 		}
 		else
 		{
-			// atomic decrement to decide who frees the action.
-			// terminate must be freed by the main loop because
-			// it will destroy the hl context soon after, meaning
-			// it will be invalid below.
-			if (naction != HL_ACTION_TERMINATE && !(ATOMIC_DECREMENT(newact->id) & 0xf))
-			{
-				TRACEMSGCTX(ctx, "####free item from outside mainloop");
-				// we need to free
-				hl->config->destroy_wait_handle(hl->config->user, newact->notify);
-				mr_free(ctx, newact);
-			}
-			else if ((newact->id & (~((size_t)0xf))) == naction)
-			{
-				// very slim chance of use after free. The sceduler would have
-				// to break on the line of this comment and run until after
-				// newact has been freed and something else allocated in its place
-				// before returning.
-				newact->timeout = true;
-			}
-
-			result = MR_E_TIMEOUT;
+			FAILMSGNOEXIT("Could not enqueue the item beause the main loop is exiting");
+			result - MR_E_INVALIDOP;
 		}
+
+		// release and maybe free the item
+		if (mr_act_release(ctx, hl, newact))
+		{
+			TRACEMSGCTX(ctx, "####free action from outside mainloop");
+		}
+	}
+
+	// release and possibly free the high level context
+	if (mr_hl_release(ctx, hl))
+	{
+		TRACEMSGCTX(ctx, "Free HL context from hl_action_add");
 	}
 
 	return result;
@@ -317,242 +387,269 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 		MR_E_INVALIDARG,
 		"all callbacks must be provided");
 
-	// assign hl structure
-	hlctx hl;
-	FAILIF(ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, &hl, 0) != 0,
-		MR_E_INVALIDOP,
-		"mr_hl_mainloop can only be called once for a given context");
+	// create hl structure
+	uint8_t* buffer;
+	hlctx* hl;
+	_C(mr_allocate(ctx, sizeof(hlctx) + sizeof(mr_hl_config), &buffer));
+	mr_memzero(buffer, sizeof(hlctx));
+	hl = (hlctx*)buffer;
 
-	// configure hl structure
-	mr_memzero(&hl, sizeof(hlctx));
-	hl.config = config;
-	hl.action_notify = config->create_wait_handle(config->user);
+	// ensure there is only one
+	if (ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, hl, 0) != 0)
+	{
+		mr_free(ctx, hl);
+		FAILMSG(MR_E_INVALIDOP, "mr_hl_mainloop can only be called once for a given context");
+	}
+
+	// initialize the hl structure
+	hl->config = buffer + sizeof(hlctx);
+	mr_memcpy(hl->config, config, sizeof(mr_hl_config));
+	hl->action_notify = config->create_wait_handle(config->user);
+	ref_acquire(hl);
 
 	TRACEMSGCTX(ctx, "****entering high level loop");
-	bool active = true;
-	while (active)
+	hl->active = true;
+	while (hl->active)
 	{
 		uint32_t timeout = 0xffffffff;
-		action* item = hl_action_dequeue(&hl.head);
+		action* item = hl_action_dequeue(ctx, hl, &hl->head);
 
 		if (item)
 		{
-			bool initialize_notify = false;
-
-			// TODO: there is a possiblity that
-			// the item could have been freed between
-			// the above line and the below line.
-			ATOMIC_INCREMENT(item->id);
-			mr_result result = MR_E_SUCCESS;
-
-			if (!item->timeout)
+			if (ref_acquire(item))
 			{
-				// execute the action
-				switch (item->naction)
-				{
-				case HL_ACTION_NONE:
-				{
-					TRACEMSGCTX(ctx, "****dequeued NONE action");
-				}
-				break;
-				case HL_ACTION_INITIALIZE:
-				{
-					TRACEMSGCTX(ctx, "****dequeued INITIALIZE action");
-					if (hl.initialize_buffer)
-					{
-						mr_free(ctx, hl.initialize_buffer);
-					}
-					result = mr_allocate(ctx, 256, &hl.initialize_buffer);
-					if (result == MR_E_SUCCESS)
-					{
-						result = mr_ctx_initiate_initialization(ctx, hl.initialize_buffer, 256, true);
+				bool initialize_notify = false;
 
-						if (result == MR_E_SENDBACK)
-						{
-							if (hl.config->transmit(hl.config->user, hl.initialize_buffer, 256) == 256)
-							{
-								// that's it. Now we wait
-							}
-							else
-							{
-								DEBUGMSG("Transmit failed");
-								result = MR_E_FAIL;
-							}
-						}
-					}
+				mr_result result = MR_E_SUCCESS;
 
-					if (result < 0)
-					{
-						initialize_notify = true;
-						hl.initialize_result = result;
-					}
-				}
-				break;
-				case HL_ACTION_SEND:
+				if (!item->timeout)
 				{
-					TRACEMSGCTX(ctx, "****dequeued SEND action");
-					if (!ctx->init.initialized)
+					// execute the action
+					switch (item->naction)
 					{
-						DEBUGMSG("Cannot send before initialization has completed");
-						result = MR_E_INVALIDOP;
+					case HL_ACTION_NONE:
+					{
+						TRACEMSGCTX(ctx, "****dequeued NONE action");
 					}
-					else
+					break;
+					case HL_ACTION_INITIALIZE:
 					{
-						bool ecdh = hl.config->ecdh_frequency <= 1 ? true : (++hl.message_nr) % hl.config->ecdh_frequency;
-						uint32_t space_available = item->space_available;
-						if (!ecdh)
+						TRACEMSGCTX(ctx, "****dequeued INITIALIZE action");
+						if (hl->initialize_buffer)
 						{
-							// the message size is already padded at least MIN_MESSAGE_SIZE
-							space_available -= ECNUM_SIZE;
+							mr_free(ctx, hl->initialize_buffer);
 						}
-						result = mr_ctx_send(ctx, item->data, item->size, space_available);
+						result = mr_allocate(ctx, 256, &hl->initialize_buffer);
 						if (result == MR_E_SUCCESS)
 						{
-							result = config->transmit(config->user, item->data, space_available) == space_available
-								? MR_E_SUCCESS
-								: MR_E_FAIL;
+							result = mr_ctx_initiate_initialization(ctx, hl->initialize_buffer, 256, true);
+
+							if (result == MR_E_SENDBACK)
+							{
+								if (hl->config->transmit(hl->config->user, hl->initialize_buffer, 256) == 256)
+								{
+									// that's it. Now we wait
+								}
+								else
+								{
+									DEBUGMSG("Transmit failed");
+									result = MR_E_FAIL;
+								}
+							}
 						}
 
-						if (result == MR_E_SUCCESS)
+						if (result < 0)
 						{
-							break;
+							initialize_notify = true;
+							hl->initialize_result = result;
 						}
 					}
-				}
-				break;
-				case HL_ACTION_RECEIVE:
-				{
-					TRACEMSGCTX(ctx, "****dequeued RECEIVE action");
-					// for RECEIVE we call receive
-					if (config->receive(config->user, item->data, item->size) != item->size)
+					break;
+					case HL_ACTION_SEND:
 					{
-						result = MR_E_FAIL;
-					}
-				}
-				// CASE FALL THROUGH -->
-				case HL_ACTION_RECEIVE_DATA:
-				{
-					if (item->naction == HL_ACTION_RECEIVE_DATA)
-					{
-						TRACEMSGCTX(ctx, "****dequeued RECEIVE_DATA action");
-					}
+						TRACEMSGCTX(ctx, "****dequeued SEND action");
+						if (!ctx->init.initialized)
+						{
+							DEBUGMSG("Cannot send before initialization has completed");
+							result = MR_E_INVALIDOP;
+						}
+						else
+						{
+							bool ecdh = hl->config->ecdh_frequency <= 1 ? true : (++hl->message_nr) % hl->config->ecdh_frequency;
+							uint32_t space_available = item->space_available;
+							if (!ecdh)
+							{
+								// the message size is already padded at least MIN_MESSAGE_SIZE
+								space_available -= ECNUM_SIZE;
+							}
+							result = mr_ctx_send(ctx, item->data, item->size, space_available);
+							if (result == MR_E_SUCCESS)
+							{
+								result = config->transmit(config->user, item->data, space_available) == space_available
+									? MR_E_SUCCESS
+									: MR_E_FAIL;
+							}
 
-					if (result == MR_E_SUCCESS)
+							if (result == MR_E_SUCCESS)
+							{
+								break;
+							}
+						}
+					}
+					break;
+					case HL_ACTION_RECEIVE:
 					{
-						bool initdonebefore = ctx->init.initialized;
-						// process the received data
-						uint32_t data_received_size;
-						uint8_t* payload = 0;
-						result = mr_ctx_receive(ctx,
-							item->data,
-							item->size,
-							item->space_available,
-							&payload,
-							&data_received_size);
+						TRACEMSGCTX(ctx, "****dequeued RECEIVE action");
+						// for RECEIVE we call receive
+						if (config->receive(config->user, item->data, item->size) != item->size)
+						{
+							result = MR_E_FAIL;
+						}
+					}
+					// CASE FALL THROUGH -->
+					case HL_ACTION_RECEIVE_DATA:
+					{
+						if (item->naction == HL_ACTION_RECEIVE_DATA)
+						{
+							TRACEMSGCTX(ctx, "****dequeued RECEIVE_DATA action");
+						}
 
 						if (result == MR_E_SUCCESS)
 						{
-							// call the data callback
-							if (config->data_callback && data_received_size)
-							{
-								TRACEMSGCTX(ctx, "****invoking data callback");
-								config->data_callback(config->user, payload, data_received_size);
-							}
-							else
-							{
-								TRACEMSGCTX(ctx, "****NOT invoking data callback");
-							}
-						}
-						else if (result == MR_E_SENDBACK)
-						{
-							TRACEMSGCTX(ctx, "****transmitting sendback data");
-							// we need to send an initialization response
-							if (config->transmit(config->user, payload, data_received_size) != data_received_size)
-							{
-								DEBUGMSG("transmission of sendback data failed");
-								// if the transmit fails, the whole initialization process needs
-								// to start over. We rely on a timeout to make this happen.
-								result = MR_E_FAIL;
-							}
-						}
+							bool initdonebefore = ctx->init.initialized;
+							// process the received data
+							uint32_t data_received_size;
+							uint8_t* payload = 0;
+							result = mr_ctx_receive(ctx,
+								item->data,
+								item->size,
+								item->space_available,
+								&payload,
+								&data_received_size);
 
-						// check if initialization is done
-						if (ctx->init.initialized && !initdonebefore)
-						{
-							TRACEMSGCTX(ctx, "****initialization completed");
-							if (hl.initialize_notify)
+							if (result == MR_E_SUCCESS)
 							{
-								TRACEMSGCTX(ctx, "****notifying initialization is complete");
-								initialize_notify = true;
-								hl.initialize_result = MR_E_SUCCESS;
+								// call the data callback
+								if (config->data_callback && data_received_size)
+								{
+									TRACEMSGCTX(ctx, "****invoking data callback");
+									config->data_callback(config->user, payload, data_received_size);
+								}
+								else
+								{
+									TRACEMSGCTX(ctx, "****NOT invoking data callback");
+								}
 							}
-							mr_free(ctx, hl.initialize_buffer);
+							else if (result == MR_E_SENDBACK)
+							{
+								TRACEMSGCTX(ctx, "****transmitting sendback data");
+								// we need to send an initialization response
+								if (config->transmit(config->user, payload, data_received_size) != data_received_size)
+								{
+									DEBUGMSG("transmission of sendback data failed");
+									// if the transmit fails, the whole initialization process needs
+									// to start over. We rely on a timeout to make this happen.
+									result = MR_E_FAIL;
+								}
+							}
+
+							// check if initialization is done
+							if (ctx->init.initialized && !initdonebefore)
+							{
+								TRACEMSGCTX(ctx, "****initialization completed");
+								if (hl->initialize_notify)
+								{
+									TRACEMSGCTX(ctx, "****notifying initialization is complete");
+									initialize_notify = true;
+									hl->initialize_result = MR_E_SUCCESS;
+								}
+								if (hl->initialize_buffer)
+								{
+									mr_free(ctx, hl->initialize_buffer);
+								}
+							}
 						}
 					}
+					break;
+					case HL_ACTION_TERMINATE:
+					{
+						TRACEMSGCTX(ctx, "****dequeued TERMINATE action");
+						hl->active = false;
+					}
+					break;
+					default:
+					{
+						TRACEMSGCTX(ctx, "****dequeued INVALID action");
+					}
+					break;
+					}
+
+					// set the result
+					item->result = result;
+
+					// notify that the action is completed
+					if (item->notify)
+					{
+						TRACEMSGCTX(ctx, "--->item->notify");
+						config->notify(config->user, item->notify);
+					}
+
+					// we need to notify this after the one above because
+					// it works like an action complete notification.
+					if (initialize_notify)
+					{
+						TRACEMSGCTX(ctx, "--->hl.initialize_notify");
+						hl->config->notify(hl->config->user, hl->initialize_notify);
+					}
 				}
-				break;
-				case HL_ACTION_TERMINATE:
+				else
 				{
-					TRACEMSGCTX(ctx, "****dequeued TERMINATE action");
-					active = false;
-				}
-				break;
-				default:
-				{
-					TRACEMSGCTX(ctx, "****dequeued INVALID action");
-				}
-				break;
+					TRACEMSGCTX(ctx, "****dequeued timed out action");
 				}
 
-				// set the result
-				item->result = result;
-
-				// notify that the action is completed
-				if (item->notify)
+				// release and perhaps free the item
+				if (mr_act_release(ctx, hl, item))
 				{
-					TRACEMSGCTX(ctx, "--->item->notify");
-					config->notify(config->user, item->notify);
+					TRACEMSGCTX(ctx, "####free action from inside mainloop");
 				}
-
-				// we need to notify this after the one above because
-				// it works like an action complete notification.
-				if (initialize_notify)
-				{
-					TRACEMSGCTX(ctx, "--->hl.initialize_notify");
-					hl.config->notify(hl.config->user, hl.initialize_notify);
-				}
-			}
-			else
-			{
-				TRACEMSGCTX(ctx, "****dequeued timed out action");
-			}
-
-			// the atomic decrement is to ensure the item is not double freed.
-			// terminate must be freed here.
-			if (item->naction == HL_ACTION_TERMINATE || !(ATOMIC_DECREMENT(item->id) & 0xf))
-			{
-				TRACEMSGCTX(ctx, "####free item inside mainloop");
-				item->id = 0;
-				config->destroy_wait_handle(config->user, item->notify);
-				mr_free(ctx, item);
 			}
 		}
 		else
 		{
 			TRACEMSGCTX(ctx, "****waiting for action");
-			config->wait(config->user, hl.action_notify, 0xffffffff);
+			config->wait(config->user, hl->action_notify, 0xffffffff);
+		}
+	}
+
+	// drain the queue
+	for (;;)
+	{
+		action* item = hl_action_dequeue(ctx, hl, &hl->head);
+
+		if (item && ref_acquire(item))
+		{
+			item->result = MR_E_INVALIDOP;
+			if (item->notify)
+			{
+				TRACEMSGCTX(ctx, "--->item->notify");
+				config->notify(config->user, item->notify);
+			}
+			if (mr_act_release(ctx, hl, item))
+			{
+				TRACEMSGCTX(ctx, "####free action from inside mainloop shutdown");
+			}
+		}
+		else
+		{
+			break;
 		}
 	}
 
 	TRACEMSGCTX(ctx, "exiting main loop");
-
-	// destroy the wait handle
-	void* ntfy = hl.action_notify;
-	hl.action_notify = 0;
-	hl.config->destroy_wait_handle(hl.config->user, ntfy);
-
-	// remove the high level structure
-	ctx->highlevel = 0;
+	if (mr_hl_release(ctx, hl))
+	{
+		TRACEMSGCTX(ctx, "Free HL context from main loop");
+	}
 
 	return MR_E_SUCCESS;
 }
@@ -561,11 +658,12 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 {
 	_mr_ctx* ctx = (_mr_ctx*)_ctx;
 	FAILIF(!ctx, MR_E_INVALIDARG, "ctx must be provided");
-	FAILIF(!ctx->highlevel, MR_E_INVALIDOP, "The high level event loop is not running");
 	hlctx* hl = (hlctx*)ctx->highlevel;
+	FAILIF(!hl, MR_E_INVALIDOP, "The high level event loop is not running");
 	FAILIF(hl->initialize_notify, MR_E_INVALIDOP, "initialization already in process");
-	void* wh = hl->config->create_wait_handle(hl->config->user);
+	FAILIF(!ref_acquire(hl), MR_E_INVALIDOP, "The high level event loop has exited");
 
+	void* wh = hl->config->create_wait_handle(hl->config->user);
 	hl->initialize_notify = wh;
 
 	TRACEMSGCTX(ctx, "####enqueueing INITIALIZE action");
@@ -583,13 +681,19 @@ mr_result mr_hl_initialize(mr_ctx _ctx, uint32_t timeout)
 
 		hl->initialize_notify = 0;
 		hl->config->destroy_wait_handle(hl->config->user, wh);
-		return result;
 	}
 	else
 	{
 		hl->config->destroy_wait_handle(hl->config->user, wh);
-		FAILMSG(result, "Failed to enqueue initialize action");
+		FAILMSGNOEXIT("Failed to enqueue initialize action");
 	}
+
+	if (mr_hl_release(ctx, hl))
+	{
+		TRACEMSGCTX(ctx, "Free HL context from mr_hl_initialize");
+	}
+
+	return result;
 }
 
 mr_result mr_hl_send(mr_ctx ctx, const uint8_t* data, const uint32_t size, uint32_t timeout)
