@@ -24,7 +24,6 @@ static inline bool ref_acquire(void* ob)
 {
 	struct { ptrdiff_t ref; }*rob = ob;
 	bool acquired = ATOMIC_INCREMENT(rob->ref) > 0;
-	printf("\033[0;36macquire\033[0m %llx -> %s\n", ob, acquired ? "true" : "false");
 	return acquired;
 }
 
@@ -37,12 +36,10 @@ static inline bool ref_release(void* ob)
 		ptrdiff_t minint = -2147483648;
 		if (ATOMIC_COMPARE_EXCHANGE(rob->ref, minint, 0) == 0)
 		{
-			printf("\033[0;36mrelease and free\033[0m %llx\n", ob);
 			return true;
 		}
 	}
 
-	printf("\033[0;36mrelease\033[0m %llx\n", ob);
 	return false;
 }
 
@@ -186,7 +183,6 @@ static bool mr_hl_release(_mr_ctx* ctx, hlctx* hl)
 {
 	if (ref_release(hl))
 	{
-		printf("\033[0;32mfree\033[0m HL %llx\n", hl);
 		hl->config->destroy_wait_handle(hl->config->user, hl->action_notify);
 		hl->action_notify = 0;
 		memset(hl, 0xcc, sizeof(hl));
@@ -202,7 +198,6 @@ static bool mr_act_release(_mr_ctx* ctx, hlctx* hl, action* act)
 {
 	if (ref_release(act))
 	{
-		printf("\033[0;32mfree\033[0m AC %llx\n", act);
 		// we need to free
 		if (act->notify) hl->config->destroy_wait_handle(hl->config->user, act->notify);
 		memset(act, 0xcc, sizeof(action));
