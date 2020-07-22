@@ -51,7 +51,6 @@ inline void buffer_to_string(const uint8_t* b, uint32_t l, char* ob)
 	delete[] sbuffer1; delete[] sbuffer2; \
 }
 
-
 #define EXPECT_BUFFEREQ(b1, l1, b2, l2) { \
 	uint32_t __l1 = static_cast<uint32_t>(l1); \
 	uint32_t __l2 = static_cast<uint32_t>(l2); \
