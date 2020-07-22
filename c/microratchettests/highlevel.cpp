@@ -495,7 +495,7 @@ TEST(HighLevel, SendReceiveSlow)
 	mr_hl_send(client, message2, sizeof(message2), 1000);
 	mr_hl_send(server, message1, sizeof(message1), 1000);
 
-	std::this_thread::sleep_for(250ms);
+	std::this_thread::sleep_for(800ms);
 	EXPECT_TRUE(message1_received);
 	EXPECT_TRUE(message2_received);
 
