@@ -47,3 +47,11 @@ void mr_memzero(void* dst, size_t amt)
 {
 	memset(dst, 0, amt);
 }
+
+#ifdef MR_WRITE_PRINTF
+void mr_write_printf(const char* msg, size_t amt)
+{
+	// msg will always be null terminated
+	printf("%s", msg);
+}
+#endif

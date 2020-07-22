@@ -247,6 +247,12 @@ extern "C" {
 
 	void _mrlogctxid(mr_ctx ctx);
 	void _mrloghex(const uint8_t* data, uint32_t datalen);
+
+
+#ifdef MR_WRITE_PRINTF
+	void mr_write_printf(const char* msg, size_t amt);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -266,11 +272,13 @@ extern "C" {
 #define DEBUGMSG(message) MR_WRITE1(message "\n")
 #define DEBUGMSGCTX(ctx, message) do { _mrlogctxid(ctx); MR_WRITE1(" " message "\n"); } while(0)
 #define FAILIF(condition, error, messageonfailure) if (condition) { DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error); }
-#define FAILMSG(error, messageonfailure) DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n"); return (error);
+#define FAILMSGNOEXIT(messageonfailure) DEBUGMSG(__FILE__ ":" __LINE_STRING__ " " messageonfailure "\n");
+#define FAILMSG(error, messageonfailure) FAILMSGNOEXIT(messageonfailure); return (error);
 #else
 #define DEBUGMSG(message)
 #define DEBUGMSGCTX(ctx, message)
 #define FAILIF(condition, error, messageonfailure) if (condition) { return (error); }
+#define FAILMSGNOEXIT(error, messageonfailure) 
 #define FAILMSG(error, messageonfailure) return (error);
 #endif
 
