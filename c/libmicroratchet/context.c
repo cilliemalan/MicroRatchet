@@ -801,12 +801,9 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	uint32_t nonce = be_unpacku32(message);
 
 	// process ecdh if needed
-	_mr_ratchet_state* _step = 0;
 	if (hasEcdh)
 	{
 		TRACEMSGCTX(ctx, "  message has ECDH parameters");
-		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
-		mr_memzero(_step, sizeof(_mr_ratchet_state));
 
 		if (!step)
 		{
@@ -815,6 +812,10 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 			// this means we have to initialize the ratchet
 			FAILIF(ctx->config.is_client, MR_E_INVALIDOP, "Only the server can initialize a ratchet using an override header key");
 			FAILIF(!ctx->init.server, MR_E_INVALIDOP, "The session is not in the state to process this message");
+
+			_mr_ratchet_state* _step = 0;
+			_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
+			mr_memzero(_step, sizeof(_mr_ratchet_state));
 
 			_R(result, ratchet_initialize_server(ctx, _step,
 				ctx->init.server->localratchetstep0,
@@ -845,6 +846,10 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 				mr_ecdh_ctx newEcdh = mr_ecdh_create(ctx);
 				if (!newEcdh) result = MR_E_NOMEM;
 				_R(result, mr_ecdh_generate(newEcdh, 0, 0));
+
+				_mr_ratchet_state* _step = 0;
+				_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&_step));
+				mr_memzero(_step, sizeof(_mr_ratchet_state));
 
 				_R(result, ratchet_ratchet(ctx, step,
 					_step,
