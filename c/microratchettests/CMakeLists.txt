@@ -29,6 +29,17 @@ set(SOURCES
 # microcontrollers don't have linux so we need to provide
 # stub syscalls and memory routines
 if (EMBEDDED)
+
+
+    set(CMAKE_CXX_FLAGS "-fno-exceptions")
+    add_definitions(-DEMBEDDED)
+    add_definitions(-DGTEST_IS_THREADSAFE=0)
+    add_definitions(-DGTEST_OS_WINDOWS=0)
+    add_definitions(-DGTEST_HAS_POSIX_RE=0 -DGTEST_HAS_CLONE=0 -DGTEST_HAS_EXCEPTIONS=0 -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_HAS_STREAM_REDIRECTION=0 -DGTEST_HAS_RTTI=0)
+    add_definitions(-DGTEST_OS_NONE=1)
+    set(gtest_disable_pthreads ON CACHE BOOL "disable googletest pthreads")
+
+
     set(SOURCES ${SOURCES} port/syscalls.c)
     set(SOURCES ${SOURCES} port/startup.s)
 endif (EMBEDDED)
