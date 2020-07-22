@@ -216,7 +216,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	FAILIF(!hl, MR_E_INVALIDOP, "The high level event loop is not running");
 	FAILIF(!ref_acquire(hl), MR_E_INVALIDOP, "The high level event loop has exited");
 
-	mr_hl_config* hlconfig = hl->config;
+	const mr_hl_config* hlconfig = hl->config;
 
 	mr_result result = MR_E_SUCCESS;
 	size_t actionid = (size_t)ATOMIC_INCREMENT(action_id_counter);
@@ -397,8 +397,8 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	}
 
 	// initialize the hl structure
-	hl->config = buffer + sizeof(hlctx);
-	mr_memcpy(hl->config, config, sizeof(mr_hl_config));
+	hl->config = (mr_hl_config*)(buffer + sizeof(hlctx));
+	mr_memcpy((void*)hl->config, config, sizeof(mr_hl_config));
 	hl->action_notify = config->create_wait_handle(config->user);
 	ref_acquire(hl);
 
