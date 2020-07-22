@@ -315,7 +315,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 			newact->ref = 1;
 			mr_act_release(ctx, hl, newact);
 			FAILMSGNOEXIT("Could not enqueue the item beause the main loop is exiting");
-			result - MR_E_INVALIDOP;
+			result = MR_E_INVALIDOP;
 		}
 	}
 	else
@@ -351,7 +351,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 		else
 		{
 			FAILMSGNOEXIT("Could not enqueue the item beause the main loop is exiting");
-			result - MR_E_INVALIDOP;
+			result = MR_E_INVALIDOP;
 		}
 
 		// release and maybe free the item
