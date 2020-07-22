@@ -506,10 +506,13 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 	uint8_t* remoteRatchetEcdh0 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE;
 	uint8_t* remoteRatchetEcdh1 = payload + INITIALIZATION_NONCE_SIZE + ECNUM_SIZE * 2;
 
-	_mr_ratchet_state* ratchets = 0;
-	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state) * 2, (void**)&ratchets));
+	_mr_ratchet_state* ratchet0 = 0;
+	_mr_ratchet_state* ratchet1 = 0;
+	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), &ratchet0));
+	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), &ratchet1));
 
-	_R(result, ratchet_initialize_client(ctx, &ratchets[0], &ratchets[1],
+	_R(result, ratchet_initialize_client(ctx, 
+		ratchet0, ratchet1,
 		rootKey, KEY_SIZE,
 		remoteRatchetEcdh0, ECNUM_SIZE,
 		remoteRatchetEcdh1, ECNUM_SIZE,
@@ -517,28 +520,22 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 		receiveHeaderKey, KEY_SIZE,
 		sendHeaderKey, KEY_SIZE,
 		localStep1));
-	_R(result, ratchet_add(ctx, &ratchets[0]));
-	_R(result, ratchet_add(ctx, &ratchets[1]));
 
 	if (result != MR_E_SUCCESS)
 	{
+		// TODO: can it double free here??
 		if (localStep0) mr_ecdh_destroy(localStep0);
 		if (localStep1) mr_ecdh_destroy(localStep1);
-		if (ratchets)
-		{
-			if (ratchets[0].num) ratchet_destroy(ctx, ratchets[0].num);
-			if (ratchets[1].num) ratchet_destroy(ctx, ratchets[1].num);
-		}
+		ratchet_destroy(ctx, ratchet0);
+		ratchet_destroy(ctx, ratchet1);
 	}
-
-	if (ratchets)
+	else
 	{
-		mr_free(ctx, ratchets);
+		ratchet_add(ctx, ratchet0);
+		ratchet_add(ctx, ratchet1);
 	}
 
-	_C(result);
-
-	return MR_E_SUCCESS;
+	return result;
 }
 
 static mr_result send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32_t spaceavail)
@@ -547,7 +544,8 @@ static mr_result send_first_client_message(_mr_ctx* ctx, uint8_t* output, uint32
 	FAILIF(!ctx->init.client, MR_E_INVALIDOP, "Client initialization state is null");
 
 	_mr_ratchet_state* secondToLast;
-	_C(ratchet_getsecondtolast(ctx, &secondToLast));
+	ratchet_getsecondtolast(ctx, &secondToLast);
+	FAILIF(!secondToLast, MR_E_INVALIDOP, "Could not get second-to-last ratchet step");
 
 	mr_memcpy(output, ctx->init.client->initializationnonce, INITIALIZATION_NONCE_SIZE);
 
@@ -582,7 +580,8 @@ static mr_result send_first_server_response(_mr_ctx* ctx, uint8_t* output, uint3
 
 	mr_memcpy(output, ctx->init.server->nextinitializationnonce, INITIALIZATION_NONCE_SIZE);
 	_mr_ratchet_state* laststep;
-	_C(ratchet_getlast(ctx, &laststep));
+	ratchet_getlast(ctx, &laststep);
+	FAILIF(!laststep, MR_E_INVALIDOP, "the last step is not populated");
 	_C(construct_message(ctx, output, INITIALIZATION_NONCE_SIZE, spaceavail, false, laststep));
 
 	return MR_E_SUCCESS;
@@ -696,34 +695,34 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 	TRACEMSGCTX(ctx, "--interpret_mac");
 
 	// check ratchet header keys
-	if (ctx->ratchets[0].num)
+	_mr_ratchet_state* ratchet = ctx->ratchet;
+	while (ratchet)
 	{
-		for (int i = NUM_RATCHETS - 1; i >= 0; i--)
+		if (!allzeroes(ratchet->receiveheaderkey, KEY_SIZE))
 		{
-			if (ctx->ratchets[i].num && !allzeroes(ctx->ratchets[i].receiveheaderkey, KEY_SIZE))
+			_C(verifymac(ctx, message, amount, ratchet->receiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+			if (macmatches)
 			{
-				_C(verifymac(ctx, message, amount, ctx->ratchets[i].receiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
+				TRACEMSGCTX(ctx, "  MAC matches ratchet header key");
+				*headerKeyUsed = ratchet->receiveheaderkey;
+				*stepUsed = ratchet;
+				return MR_E_SUCCESS;
+			}
+			else if (!allzeroes(ratchet->nextreceiveheaderkey, KEY_SIZE))
+			{
+				_C(verifymac(ctx, message, amount, ratchet->nextreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 				if (macmatches)
 				{
-					TRACEMSGCTX(ctx, "  MAC matches ratchet header key");
-					*headerKeyUsed = ctx->ratchets[i].receiveheaderkey;
-					*stepUsed = &ctx->ratchets[i];
+					TRACEMSGCTX(ctx, "  MAC matches ratchet next header key");
+					*headerKeyUsed = ratchet->nextreceiveheaderkey;
+					*stepUsed = ratchet;
+					*usedNextHeaderKey = true;
 					return MR_E_SUCCESS;
-				}
-				else if (!allzeroes(ctx->ratchets[i].nextreceiveheaderkey, KEY_SIZE))
-				{
-					_C(verifymac(ctx, message, amount, ctx->ratchets[i].nextreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
-					if (macmatches)
-					{
-						TRACEMSGCTX(ctx, "  MAC matches ratchet next header key");
-						*headerKeyUsed = ctx->ratchets[i].nextreceiveheaderkey;
-						*stepUsed = &ctx->ratchets[i];
-						*usedNextHeaderKey = true;
-						return MR_E_SUCCESS;
-					}
 				}
 			}
 		}
+
+		ratchet = ratchet->next;
 	}
 
 	// check application header key
@@ -736,13 +735,14 @@ static mr_result interpret_mac(_mr_ctx* ctx, const uint8_t* message, uint32_t am
 	}
 	else if (!ctx->config.is_client)
 	{
-		if (!ctx->init.initialized && ctx->ratchets[0].num == 0 && ctx->init.server && !allzeroes(ctx->init.server->firstreceiveheaderkey, KEY_SIZE))
+		if (!ctx->init.initialized && !ctx->ratchet && ctx->init.server && !allzeroes(ctx->init.server->firstreceiveheaderkey, KEY_SIZE))
 		{
 			_C(verifymac(ctx, message, amount, ctx->init.server->firstreceiveheaderkey, KEY_SIZE, message, MACIV_SIZE, &macmatches));
 			if (macmatches)
 			{
 				TRACEMSGCTX(ctx, "  MAC matches first receive header key");
 				*headerKeyUsed = ctx->init.server->firstreceiveheaderkey;
+				*stepUsed = 0;
 				return MR_E_SUCCESS;
 			}
 		}
@@ -833,16 +833,8 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 					ctx->init.server->localratchetstep0 = 0;
 				}
 			}
-			_R(result, ratchet_add(ctx, _step));
-			if (result == 0)
-			{
-				step = _step;
-			}
-			else
-			{
-				mr_free(ctx, _step);
-				return result;
-			}
+			ratchet_add(ctx, _step);
+			step = _step;
 		}
 		else
 		{
@@ -859,13 +851,7 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 					message + ecdhOffset, ECNUM_SIZE,
 					newEcdh));
 
-				_R(result, ratchet_add(ctx, _step));
-				if (result != MR_E_SUCCESS)
-				{
-					mr_ecdh_destroy(newEcdh);
-					if (_step && _step->num) ratchet_destroy(ctx, _step->num);
-				}
-				_C(result);
+				ratchet_add(ctx, _step);
 				step = _step;
 			}
 		}
@@ -882,11 +868,6 @@ static mr_result deconstruct_message(_mr_ctx* ctx, uint8_t* message, uint32_t am
 	// get the inner payload key from the receive chain
 	uint8_t payloadKey[MSG_KEY_SIZE];
 	_C(chain_ratchetforreceiving(ctx, &step->receivingchain, nonce, payloadKey, sizeof(payloadKey)));
-
-	if (_step)
-	{
-		mr_free(ctx, _step);
-	}
 
 	// decrypt the payload
 	_C(crypt(ctx, message + payloadOffset, payloadSize, payloadKey, MSG_KEY_SIZE, message, NONCE_SIZE));
@@ -928,7 +909,6 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 
 			mr_memzero(ctx->init.client, sizeof(_mr_initialization_state_client));
 			ratchet_destroy_all(ctx);
-			mr_memzero(ctx->ratchets, sizeof(ctx->ratchets));
 
 			// step 1: send first init request from client
 			_C(send_initialization_request(ctx, message, spaceavail));
@@ -938,7 +918,7 @@ static mr_result process_initialization(_mr_ctx* ctx, uint8_t* message, uint32_t
 		{
 			if (headerkey == ctx->config.applicationKey)
 			{
-				if (!ctx->ratchets[0].num)
+				if (!ctx->ratchet)
 				{
 					TRACEMSGCTX(ctx, "  client initialization step 2");
 					// step 2: init response from server
@@ -1150,13 +1130,14 @@ mr_result mr_ctx_send(mr_ctx _ctx, uint8_t* payload, uint32_t payloadsize, uint3
 	_mr_ratchet_state* step;
 	if (canIncludeEcdh)
 	{
-		_C(ratchet_getlast(ctx, &step));
+		ratchet_getlast(ctx, &step);
 	}
 	else
 	{
-		_C(ratchet_getsecondtolast(ctx, &step));
+		ratchet_getsecondtolast(ctx, &step);
 	}
 
+	FAILIF(!step, MR_E_INVALIDOP, "Could not find the required ratchet step");
 	_C(construct_message(ctx, payload, payloadsize, spaceavailable, canIncludeEcdh, step));
 
 	return MR_E_SUCCESS;

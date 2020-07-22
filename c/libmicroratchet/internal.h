@@ -82,6 +82,7 @@ static inline size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b
 
 #define ATOMIC_COMPARE_EXCHANGE(a, b, c) _mr_nonatomic_compare_exchange((size_t*)&(a),(b),(c))
 #define ATOMIC_INCREMENT(a) (a)++
+#define ATOMIC_DECREMENT(a) (a)++
 #define STATIC_ASSERT(e, r)
 #define MR_ALIGN(n)
 #define MR_HTON(x) (uint32_t)(\
@@ -99,7 +100,6 @@ static inline size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b
 #define MAC_SIZE 12
 #define ECNUM_SIZE 32
 #define SIGNATURE_SIZE (ECNUM_SIZE  +ECNUM_SIZE)
-#define NUM_RATCHETS 5
 #define HEADERIV_SIZE 16
 #define DIGEST_SIZE 32
 #define MACIV_SIZE 16
@@ -158,7 +158,6 @@ typedef struct _mr_chain_state {
 } _mr_chain_state;
 
 typedef struct _mr_ratchet_state {
-	uint32_t num;
 	mr_ecdh_ctx ecdhkey;
 	uint8_t nextrootkey[KEY_SIZE];
 	uint8_t sendheaderkey[KEY_SIZE];
@@ -167,6 +166,8 @@ typedef struct _mr_ratchet_state {
 	uint8_t nextreceiveheaderkey[KEY_SIZE];
 	_mr_chain_state sendingchain;
 	_mr_chain_state receivingchain;
+
+	struct _mr_ratchet_state* next;
 } _mr_ratchet_state;
 
 typedef struct s_mr_ctx {
@@ -174,7 +175,7 @@ typedef struct s_mr_ctx {
 	mr_sha_ctx sha_ctx;
 	mr_rng_ctx rng_ctx;
 	_mr_initialization_state init;
-	_mr_ratchet_state ratchets[NUM_RATCHETS];
+	_mr_ratchet_state* ratchet;
 	mr_ecdsa_ctx identity;
 	bool owns_identity;
 	void* highlevel;
@@ -198,13 +199,11 @@ extern "C" {
 	mr_result aesctr_process(_mr_aesctr_ctx* ctx, const uint8_t* data, uint32_t amount, uint8_t* output, uint32_t spaceavail);
 
 	// ratchetings
-	mr_result ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes);
-	mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
-	mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
+	void ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	void ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet);
+	void ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet);
 	void ratchet_destroy_all(_mr_ctx* ctx);
-	bool ratchet_destroy(_mr_ctx* ctx, int num);
+	void ratchet_destroy(_mr_ctx* ctx, _mr_ratchet_state* ratchet);
 	mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
 		mr_ecdh_ctx previouskeypair,
@@ -226,7 +225,6 @@ extern "C" {
 	mr_result ratchet_initialize(
 		mr_ctx mr_ctx,
 		_mr_ratchet_state* ratchet,
-		uint32_t num,
 		mr_ecdh_ctx ecdhkey,
 		const uint8_t* nextrootkey, uint32_t nextrootkeysize,
 		uint32_t receivinggeneration,

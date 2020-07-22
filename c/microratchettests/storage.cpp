@@ -79,23 +79,28 @@ static void compare_states(mr_ctx _a, mr_ctx _b)
 		}
 	}
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	const _mr_ratchet_state* ra = a.ratchet;
+	const _mr_ratchet_state* rb = b.ratchet;
+	while (ra || rb)
 	{
-		const _mr_ratchet_state& ra = a.ratchets[i];
-		const _mr_ratchet_state& rb = b.ratchets[i];
-		compare_ecdh(ra.ecdhkey, rb.ecdhkey);
-		EXPECT_EQ(ra.num, rb.num);
-		EXPECT_EQ(ra.sendingchain.generation, rb.sendingchain.generation);
-		EXPECT_EQ(ra.sendingchain.oldgeneration, rb.sendingchain.oldgeneration);
-		EXPECT_BUFFEREQS(ra.nextreceiveheaderkey, rb.nextreceiveheaderkey);
-		EXPECT_BUFFEREQS(ra.nextrootkey, rb.nextrootkey);
-		EXPECT_BUFFEREQS(ra.nextsendheaderkey, rb.nextsendheaderkey);
-		EXPECT_BUFFEREQS(ra.receiveheaderkey, rb.receiveheaderkey);
-		EXPECT_BUFFEREQS(ra.receivingchain.chainkey, rb.receivingchain.chainkey);
-		EXPECT_BUFFEREQS(ra.receivingchain.oldchainkey, rb.receivingchain.oldchainkey);
-		EXPECT_BUFFEREQS(ra.sendheaderkey, rb.sendheaderkey);
-		EXPECT_BUFFEREQS(ra.sendingchain.chainkey, rb.sendingchain.chainkey);
-		EXPECT_BUFFEREQS(ra.sendingchain.oldchainkey, rb.sendingchain.oldchainkey);
+		EXPECT_EQ(!!ra, !!rb);
+		if (ra && rb)
+		{
+			compare_ecdh(ra->ecdhkey, rb->ecdhkey);
+			EXPECT_EQ(ra->sendingchain.generation, rb->sendingchain.generation);
+			EXPECT_EQ(ra->sendingchain.oldgeneration, rb->sendingchain.oldgeneration);
+			EXPECT_BUFFEREQS(ra->nextreceiveheaderkey, rb->nextreceiveheaderkey);
+			EXPECT_BUFFEREQS(ra->nextrootkey, rb->nextrootkey);
+			EXPECT_BUFFEREQS(ra->nextsendheaderkey, rb->nextsendheaderkey);
+			EXPECT_BUFFEREQS(ra->receiveheaderkey, rb->receiveheaderkey);
+			EXPECT_BUFFEREQS(ra->receivingchain.chainkey, rb->receivingchain.chainkey);
+			EXPECT_BUFFEREQS(ra->receivingchain.oldchainkey, rb->receivingchain.oldchainkey);
+			EXPECT_BUFFEREQS(ra->sendheaderkey, rb->sendheaderkey);
+			EXPECT_BUFFEREQS(ra->sendingchain.chainkey, rb->sendingchain.chainkey);
+			EXPECT_BUFFEREQS(ra->sendingchain.oldchainkey, rb->sendingchain.oldchainkey);
+		}
+		if (ra) ra = ra->next;
+		if (rb) rb = rb->next;
 	}
 }
 
@@ -111,12 +116,26 @@ void store_and_load(_mr_ctx* ctx)
 
 	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_store(ctx, storage, sizeof(storage)));
 
+	printf("ratchets A:\n");
+	auto r = ctx->ratchet;
+	while (r)
+	{
+		printf(" - %llx\n", *((uint64_t*)&r->nextreceiveheaderkey[0]));
+		r = r->next;
+	}
 	EXPECT_TRUE(is_empty_after(storage, sizeof(storage), spaceNeeded));
 
 	_mr_ctx* ctxb = (_mr_ctx*)mr_ctx_create(&ctx->config);
 	EXPECT_EQ(MR_E_SUCCESS, mr_ctx_state_load(ctxb, storage, sizeof(storage), &amountread));
 	EXPECT_EQ(amountread, spaceNeeded);
 
+	printf("ratchets B:\n");
+	r = ctxb->ratchet;
+	while (r)
+	{
+		printf(" - %llx\n", *((uint64_t*)&r->nextreceiveheaderkey[0]));
+		r = r->next;
+	}
 	compare_states(ctx, ctxb);
 
 	mr_ctx_destroy(ctxb);
@@ -169,6 +188,7 @@ TEST(Storage, StoreLoadInitClient1) {
 	mr_config cfg{ true };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.client);
 	FILLRANDOM(ctx->init.client->initializationnonce);
@@ -181,6 +201,7 @@ TEST(Storage, StoreLoadInitClient2) {
 	mr_config cfg{ true };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.client);
 	CREATEECDH(ctx->init.client->localecdhforinit);
@@ -193,6 +214,7 @@ TEST(Storage, StoreLoadInitClient3) {
 	mr_config cfg{ true };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.client);
 	FILLRANDOM(ctx->init.client->initializationnonce);
@@ -206,6 +228,7 @@ TEST(Storage, StoreLoadInitServer1) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.server);
 	FILLRANDOM(ctx->init.server->clientpublickey);
@@ -224,6 +247,7 @@ TEST(Storage, StoreLoadInitServer2) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.server);
 	FILLRANDOM(ctx->init.server->clientpublickey);
@@ -239,6 +263,7 @@ TEST(Storage, StoreLoadInitServer3) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.server);
 	FILLRANDOM(ctx->init.server->firstreceiveheaderkey);
@@ -253,6 +278,7 @@ TEST(Storage, StoreLoadInitServer4) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.server);
 	CREATEECDH(ctx->init.server->localratchetstep0);
@@ -266,6 +292,7 @@ TEST(Storage, StoreLoadInitServer5) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 
 	allocate_and_clear(ctx, &ctx->init.server);
 	FILLRANDOM(ctx->init.server->clientpublickey);
@@ -293,6 +320,7 @@ TEST(Storage, FullServer) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
 	allocate_and_clear(ctx, &ctx->init.server);
@@ -303,23 +331,28 @@ TEST(Storage, FullServer) {
 	FILLRANDOM(ctx->init.server->rootkey);
 	CREATEECDH(ctx->init.server->localratchetstep0);
 	CREATEECDH(ctx->init.server->localratchetstep1);
-	for (int i = 0; i < NUM_RATCHETS; i++)
+
+	for (int i = 0; i < 5; i++)
 	{
-		ctx->ratchets[i].num = 1;
-		CREATEECDH(ctx->ratchets[i].ecdhkey);
-		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
-		FILLRANDOM(ctx->ratchets[i].nextrootkey);
-		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
-		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
-		ctx->ratchets[i].receivingchain.generation = 5;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
-		ctx->ratchets[i].receivingchain.oldgeneration = 6;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
-		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
-		ctx->ratchets[i].sendingchain.generation = 7;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
-		ctx->ratchets[i].sendingchain.oldgeneration = 8;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+		_mr_ratchet_state *step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		CREATEECDH(step->ecdhkey);
+		FILLRANDOM(step->nextreceiveheaderkey);
+		FILLRANDOM(step->nextrootkey);
+		FILLRANDOM(step->nextsendheaderkey);
+		FILLRANDOM(step->receiveheaderkey);
+		step->receivingchain.generation = 5;
+		FILLRANDOM(step->receivingchain.chainkey);
+		step->receivingchain.oldgeneration = 6;
+		FILLRANDOM(step->receivingchain.oldchainkey);
+		FILLRANDOM(step->sendheaderkey);
+		step->sendingchain.generation = 7;
+		FILLRANDOM(step->sendingchain.chainkey);
+		step->sendingchain.oldgeneration = 8;
+		FILLRANDOM(step->sendingchain.oldchainkey);
 	}
 
 	store_and_load(mrctx);
@@ -330,25 +363,30 @@ TEST(Storage, Ratchet1) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	for (int i = 0; i < 5; i++)
 	{
-		ctx->ratchets[i].num = i + 1;
-		CREATEECDH(ctx->ratchets[i].ecdhkey);
-		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
-		FILLRANDOM(ctx->ratchets[i].nextrootkey);
-		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
-		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
-		ctx->ratchets[i].receivingchain.generation = 5;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
-		ctx->ratchets[i].receivingchain.oldgeneration = 6;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
-		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
-		ctx->ratchets[i].sendingchain.generation = 7;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
-		ctx->ratchets[i].sendingchain.oldgeneration = 8;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+		_mr_ratchet_state* step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		CREATEECDH(step->ecdhkey);
+		FILLRANDOM(step->nextreceiveheaderkey);
+		FILLRANDOM(step->nextrootkey);
+		FILLRANDOM(step->nextsendheaderkey);
+		FILLRANDOM(step->receiveheaderkey);
+		step->receivingchain.generation = 5;
+		FILLRANDOM(step->receivingchain.chainkey);
+		step->receivingchain.oldgeneration = 6;
+		FILLRANDOM(step->receivingchain.oldchainkey);
+		FILLRANDOM(step->sendheaderkey);
+		step->sendingchain.generation = 7;
+		FILLRANDOM(step->sendingchain.chainkey);
+		step->sendingchain.oldgeneration = 8;
+		FILLRANDOM(step->sendingchain.oldchainkey);
 	}
 
 	store_and_load(mrctx);
@@ -359,16 +397,21 @@ TEST(Storage, Ratchet2) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	for (int i = 0; i < 3; i++)
 	{
-		ctx->ratchets[i].num = i + 1;
-		CREATEECDH(ctx->ratchets[i].ecdhkey);
-		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
-		FILLRANDOM(ctx->ratchets[i].nextrootkey);
-		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
-		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
+		_mr_ratchet_state* step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		CREATEECDH(step->ecdhkey);
+		FILLRANDOM(step->nextreceiveheaderkey);
+		FILLRANDOM(step->nextrootkey);
+		FILLRANDOM(step->nextsendheaderkey);
+		FILLRANDOM(step->receiveheaderkey);
 	}
 
 	store_and_load(mrctx);
@@ -379,20 +422,25 @@ TEST(Storage, Ratchet3) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	for (int i = 0; i < 4; i++)
 	{
-		ctx->ratchets[i].num = i + 1;
-		ctx->ratchets[i].receivingchain.generation = 5;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
-		ctx->ratchets[i].receivingchain.oldgeneration = 6;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
-		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
-		ctx->ratchets[i].sendingchain.generation = 7;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
-		ctx->ratchets[i].sendingchain.oldgeneration = 8;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.oldchainkey);
+		_mr_ratchet_state* step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		step->receivingchain.generation = 5;
+		FILLRANDOM(step->receivingchain.chainkey);
+		step->receivingchain.oldgeneration = 6;
+		FILLRANDOM(step->receivingchain.oldchainkey);
+		FILLRANDOM(step->sendheaderkey);
+		step->sendingchain.generation = 7;
+		FILLRANDOM(step->sendingchain.chainkey);
+		step->sendingchain.oldgeneration = 8;
+		FILLRANDOM(step->sendingchain.oldchainkey);
 	}
 
 	store_and_load(mrctx);
@@ -403,19 +451,24 @@ TEST(Storage, Ratchet4) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	for (int i = 0; i < 6; i++)
 	{
-		ctx->ratchets[i].num = i + 1;
-		CREATEECDH(ctx->ratchets[i].ecdhkey);
-		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
-		FILLRANDOM(ctx->ratchets[i].nextsendheaderkey);
-		ctx->ratchets[i].receivingchain.generation = 5;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
-		FILLRANDOM(ctx->ratchets[i].sendheaderkey);
-		ctx->ratchets[i].sendingchain.generation = 7;
-		FILLRANDOM(ctx->ratchets[i].sendingchain.chainkey);
+		_mr_ratchet_state* step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		CREATEECDH(step->ecdhkey);
+		FILLRANDOM(step->nextreceiveheaderkey);
+		FILLRANDOM(step->nextsendheaderkey);
+		step->receivingchain.generation = 5;
+		FILLRANDOM(step->receivingchain.chainkey);
+		FILLRANDOM(step->sendheaderkey);
+		step->sendingchain.generation = 7;
+		FILLRANDOM(step->sendingchain.chainkey);
 	}
 
 	store_and_load(mrctx);
@@ -426,19 +479,24 @@ TEST(Storage, Ratchet5) {
 	mr_config cfg{ false };
 	auto mrctx = mr_ctx_create(&cfg);
 	auto ctx = (_mr_ctx*)mrctx;
+	ASSERT_EQ(ctx->ratchet, nullptr);
 	ctx->init.initialized = true;
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	for (int i = 0; i < 4; i++)
 	{
-		ctx->ratchets[i].num = i + 1;
-		CREATEECDH(ctx->ratchets[i].ecdhkey);
-		FILLRANDOM(ctx->ratchets[i].nextreceiveheaderkey);
-		FILLRANDOM(ctx->ratchets[i].nextrootkey);
-		FILLRANDOM(ctx->ratchets[i].receiveheaderkey);
-		ctx->ratchets[i].receivingchain.generation = 5;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.chainkey);
-		ctx->ratchets[i].receivingchain.oldgeneration = 6;
-		FILLRANDOM(ctx->ratchets[i].receivingchain.oldchainkey);
+		_mr_ratchet_state* step;
+		allocate_and_clear(ctx, &step);
+		step->next = ctx->ratchet;
+		ctx->ratchet = step;
+
+		CREATEECDH(step->ecdhkey);
+		FILLRANDOM(step->nextreceiveheaderkey);
+		FILLRANDOM(step->nextrootkey);
+		FILLRANDOM(step->receiveheaderkey);
+		step->receivingchain.generation = 5;
+		FILLRANDOM(step->receivingchain.chainkey);
+		step->receivingchain.oldgeneration = 6;
+		FILLRANDOM(step->receivingchain.oldchainkey);
 	}
 
 	store_and_load(mrctx);

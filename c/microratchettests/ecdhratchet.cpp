@@ -556,7 +556,7 @@ void _RatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const uint8_t
 	mr_ecdh_setprivatekey(key, _key, KEY_SIZE);
 
 	_mr_ratchet_state step0;
-	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, key,
 		nrk, KEY_SIZE,
 		0, rhk, KEY_SIZE,
 		nrhk, KEY_SIZE,
@@ -640,7 +640,7 @@ void _SecondRatchetReferenceTest(const uint8_t* nrk, const uint8_t* rhk, const u
 	mr_ecdh_setprivatekey(nkey, _nkey, KEY_SIZE);
 
 	_mr_ratchet_state step0;
-	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, 0, key,
+	EXPECT_EQ(MR_E_SUCCESS, ratchet_initialize(mr_ctx, &step0, key,
 		nrk, KEY_SIZE,
 		0, rhk, KEY_SIZE,
 		nrhk, KEY_SIZE,

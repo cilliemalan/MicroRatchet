@@ -110,52 +110,48 @@ static uint32_t init_size_needed_server(_mr_initialization_state_server* c)
 static uint32_t ratchet_size_needed(_mr_ratchet_state* r)
 {
 	uint32_t size = 4;
-	if (r->num != 0)
+	if (r->ecdhkey)
+	{
+		size += mr_ecdh_store_size_needed(r->ecdhkey);
+	}
+	if (!allzeroes(r->nextrootkey, KEY_SIZE))
+	{
+		size += KEY_SIZE;
+	}
+	if (!allzeroes(r->sendheaderkey, KEY_SIZE))
+	{
+		size += KEY_SIZE;
+	}
+	if (!allzeroes(r->nextsendheaderkey, KEY_SIZE))
+	{
+		size += KEY_SIZE;
+	}
+	if (!allzeroes(r->receiveheaderkey, KEY_SIZE))
+	{
+		size += KEY_SIZE;
+	}
+	if (!allzeroes(r->nextreceiveheaderkey, KEY_SIZE))
+	{
+		size += KEY_SIZE;
+	}
+	if (r->sendingchain.generation != 0)
 	{
 		size += 4;
-		if (r->ecdhkey)
-		{
-			size += mr_ecdh_store_size_needed(r->ecdhkey);
-		}
-		if (!allzeroes(r->nextrootkey, KEY_SIZE))
-		{
-			size += KEY_SIZE;
-		}
-		if (!allzeroes(r->sendheaderkey, KEY_SIZE))
-		{
-			size += KEY_SIZE;
-		}
-		if (!allzeroes(r->nextsendheaderkey, KEY_SIZE))
-		{
-			size += KEY_SIZE;
-		}
-		if (!allzeroes(r->receiveheaderkey, KEY_SIZE))
-		{
-			size += KEY_SIZE;
-		}
-		if (!allzeroes(r->nextreceiveheaderkey, KEY_SIZE))
-		{
-			size += KEY_SIZE;
-		}
-		if (r->sendingchain.generation != 0)
+		size += KEY_SIZE;
+		if (r->sendingchain.oldgeneration != 0)
 		{
 			size += 4;
 			size += KEY_SIZE;
-			if (r->sendingchain.oldgeneration != 0)
-			{
-				size += 4;
-				size += KEY_SIZE;
-			}
 		}
-		if (r->receivingchain.generation != 0)
+	}
+	if (r->receivingchain.generation != 0)
+	{
+		size += 4;
+		size += KEY_SIZE;
+		if (r->receivingchain.oldgeneration != 0)
 		{
 			size += 4;
 			size += KEY_SIZE;
-			if (r->receivingchain.oldgeneration != 0)
-			{
-				size += 4;
-				size += KEY_SIZE;
-			}
 		}
 	}
 
@@ -184,13 +180,11 @@ uint32_t mr_ctx_state_size_needed(mr_ctx _ctx)
 		}
 	}
 
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	_mr_ratchet_state* r = ctx->ratchet;
+	while (r)
 	{
-		_mr_ratchet_state* r = ctx->ratchets + i;
-		if (r->num)
-		{
-			size += ratchet_size_needed(r);
-		}
+		size += ratchet_size_needed(r);
+		r = r->next;
 	}
 
 	return size;
@@ -299,71 +293,69 @@ mr_result mr_ctx_state_store(mr_ctx _ctx, uint8_t* ptr, uint32_t space)
 	}
 
 	uint32_t numratchets = 0;
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	_mr_ratchet_state* r = ctx->ratchet;
+	while(r)
 	{
-		_mr_ratchet_state* r = ctx->ratchets + i;
-		if (r->num)
+		numratchets++;
+		uint32_t* ratchetheader = (uint32_t*)ptr;
+		*ratchetheader = 0;
+		INCPTR(4);
+		if (r->ecdhkey)
 		{
-			numratchets++;
-			uint32_t* ratchetheader = (uint32_t*)ptr;
-			*ratchetheader = 0;
-			INCPTR(4);
-			WRITEUINT32(r->num);
-			if (r->ecdhkey)
+			WRITEECDH(r->ecdhkey);
+			*ratchetheader |= HAS_ECDH_BIT;
+		}
+		if (!allzeroes(r->nextrootkey, KEY_SIZE))
+		{
+			WRITEDATA(r->nextrootkey, KEY_SIZE);
+			*ratchetheader |= HAS_NEXTROOTKEY_BIT;
+		}
+		if (!allzeroes(r->sendheaderkey, KEY_SIZE))
+		{
+			WRITEDATA(r->sendheaderkey, KEY_SIZE);
+			*ratchetheader |= HAS_SHK_BIT;
+		}
+		if (!allzeroes(r->nextsendheaderkey, KEY_SIZE))
+		{
+			WRITEDATA(r->nextsendheaderkey, KEY_SIZE);
+			*ratchetheader |= HAS_NSHK_BIT;
+		}
+		if (!allzeroes(r->receiveheaderkey, KEY_SIZE))
+		{
+			WRITEDATA(r->receiveheaderkey, KEY_SIZE);
+			*ratchetheader |= HAS_RHK_BIT;
+		}
+		if (!allzeroes(r->nextreceiveheaderkey, KEY_SIZE))
+		{
+			WRITEDATA(r->nextreceiveheaderkey, KEY_SIZE);
+			*ratchetheader |= HAS_NRHK_BIT;
+		}
+		if (!allzeroes(r->sendingchain.chainkey, KEY_SIZE))
+		{
+			WRITEUINT32(r->sendingchain.generation);
+			WRITEDATA(r->sendingchain.chainkey, KEY_SIZE);
+			*ratchetheader |= HAS_SCHAIN_BIT;
+			if (r->sendingchain.oldgeneration != 0)
 			{
-				WRITEECDH(r->ecdhkey);
-				*ratchetheader |= HAS_ECDH_BIT;
-			}
-			if (!allzeroes(r->nextrootkey, KEY_SIZE))
-			{
-				WRITEDATA(r->nextrootkey, KEY_SIZE);
-				*ratchetheader |= HAS_NEXTROOTKEY_BIT;
-			}
-			if (!allzeroes(r->sendheaderkey, KEY_SIZE))
-			{
-				WRITEDATA(r->sendheaderkey, KEY_SIZE);
-				*ratchetheader |= HAS_SHK_BIT;
-			}
-			if (!allzeroes(r->nextsendheaderkey, KEY_SIZE))
-			{
-				WRITEDATA(r->nextsendheaderkey, KEY_SIZE);
-				*ratchetheader |= HAS_NSHK_BIT;
-			}
-			if (!allzeroes(r->receiveheaderkey, KEY_SIZE))
-			{
-				WRITEDATA(r->receiveheaderkey, KEY_SIZE);
-				*ratchetheader |= HAS_RHK_BIT;
-			}
-			if (!allzeroes(r->nextreceiveheaderkey, KEY_SIZE))
-			{
-				WRITEDATA(r->nextreceiveheaderkey, KEY_SIZE);
-				*ratchetheader |= HAS_NRHK_BIT;
-			}
-			if (!allzeroes(r->sendingchain.chainkey, KEY_SIZE))
-			{
-				WRITEUINT32(r->sendingchain.generation);
-				WRITEDATA(r->sendingchain.chainkey, KEY_SIZE);
-				*ratchetheader |= HAS_SCHAIN_BIT;
-				if (r->sendingchain.oldgeneration != 0)
-				{
-					WRITEUINT32(r->sendingchain.oldgeneration);
-					WRITEDATA(r->sendingchain.oldchainkey, KEY_SIZE);
-					*ratchetheader |= HAS_SCHAIN_OK_BIT;
-				}
-			}
-			if (!allzeroes(r->receivingchain.chainkey, KEY_SIZE))
-			{
-				WRITEUINT32(r->receivingchain.generation);
-				WRITEDATA(r->receivingchain.chainkey, KEY_SIZE);
-				*ratchetheader |= HAS_RCHAIN_BIT;
-				if (r->receivingchain.oldgeneration != 0)
-				{
-					WRITEUINT32(r->receivingchain.oldgeneration);
-					WRITEDATA(r->receivingchain.oldchainkey, KEY_SIZE);
-					*ratchetheader |= HAS_RCHAIN_OK_BIT;
-				}
+				WRITEUINT32(r->sendingchain.oldgeneration);
+				WRITEDATA(r->sendingchain.oldchainkey, KEY_SIZE);
+				*ratchetheader |= HAS_SCHAIN_OK_BIT;
 			}
 		}
+		if (!allzeroes(r->receivingchain.chainkey, KEY_SIZE))
+		{
+			WRITEUINT32(r->receivingchain.generation);
+			WRITEDATA(r->receivingchain.chainkey, KEY_SIZE);
+			*ratchetheader |= HAS_RCHAIN_BIT;
+			if (r->receivingchain.oldgeneration != 0)
+			{
+				WRITEUINT32(r->receivingchain.oldgeneration);
+				WRITEDATA(r->receivingchain.oldchainkey, KEY_SIZE);
+				*ratchetheader |= HAS_RCHAIN_OK_BIT;
+			}
+		}
+
+		r = r->next;
 	}
 
 	*mainheader |= numratchets << 16;
@@ -393,6 +385,7 @@ INCPTR(4);
 
 mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uint32_t* amountread)
 {
+	// TODO: memory could leak if an allocation fails
 	_mr_ctx* ctx = _ctx;
 
 	uint32_t ospace = space;
@@ -509,67 +502,75 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 		ctx->init.initialized = true;
 	}
 
+	// make sure all previous ratchets are destroyed
+	ratchet_destroy_all(ctx);
+
+	// load ratchets
 	uint32_t numRatchets = (mainheader >> 16) & 0xff;
-	for (uint32_t i = 0; i < NUM_RATCHETS; i++)
+	_mr_ratchet_state* first = 0;
+	_mr_ratchet_state* prev = 0;
+	for (uint32_t i = 0; i < numRatchets; i++)
 	{
-		_mr_ratchet_state* r = &ctx->ratchets[i];
-
-		if (r->ecdhkey)
-		{
-			mr_ecdh_destroy(r->ecdhkey);
-		}
-
+		_mr_ratchet_state* r;
+		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), &r));
 		mr_memzero(r, sizeof(_mr_ratchet_state));
 
-		if (i < numRatchets)
+		if (i == 0)
 		{
-			uint32_t ratchetheader;
-			READUINT32(ratchetheader);
+			ctx->ratchet = r;
+			prev = r;
+		}
+		else
+		{
+			prev->next = r;
+			prev = r;
+		}
 
-			READUINT32(r->num);
-			if (ratchetheader & HAS_ECDH_BIT)
+		uint32_t ratchetheader;
+		READUINT32(ratchetheader);
+
+		if (ratchetheader & HAS_ECDH_BIT)
+		{
+			READECDH(r->ecdhkey);
+		}
+		if (ratchetheader & HAS_NEXTROOTKEY_BIT)
+		{
+			READDATA(r->nextrootkey, KEY_SIZE);
+		}
+		if (ratchetheader & HAS_SHK_BIT)
+		{
+			READDATA(r->sendheaderkey, KEY_SIZE);
+		}
+		if (ratchetheader & HAS_NSHK_BIT)
+		{
+			READDATA(r->nextsendheaderkey, KEY_SIZE);
+		}
+		if (ratchetheader & HAS_RHK_BIT)
+		{
+			READDATA(r->receiveheaderkey, KEY_SIZE);
+		}
+		if (ratchetheader & HAS_NRHK_BIT)
+		{
+			READDATA(r->nextreceiveheaderkey, KEY_SIZE);
+		}
+		if (ratchetheader & HAS_SCHAIN_BIT)
+		{
+			READUINT32(r->sendingchain.generation);
+			READDATA(r->sendingchain.chainkey, KEY_SIZE);
+			if (ratchetheader & HAS_SCHAIN_OK_BIT)
 			{
-				READECDH(r->ecdhkey);
+				READUINT32(r->sendingchain.oldgeneration);
+				READDATA(r->sendingchain.oldchainkey, KEY_SIZE);
 			}
-			if (ratchetheader & HAS_NEXTROOTKEY_BIT)
+		}
+		if (ratchetheader & HAS_RCHAIN_BIT)
+		{
+			READUINT32(r->receivingchain.generation);
+			READDATA(r->receivingchain.chainkey, KEY_SIZE);
+			if (ratchetheader & HAS_RCHAIN_OK_BIT)
 			{
-				READDATA(r->nextrootkey, KEY_SIZE);
-			}
-			if (ratchetheader & HAS_SHK_BIT)
-			{
-				READDATA(r->sendheaderkey, KEY_SIZE);
-			}
-			if (ratchetheader & HAS_NSHK_BIT)
-			{
-				READDATA(r->nextsendheaderkey, KEY_SIZE);
-			}
-			if (ratchetheader & HAS_RHK_BIT)
-			{
-				READDATA(r->receiveheaderkey, KEY_SIZE);
-			}
-			if (ratchetheader & HAS_NRHK_BIT)
-			{
-				READDATA(r->nextreceiveheaderkey, KEY_SIZE);
-			}
-			if (ratchetheader & HAS_SCHAIN_BIT)
-			{
-				READUINT32(r->sendingchain.generation);
-				READDATA(r->sendingchain.chainkey, KEY_SIZE);
-				if (ratchetheader & HAS_SCHAIN_OK_BIT)
-				{
-					READUINT32(r->sendingchain.oldgeneration);
-					READDATA(r->sendingchain.oldchainkey, KEY_SIZE);
-				}
-			}
-			if (ratchetheader & HAS_RCHAIN_BIT)
-			{
-				READUINT32(r->receivingchain.generation);
-				READDATA(r->receivingchain.chainkey, KEY_SIZE);
-				if (ratchetheader & HAS_RCHAIN_OK_BIT)
-				{
-					READUINT32(r->receivingchain.oldgeneration);
-					READDATA(r->receivingchain.oldchainkey, KEY_SIZE);
-				}
+				READUINT32(r->receivingchain.oldgeneration);
+				READDATA(r->receivingchain.oldchainkey, KEY_SIZE);
 			}
 		}
 	}

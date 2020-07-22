@@ -13,185 +13,87 @@ static inline bool keyallzeroes(const uint8_t k[KEY_SIZE])
 	return true;
 }
 
-mr_result ratchet_getorder(mr_ctx mr_ctx, int* indexes, uint32_t numindexes)
+void ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
-	FAILIF(!mr_ctx || !indexes, MR_E_INVALIDOP, "Some of the required arguments were null");
-	FAILIF(numindexes < NUM_RATCHETS, MR_E_INVALIDSIZE, "numindexes cannot be greater than the maximum number of stored ratchets");
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
-
-	uint32_t mustbeunder = 0xffffffff;
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	if (ctx && ratchet)
 	{
-		// find the biggest one
-		uint32_t maxnum = 0;
-		int index = -1;
-		if (mustbeunder > 0)
+		if (ctx->ratchet)
 		{
-			for (int j = 0; j < NUM_RATCHETS; j++)
+			_mr_ratchet_state* next = ctx->ratchet->next;
+			if (!next && !ctx->config.is_client)
 			{
-				if (ctx->ratchets[i].num > maxnum && ctx->ratchets[i].num < mustbeunder)
-				{
-					maxnum = ctx->ratchets[i].num;
-					index = i;
-				}
+				// special case where the server has just initialized.
+				// it's the one case where the last ecdh key can be used without
+				// including it in the message that's being sent.
+				// It's a chicken and egg thing.
+				*ratchet = ctx->ratchet;
+			}
+			else
+			{
+				*ratchet = next;
 			}
 		}
-
-		indexes[i] = index;
-		mustbeunder = maxnum;
+		else
+		{
+			*ratchet = 0;
+		}
 	}
-
-	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_getoldest(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
+void ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
-	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
-
-	uint32_t minnum = 0xffffffff;
-	int minix = -1;
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	if (ctx && ratchet)
 	{
-		if (ctx->ratchets[i].num == 0)
-		{
-			minix = i;
-			break;
-		}
-		else if (ctx->ratchets[i].num < minnum)
-		{
-			minnum = ctx->ratchets[i].num;
-			minix = i;
-		}
+		*ratchet = ctx->ratchet;
 	}
-
-	FAILIF(minix < 0, MR_E_NOTFOUND, "Could not find the oldest ratchet");
-	*ratchet = &ctx->ratchets[minix];
-	return MR_E_SUCCESS;
 }
 
-mr_result ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
+void ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 {
-	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
 
-	uint32_t maxnum = 0;
-	uint32_t nextmaxnum = 0;
-	int nextmaxix = -1;
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	if (ctx && ratchet)
 	{
-		if (ctx->ratchets[i].num > maxnum)
-		{
-			maxnum = ctx->ratchets[i].num;
-		}
+		// tack onto the front
+		ratchet->next = ctx->ratchet;
+		ctx->ratchet = ratchet;
 	}
-	for (int i = 0; i < NUM_RATCHETS; i++)
-	{
-		if (ctx->ratchets[i].num < maxnum && ctx->ratchets[i].num > nextmaxnum)
-		{
-			nextmaxnum = ctx->ratchets[i].num;
-			nextmaxix = i;
-		}
-	}
-
-	if (nextmaxix < 0)
-	{
-		// special case where the server has just initialized.
-		// it's the one case where the last ecdh key can be used without
-		// including it in the message that's being sent.
-		if (!ctx->config.is_client && ctx->ratchets[0].num == 1 && ctx->ratchets[1].num == 0)
-		{
-			*ratchet = &ctx->ratchets[0];
-			return MR_E_SUCCESS;
-		}
-	}
-
-	FAILIF(nextmaxix < 0, MR_E_NOTFOUND, "Could not find a second to last ratchet.");
-	*ratchet = &ctx->ratchets[nextmaxix];
-	return MR_E_SUCCESS;
-}
-
-mr_result ratchet_getlast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
-{
-	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
-	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
-
-	uint32_t maxnum = 0;
-	int maxix = -1;
-	for (int i = 0; i < NUM_RATCHETS; i++)
-	{
-		if (ctx->ratchets[i].num > maxnum)
-		{
-			maxnum = ctx->ratchets[i].num;
-			maxix = i;
-		}
-	}
-
-	FAILIF(maxix < 0, MR_E_NOTFOUND, "Could not find the biggest ratchet");
-	*ratchet = &ctx->ratchets[maxix];
-	return MR_E_SUCCESS;
-}
-
-mr_result ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
-{
-	FAILIF(!mr_ctx || !ratchet, MR_E_INVALIDOP, "Some of the required arguments were null");
-	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
-
-	uint32_t maxnum = 0;
-	uint32_t minnum = 0xffffffff;
-	int minix = -1;
-	for (int i = 0; i < NUM_RATCHETS; i++)
-	{
-		if (ctx->ratchets[i].num > maxnum)
-		{
-			maxnum = ctx->ratchets[i].num;
-		}
-		if (ctx->ratchets[i].num < minnum)
-		{
-			minnum = ctx->ratchets[i].num;
-			minix = i;
-		}
-	}
-
-	FAILIF(minix < 0, MR_E_NOTFOUND, "Could not find the smallest ratchet");
-	if (ctx->ratchets[minix].ecdhkey) mr_ecdh_destroy(ctx->ratchets[minix].ecdhkey);
-	ratchet->num = maxnum + 1;
-	// TODO: below uses a lot of stack
-	mr_memcpy(&ctx->ratchets[minix], ratchet, sizeof(_mr_ratchet_state));
-
-	return MR_E_SUCCESS;
 }
 
 void ratchet_destroy_all(_mr_ctx* ctx)
 {
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	_mr_ratchet_state* ratchet = ctx->ratchet;
+	ctx->ratchet = 0;
+	while (ratchet)
 	{
-		if (ctx->ratchets[i].ecdhkey)
+		_mr_ratchet_state* next = ratchet->next;
+
+		if (ratchet->ecdhkey)
 		{
-			mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
+			mr_ecdh_destroy(ratchet->ecdhkey);
 		}
-		mr_memzero(&ctx->ratchets[i], sizeof(ctx->ratchets[i]));
+		mr_free(ctx, ratchet);
+
+		ratchet = next;
 	}
 }
 
-bool ratchet_destroy(_mr_ctx* ctx, int num)
+void ratchet_destroy(_mr_ctx* ctx, _mr_ratchet_state* ratchet)
 {
-	if (!ctx) return false;
-
-	for (int i = 0; i < NUM_RATCHETS; i++)
+	if (ratchet)
 	{
-		if (ctx->ratchets[i].num == num)
+		if (ratchet == ctx->ratchet)
 		{
-			if (ctx->ratchets[i].ecdhkey)
-			{
-				mr_ecdh_destroy(ctx->ratchets[i].ecdhkey);
-			}
-			mr_memzero(&ctx->ratchets[i], sizeof(ctx->ratchets[i]));
-			return true;
+			ctx->ratchet = ctx->ratchet->next;
 		}
+		if (ratchet->ecdhkey)
+		{
+			mr_ecdh_destroy(ratchet->ecdhkey);
+		}
+		mr_free(ctx, ratchet);
 	}
-
-	return false;
 }
 
 mr_result ratchet_initialize_server(mr_ctx mr_ctx,
@@ -218,7 +120,6 @@ mr_result ratchet_initialize_server(mr_ctx mr_ctx,
 	TRACEDATA("ECDH Public:        ", remotepubickey, KEY_SIZE);
 
 	mr_memzero(ratchet, sizeof(_mr_ratchet_state));
-	ratchet->num = 1;
 	ratchet->ecdhkey = keypair;
 	if (receiveheaderkey) mr_memcpy(ratchet->receiveheaderkey, receiveheaderkey, KEY_SIZE);
 	else mr_memzero(ratchet->receiveheaderkey, KEY_SIZE);
@@ -293,7 +194,6 @@ mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 
 	mr_memzero(ratchet2, sizeof(_mr_ratchet_state));
 	mr_memzero(ratchet1, sizeof(_mr_ratchet_state));
-	ratchet1->num = 1;
 	ratchet1->ecdhkey = keypair;
 	mr_memcpy(ratchet1->sendheaderkey, sendheaderkey, KEY_SIZE);
 
@@ -332,7 +232,6 @@ mr_result ratchet_initialize_client(mr_ctx mr_ctx,
 mr_result ratchet_initialize(
 	mr_ctx mr_ctx,
 	_mr_ratchet_state* ratchet,
-	uint32_t num,
 	mr_ecdh_ctx ecdhkey,
 	const uint8_t* nextrootkey, uint32_t nextrootkeysize,
 	uint32_t receivinggeneration,
@@ -353,7 +252,6 @@ mr_result ratchet_initialize(
 	FAILIF(sendingnextheaderkey && sendingnextheaderkeysize != KEY_SIZE, MR_E_INVALIDSIZE, "The send header key size was invalid");
 	FAILIF(sendingchainkey && sendingchainkeysize != KEY_SIZE, MR_E_INVALIDSIZE, "The sending chain key size was invalid");
 
-	ratchet->num = num;
 	ratchet->ecdhkey = ecdhkey;
 	if (nextrootkey) mr_memcpy(ratchet->nextrootkey, nextrootkey, KEY_SIZE);
 	else mr_memzero(ratchet->nextrootkey, KEY_SIZE);
