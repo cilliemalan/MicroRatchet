@@ -20,6 +20,16 @@
           "name": "TRACE",
           "value": "False",
           "type": "BOOL"
+        },
+        {
+          "name": "TEST_CHECK_MEMORY",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "TEST_TRACE_MEMORY",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     },
@@ -36,6 +46,21 @@
       "variables": [
         {
           "name": "DEBUG",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "TRACE",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "TEST_CHECK_MEMORY",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "TEST_TRACE_MEMORY",
           "value": "False",
           "type": "BOOL"
         }
