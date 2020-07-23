@@ -394,7 +394,50 @@ extern "C"
 
 int __io_putchar(int ch)
 {
-    // TODO: transmit a character via UART or something
+
+// for qemu or an actual Stellaris LM3S6965EVB
+#ifdef LM3S6965EVB
+
+    static volatile uint32_t *usart_dr = (uint32_t *)0x4000c000;
+    static volatile uint32_t *usart_fr = (uint32_t *)0x4000c018;
+
+    // wait for TXFF to clear
+    for (volatile size_t i = 0; i < 100000; i++)
+    {
+        if (!(*usart_fr & 0x20))
+        {
+            break;
+        }
+    }
+
+    // set TDR
+    *usart_dr = (ch & 0xff);
+
+#endif
+
+// for stm32
+#if defined(USART1) || defined(USART2)
+
+// typically usart2 is sent to the virtual
+// com port on nucleo boards. Except when
+// there is no usart2, in which case it
+// is likely usart1
+#if defined(USART2)
+    USART_TypeDef *usart = USART2;
+#else
+    USART_TypeDef *usart = USART1;
+#endif
+
+    for (volatile size_t i = 0; i < 100000; i++)
+    {
+        if (usart->ISR & USART_ISR_TXE)
+        {
+            break;
+        }
+    }
+    usart->TDR = ch & 0xff;
+
+#endif
 
     return 0;
 }
@@ -434,9 +477,16 @@ int _read(int file, char* ptr, int len)
     return -1;
 }
 
-int _write(int file, char* ptr, int len)
+int _write(int file, char *ptr, int len)
 {
-    // TODO: transmit a character via UART or something
+    if (ptr && len > 0)
+    {
+        for (size_t i = 0; i < len; i++)
+        {
+            __io_putchar(ptr[i]);
+        }
+    }
+
     return 0;
 }
 
