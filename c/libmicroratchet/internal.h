@@ -30,10 +30,6 @@
 #define MR_ASSERT(a)
 #endif
 
-#if !defined(MR_WRITE)
-#define MR_WRITE(a, b)
-#endif
-
 #if !defined(MR_ABORT)
 #define MR_ABORT()
 #endif
@@ -247,22 +243,25 @@ extern "C" {
 	void _mrlogctxid(mr_ctx ctx);
 	void _mrloghex(const uint8_t* data, uint32_t datalen);
 
-
-#ifdef MR_WRITE_PRINTF
-	void mr_write_printf(const char* msg, size_t amt);
+#ifdef MR_WRITE
+	void MR_WRITE(const char* msg, size_t amt);
 #endif
 
 #ifdef __cplusplus
 }
 #endif
 
-#if MR_DEBUG || MR_TRACE || MR_TRACE_DATA
-
 #define MR_STRINGIZE(x) MR_STRINGIZE2(x)
 #define MR_STRINGIZE2(x) #x
 #define __LINE_STRING__ MR_STRINGIZE(__LINE__)
 
+#if (MR_DEBUG || MR_TRACE || MR_TRACE_DATA) && defined(MR_WRITE)
+
 #define MR_WRITE1(msg) do { static const char __msg[] = msg; MR_WRITE(msg, sizeof(msg) - 1); } while(0)
+
+#else
+
+#define MR_WRITE1(msg)
 
 #endif
 
