@@ -505,3 +505,5 @@ TEST(HighLevel, SendReceiveSlow)
 	a.wait();
 	b.wait();
 }
+
+#endif

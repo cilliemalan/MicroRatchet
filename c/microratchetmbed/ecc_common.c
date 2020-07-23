@@ -29,7 +29,7 @@ static mr_result load_curves()
 
 void mpi_to_nat256(uint32_t o[8], const mbedtls_mpi* z)
 {
-	static_assert(sizeof(mbedtls_mpi_uint) == 8 || sizeof(mbedtls_mpi_uint) == 4, "mbedtls_mpi_uint must be 4 or 8 bytes");
+	STATIC_ASSERT(sizeof(mbedtls_mpi_uint) == 8 || sizeof(mbedtls_mpi_uint) == 4, "mbedtls_mpi_uint must be 4 or 8 bytes");
 
 #ifdef MBEDTLS_HAVE_INT64
 	if (sizeof(mbedtls_mpi_uint) == 8)

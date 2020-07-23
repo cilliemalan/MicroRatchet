@@ -32,7 +32,8 @@ static inline bool ref_release(void* ob)
 	if (ATOMIC_DECREMENT(rob->ref) == 0)
 	{
 		ptrdiff_t minint = -2147483648;
-		if (ATOMIC_COMPARE_EXCHANGE(rob->ref, minint, 0) == 0)
+		ptrdiff_t zero = 0;
+		if (ATOMIC_COMPARE_EXCHANGE(rob->ref, minint, zero))
 		{
 			return true;
 		}
@@ -128,7 +129,7 @@ static action* hl_action_dequeue(_mr_ctx* ctx, hlctx* hl, action** phead)
 	while (act)
 	{
 		// replace the head if the head remains the head
-		if ((action*)ATOMIC_COMPARE_EXCHANGE(*phead, act->next, act) == act)
+		if ((action*)ATOMIC_COMPARE_EXCHANGE(*phead, act->next, act))
 		{
 			act->next = 0;
 			break;
@@ -153,7 +154,8 @@ static bool hl_action_enqueue(_mr_ctx *ctx, hlctx *hl, action** phead, action* a
 		if (!head)
 		{
 			// this item is will be the first in the list
-			if (ATOMIC_COMPARE_EXCHANGE(*phead, act, 0) == 0)
+			action* zero = 0;
+			if (ATOMIC_COMPARE_EXCHANGE(*phead, act, zero))
 			{
 				return true;
 			}
@@ -165,7 +167,8 @@ static bool hl_action_enqueue(_mr_ctx *ctx, hlctx *hl, action** phead, action* a
 			while (item->next) item = item->next;
 
 			// tack on the new item if the tail remains the tail
-			if (ATOMIC_COMPARE_EXCHANGE(item->next, act, 0) == 0)
+			action* zero = 0;
+			if (ATOMIC_COMPARE_EXCHANGE(item->next, act, zero))
 			{
 				if (*phead)
 				{
@@ -388,7 +391,8 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	hl = (hlctx*)buffer;
 
 	// ensure there is only one
-	if (ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, hl, 0) != 0)
+	hlctx* zero = 0;
+	if (ATOMIC_COMPARE_EXCHANGE(ctx->highlevel, hl, zero))
 	{
 		mr_free(ctx, hl);
 		FAILMSG(MR_E_INVALIDOP, "mr_hl_mainloop can only be called once for a given context");
