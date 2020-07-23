@@ -72,7 +72,7 @@ function(add_test_target targetname)
         target_compile_definitions(${targetname} PUBLIC -DGTEST_HAS_POSIX_RE=0 -DGTEST_HAS_CLONE=0 -DGTEST_HAS_EXCEPTIONS=0 -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_HAS_STREAM_REDIRECTION=0 -DGTEST_HAS_RTTI=0)
         target_compile_definitions(${targetname} PUBLIC -DGTEST_OS_NONE=1)
         
-        target_link_options(${targetname} PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/virt.ld)
+        target_link_options(${targetname} PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/${LINKER_SCRIPT})
     else()
         gtest_discover_tests(${targetname})
     endif()
