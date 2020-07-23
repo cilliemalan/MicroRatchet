@@ -16,12 +16,18 @@ set(SOURCES
 
 add_library(microratchet STATIC ${SOURCES})
 
-if (DEBUG OR TRACE OR TRACEDATA)
-    target_compile_definitions(microratchet PUBLIC -DMR_WRITE=mr_write_printf)
-    target_compile_definitions(microratchet PUBLIC -DMR_WRITE_PRINTF)
 
+if (DEBUG OR TRACE OR TRACEDATA)
     message(WARNING "This is an insecure build of microratchet")
+
+    if (NOT EMBEDDED)
+        target_compile_definitions(microratchet PUBLIC -DMR_WRITE=mr_write_printf)
+        target_compile_definitions(microratchet PUBLIC -DMR_WRITE_PRINTF)
+    else()
+        target_compile_definitions(microratchet PUBLIC -DMR_WRITE=mr_write_uart)
+    endif()
 endif()
+
 
 if (DEBUG)
     target_compile_definitions(microratchet PUBLIC -DMR_DEBUG=1)
@@ -29,9 +35,11 @@ if (DEBUG)
     target_compile_definitions(microratchet PUBLIC -DMR_ABORT=abort)
 endif()
 
+
 if(TRACE)
     target_compile_definitions(microratchet PUBLIC -DMR_TRACE=1)
 endif()
+
 
 if(TRACEDATA)
     target_compile_definitions(microratchet PUBLIC -DMR_TRACE_DATA=1)
