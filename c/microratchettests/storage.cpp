@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#ifndef MR_EMBEDDED
+
 #include <microratchet.h>
 #include <internal.h>
 #include "support.h"
@@ -603,3 +606,5 @@ TEST(Storage, FullProcess)
 	RECREATE(server);
 	ASSERT_BUFFEREQ(msg6, sizeof(msg6), payload, sizeof(msg6));
 }
+
+#endif

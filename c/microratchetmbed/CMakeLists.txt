@@ -19,4 +19,8 @@ include_directories(
 add_library(microratchetmbed STATIC ${SOURCES})
 target_link_libraries(microratchetmbed mbedcrypto)
 
+if (EMBEDDED)
+	target_compile_definitions(microratchetmbed PUBLIC MR_EMBEDDED)
+endif()
+
 

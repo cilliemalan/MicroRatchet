@@ -2,6 +2,9 @@
 #include "internal.h"
 #include "support.h"
 
+#ifndef MR_EMBEDDED
+
+#include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <functional>

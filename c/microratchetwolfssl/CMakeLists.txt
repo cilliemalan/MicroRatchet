@@ -20,3 +20,4 @@ include_directories(
 add_library(microratchetwolfssl STATIC ${SOURCES})
 target_link_libraries(microratchetwolfssl wolfssl)
 target_compile_definitions(microratchetwolfssl PUBLIC HAVE_CONFIG_H)
+

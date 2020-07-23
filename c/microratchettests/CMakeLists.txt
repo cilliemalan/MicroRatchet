@@ -27,12 +27,7 @@ set(SOURCES
     symmetricratchet.cpp)
 
 if (EMBEDDED)
-    set(SOURCES ${SOURCES}
-        port/syscalls.cpp
-        port/startup.cpp
-        port/interrupts.cpp
-        port/system.cpp)
-        
+    set(SOURCES ${SOURCES} ${EMBEDDED_SOURCES})
     set(gtest_disable_pthreads ON CACHE BOOL "disable googletest pthreads")
 endif()
 
@@ -55,7 +50,8 @@ function(add_test_target targetname)
     
     # common compile defs
     target_compile_definitions(${targetname} PUBLIC GTEST_DONT_DEFINE_TEST)
-        
+    target_compile_definitions(${targetname} PUBLIC ${TEST_COMPILE_DEFINITIONS})
+    
     if (TEST_CHECK_MEMORY)
         target_compile_definitions(${targetname} PUBLIC DEBUGMEM)
     endif()
@@ -66,13 +62,7 @@ function(add_test_target targetname)
 
     # embedded stuff
     if (EMBEDDED)
-        target_compile_definitions(${targetname} PUBLIC -DEMBEDDED)
-        target_compile_definitions(${targetname} PUBLIC -DGTEST_IS_THREADSAFE=0)
-        target_compile_definitions(${targetname} PUBLIC -DGTEST_OS_WINDOWS=0)
-        target_compile_definitions(${targetname} PUBLIC -DGTEST_HAS_POSIX_RE=0 -DGTEST_HAS_CLONE=0 -DGTEST_HAS_EXCEPTIONS=0 -DGTEST_HAS_TR1_TUPLE=0 -DGTEST_HAS_STREAM_REDIRECTION=0 -DGTEST_HAS_RTTI=0)
-        target_compile_definitions(${targetname} PUBLIC -DGTEST_OS_NONE=1)
-        
-        target_link_options(${targetname} PUBLIC -T ${CMAKE_CURRENT_SOURCE_DIR}/port/${LINKER_SCRIPT})
+        target_link_options(${targetname} PUBLIC -T ${LINKER_SCRIPT})
     else()
         gtest_discover_tests(${targetname})
     endif()
