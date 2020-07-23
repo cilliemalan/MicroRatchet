@@ -112,6 +112,10 @@ typedef struct SCB_s
     volatile uint32_t ICSR;
     volatile uint32_t VTOR;
     volatile uint32_t AIRCR;
+    volatile uint32_t SCR;
+    volatile uint32_t CCR;
+    volatile uint8_t  SHP[12U];
+    volatile uint32_t SHCSR;
 } SCB_t;
 
 #define SCB_BASE 0xE000E000
@@ -128,7 +132,7 @@ typedef struct SCB_s
     do                                                    \
     {                                                     \
         __DSB();                                          \
-        SCB->AIRCR = (uint32_t)((0x5FAUL << 16) |         \
+        SCB->AIRCR = (uint32_t)((0x5FA << 16) |           \
                                 (SCB->AIRCR & (7 << 8)) | \
                                 (1 << 2));                \
         __DSB();                                          \
@@ -137,6 +141,16 @@ typedef struct SCB_s
     } while (0);
 
 #endif
+
+#define Raise_Fault()            \
+    do                           \
+    {                            \
+        __DSB();                 \
+        SCB->SHCSR |= (1 << 12); \
+        __DSB();                 \
+        for (;;)                 \
+            __NOP();             \
+    } while (0)
 
 static void system_init_device()
 {
@@ -459,7 +473,8 @@ int _getpid(void)
 
 int _kill(int pid, int sig)
 {
-    // TODO: cause a fault
+    Raise_Fault();
+    
     errno = EINVAL;
     return -1;
 }
