@@ -67,6 +67,8 @@
 
 #else
 
+#warning Unrecognized compiler
+
 static inline size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b, size_t c)
 {
 	size_t r = *a;

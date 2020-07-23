@@ -247,6 +247,6 @@ extern "C" mr_result mr_rng_seed(uint8_t* output, uint32_t sz)
 		}
 	}
 
-	return 0;
+	return MR_E_SUCCESS;
 #endif
 }

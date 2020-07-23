@@ -240,7 +240,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 
 		// allocate space for the message and its data
 		uint8_t* buffer;
-		_C(mr_allocate(ctx, sizeof(action) + space_available, &buffer));
+		_C(mr_allocate(ctx, sizeof(action) + space_available, (void**)&buffer));
 		newact = (action*)buffer;
 		mr_memzero(newact, sizeof(action));
 		newact->data = buffer + sizeof(action);
@@ -269,7 +269,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 
 		// allocate space for the action and arguments
 		uint8_t* buffer;
-		_C(mr_allocate(ctx, sizeof(action) + spaceavailable, &buffer));
+		_C(mr_allocate(ctx, sizeof(action) + spaceavailable, (void**)&buffer));
 		newact = (action*)buffer;
 		mr_memzero(newact, sizeof(action));
 		newact->data = buffer + sizeof(action);
@@ -285,7 +285,7 @@ static mr_result hl_action_add(mr_ctx _ctx, int naction, const uint8_t* data, ui
 	else if (naction == HL_ACTION_NONE || naction == HL_ACTION_TERMINATE || naction == HL_ACTION_INITIALIZE)
 	{
 		// just allocate the action
-		_C(mr_allocate(ctx, sizeof(action), &newact));
+		_C(mr_allocate(ctx, sizeof(action), (void**)&newact));
 		mr_memzero(newact, sizeof(action));
 	}
 	else
@@ -385,7 +385,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 	// create hl structure
 	uint8_t* buffer;
 	hlctx* hl;
-	_C(mr_allocate(ctx, sizeof(hlctx) + sizeof(mr_hl_config), &buffer));
+	_C(mr_allocate(ctx, sizeof(hlctx) + sizeof(mr_hl_config), (void**)&buffer));
 	mr_memzero(buffer, sizeof(hlctx));
 	hl = (hlctx*)buffer;
 
@@ -434,7 +434,7 @@ mr_result mr_hl_mainloop(mr_ctx _ctx, const mr_hl_config* config)
 						{
 							mr_free(ctx, hl->initialize_buffer);
 						}
-						result = mr_allocate(ctx, 256, &hl->initialize_buffer);
+						result = mr_allocate(ctx, 256, (void**)&hl->initialize_buffer);
 						if (result == MR_E_SUCCESS)
 						{
 							result = mr_ctx_initiate_initialization(ctx, hl->initialize_buffer, 256, true);

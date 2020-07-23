@@ -512,7 +512,7 @@ mr_result mr_ctx_state_load(mr_ctx _ctx, const uint8_t* ptr, uint32_t space, uin
 	for (uint32_t i = 0; i < numRatchets; i++)
 	{
 		_mr_ratchet_state* r;
-		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), &r));
+		_C(mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&r));
 		mr_memzero(r, sizeof(_mr_ratchet_state));
 
 		if (i == 0)

@@ -73,6 +73,7 @@ static mr_result verifymac(_mr_ctx* ctx, const uint8_t* data, uint32_t datasize,
 	TRACEDATA("verify mac key        ", key, keysize);
 	TRACEDATA("verify mac computed   ", computedmac, MAC_SIZE);
 	TRACEDATA("verify mac compareto  ", data + datasize - MAC_SIZE, MAC_SIZE);
+	// TODO: define our own memcmp
 	*result = memcmp(computedmac, data + datasize - MAC_SIZE, MAC_SIZE) == 0;
 	mr_poly_destroy(mac);
 	_C(rr);
@@ -508,8 +509,8 @@ static mr_result receive_initialization_response(_mr_ctx* ctx,
 
 	_mr_ratchet_state* ratchet0 = 0;
 	_mr_ratchet_state* ratchet1 = 0;
-	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), &ratchet0));
-	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), &ratchet1));
+	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&ratchet0));
+	_R(result, mr_allocate(ctx, sizeof(_mr_ratchet_state), (void**)&ratchet1));
 
 	_R(result, ratchet_initialize_client(ctx, 
 		ratchet0, ratchet1,
