@@ -67,12 +67,12 @@ if (ARM)
         # generate map files
         set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -Wl,-Map=<TARGET>.map")
         set(CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE} -Wl,-Map=<TARGET>.map")
-
     endif(EMBEDDED)
 endif(ARM)
 
-# c++ 14
-set(CMAKE_CXX_STANDARD 14)
+# c++17 and C11
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
 
 # apply compile options
 set(CMAKE_CXX_FLAGS "${CXXFLAGS} ${CFLAGS}")
