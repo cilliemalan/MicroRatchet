@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "internal.h"
 
-#include <Windows.h>
-
 // the amount of time to wait for action during initialization
 #define INITIALIZE_TIMEOUT 30000
 
