@@ -13,6 +13,38 @@ static inline bool keyallzeroes(const uint8_t k[KEY_SIZE])
 	return true;
 }
 
+static void ratchet_trim(_mr_ctx* ctx, uint32_t max)
+{
+	if (max <= 0)
+	{
+		max = DEFAULT_MAX_RATCHETS;
+	}
+
+	uint32_t num = 0;
+	_mr_ratchet_state *ratchet = ctx->ratchet;
+	while (ratchet)
+	{
+		num++;
+		
+		if (num >= max)
+		{
+			_mr_ratchet_state* trim = ratchet->next;
+			ratchet->next = 0;
+			while (trim)
+			{
+				_mr_ratchet_state* next = trim->next;
+				if (trim->ecdhkey)
+				{
+					mr_ecdh_destroy(trim->ecdhkey);
+				}
+				mr_free(ctx, trim);
+				trim = next;
+			}
+		}
+		ratchet = ratchet->next;
+	}
+}
+
 void ratchet_getsecondtolast(mr_ctx mr_ctx, _mr_ratchet_state** ratchet)
 {
 	_mr_ctx* ctx = (_mr_ctx*)mr_ctx;
@@ -59,6 +91,8 @@ void ratchet_add(mr_ctx mr_ctx, _mr_ratchet_state* ratchet)
 		// tack onto the front
 		ratchet->next = ctx->ratchet;
 		ctx->ratchet = ratchet;
+
+		ratchet_trim(ctx, ctx->config.max_ratchets);
 	}
 }
 

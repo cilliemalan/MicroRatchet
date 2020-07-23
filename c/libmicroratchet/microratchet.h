@@ -39,6 +39,8 @@ typedef struct t_mr_config {
 
 	// the application key. Must match the key for the server.
 	uint8_t applicationKey[32];
+
+	int max_ratchets;
 } mr_config;
 
 // high-level configuration

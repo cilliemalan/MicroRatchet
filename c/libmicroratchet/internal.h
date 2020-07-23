@@ -110,6 +110,7 @@ static inline size_t _mr_nonatomic_compare_exchange(volatile size_t* a, size_t b
 #define INIT_RES_MSG_SIZE (INITIALIZATION_NONCE_SIZE*2 + ECNUM_SIZE*4 + SIGNATURE_SIZE + MAC_SIZE)
 #define MIN_MESSAGE_SIZE (OVERHEAD_WITHOUT_ECDH + MIN_PAYLOAD_SIZE)
 #define MIN_MESSAGE_SIZE_WITH_ECDH (OVERHEAD_WITH_ECDH + MIN_PAYLOAD_SIZE)
+#define DEFAULT_MAX_RATCHETS 3
 
 #ifdef _C
 #undef _C
