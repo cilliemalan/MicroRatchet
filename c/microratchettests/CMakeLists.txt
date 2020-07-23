@@ -102,6 +102,21 @@ target_link_libraries(microratchettescrypto
     gtest
     gmock
     gtest_main)
+
+if (TEST_CHECK_MEMORY)
+    target_compile_definitions(microratchettestswolfssl PUBLIC DEBUGMEM)
+    target_compile_definitions(microratchettestmbed PUBLIC DEBUGMEM)
+    target_compile_definitions(microratchettestopenssl PUBLIC DEBUGMEM)
+    target_compile_definitions(microratchettescrypto PUBLIC DEBUGMEM)
+endif()
+
+if (TEST_TRACE_MEMORY)
+    target_compile_definitions(microratchettestswolfssl PUBLIC TRACEMEM)
+    target_compile_definitions(microratchettestmbed PUBLIC TRACEMEM)
+    target_compile_definitions(microratchettestopenssl PUBLIC TRACEMEM)
+    target_compile_definitions(microratchettescrypto PUBLIC TRACEMEM)
+endif()
+
 	
 target_compile_definitions(microratchettestswolfssl PUBLIC WOLFSSL)
 target_compile_definitions(microratchettestmbed PUBLIC MBEDCRYPTO)

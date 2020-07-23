@@ -8,7 +8,7 @@
 #include <atomic>
 
 // allocation functions for mr
-#ifdef DEBUGMEM
+#if defined (DEBUGMEM) || defined(TRACEMEM)
 struct allocation_info
 {
 	size_t size;
@@ -36,7 +36,7 @@ mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 			*pointer = new uint8_t[amountrequested];
 			if (*pointer)
 			{
-#ifdef DEBUGMEM
+#if defined (DEBUGMEM) || defined(TRACEMEM)
 				++allocation_num;
 				memory[*pointer] = { (size_t)amountrequested, allocation_num.load() };
 				allocated_memory += amountrequested;
@@ -44,8 +44,9 @@ mr_result mr_allocate(mr_ctx ctx, int amountrequested, void** pointer)
 				{
 					max_allocated_memory = allocated_memory;
 				}
-#ifdef TRACEMEM
-				printf("+++ 0x%" PRIxPTR " [%8" PRId32 "] -> [%8" PRIdPTR "]  #%" PRIdPTR "\n", reinterpret_cast<size_t>(*pointer), amountrequested, allocated_memory, allocation_num.load());
+#if defined(TRACEMEM)
+				auto n = allocation_num.load();
+				printf("+++ 0x%" PRIxPTR " [%8" PRId32 "] -> [%8" PRIdPTR "]  #%" PRIdPTR "\n", reinterpret_cast<size_t>(*pointer), amountrequested, allocated_memory, n);
 #endif
 #endif
 				return MR_E_SUCCESS;
@@ -66,7 +67,8 @@ void mr_free(mr_ctx ctx, void* pointer)
 {
 	if (pointer)
 	{
-#ifdef DEBUGMEM
+#if defined (DEBUGMEM) || defined(TRACEMEM)
+
 		auto szptr = memory.find(pointer);
 
 		bool valid = szptr != memory.end();
@@ -77,7 +79,9 @@ void mr_free(mr_ctx ctx, void* pointer)
 			memory.erase(szptr);
 		}
 
+#if defined (DEBUGMEM)
 		ASSERT_TRUE(valid);
+#endif
 
 #if defined(TRACEMEM)
 		if (!valid)
