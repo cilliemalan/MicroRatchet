@@ -24,6 +24,11 @@ mr_ecdsa_ctx mr_ecdsa_create(mr_ctx mr_ctx)
 	ctx->key = (ecc_key){ 0 };
 	mbedtls_entropy_init(&ctx->entropy);
 	mbedtls_ctr_drbg_init(&ctx->ctr_drbg);
+
+#ifdef MR_EMBEDDED
+	_R(r, mbedtls_entropy_add_source(&ctx->entropy, mr_mbedtls_entropy_f_source, 0, 32, MBEDTLS_ENTROPY_SOURCE_STRONG));
+#endif
+
 	r = mbedtls_ctr_drbg_seed(&ctx->ctr_drbg, mbedtls_entropy_func, &ctx->entropy, 0, 0);
 	if (r)
 	{

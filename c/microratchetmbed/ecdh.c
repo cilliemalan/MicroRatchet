@@ -14,6 +14,8 @@ typedef struct {
 
 mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 {
+	FAILIF(!mr_ctx, 0, "mr_ctx must be provided");
+
 	_mr_ecdh_ctx* ctx;
 	int r = mr_allocate(mr_ctx, sizeof(_mr_ecdh_ctx), (void**)&ctx);
 	if (r != MR_E_SUCCESS) return 0;
@@ -21,6 +23,11 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 	ctx->key = (ecc_key){ 0 };
 	mbedtls_entropy_init(&ctx->entropy);
 	mbedtls_ctr_drbg_init(&ctx->ctr_drbg);
+
+#ifdef MR_EMBEDDED
+	_R(r, mbedtls_entropy_add_source(&ctx->entropy, mr_mbedtls_entropy_f_source, 0, 32, MBEDTLS_ENTROPY_SOURCE_STRONG));
+#endif
+
 	r = mbedtls_ctr_drbg_seed(&ctx->ctr_drbg, mbedtls_entropy_func, &ctx->entropy, 0, 0);
 	if (r)
 	{
@@ -34,6 +41,8 @@ mr_ecdh_ctx mr_ecdh_create(mr_ctx mr_ctx)
 
 mr_result mr_ecdh_generate(mr_ecdh_ctx _ctx, uint8_t* publickey, uint32_t publickeyspaceavail)
 {
+	FAILIF(!_ctx, MR_E_INVALIDARG, "ctx must be provided");
+
 	_mr_ecdh_ctx* ctx = _ctx;
 
 	mr_result r = ecc_generate(&ctx->key, publickey, publickeyspaceavail, mbedtls_ctr_drbg_random, &ctx->ctr_drbg);

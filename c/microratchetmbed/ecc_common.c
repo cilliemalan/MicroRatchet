@@ -712,6 +712,11 @@ uint32_t ecc_load(ecc_key* key, const uint8_t* data, uint32_t spaceavail)
 	mbedtls_ctr_drbg_context ctr_drbg;
 	mbedtls_entropy_init(&entropy);
 	mbedtls_ctr_drbg_init(&ctr_drbg);
+	
+#ifdef MR_EMBEDDED
+	_R(r, mbedtls_entropy_add_source(&entropy, mr_mbedtls_entropy_f_source, 0, 32, MBEDTLS_ENTROPY_SOURCE_STRONG));
+#endif
+
 	r = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, 0, 0);
 	if (!r)
 	{

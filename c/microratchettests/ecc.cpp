@@ -27,6 +27,11 @@ TEST(Ecc, DecompressGeneral) {
 		mbedtls_ctr_drbg_context drbg;
 		mbedtls_entropy_init(&entropy);
 		mbedtls_ctr_drbg_init(&drbg);
+		
+#ifdef MR_EMBEDDED
+		mbedtls_entropy_add_source(&ctx->entropy, mr_mbedtls_entropy_f_source, 0, 32, MBEDTLS_ENTROPY_SOURCE_STRONG);
+#endif
+
 		ASSERT_EQ(0, mbedtls_ctr_drbg_seed(&drbg, mbedtls_entropy_func, &entropy, 0, 0));
 
 		mbedtls_mpi d;
