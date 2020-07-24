@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 ////
 // the start up file includes the very first stuff that
@@ -34,8 +35,9 @@ extern "C"
     extern void (*__init_array_end[])(void);
 
     void __reset_irq() __attribute__((naked, noreturn, section(".startup")));
+    void __libc_init_array();
 
-    int main();
+    int main(int argc, const char** argv);
 }
 
 // forwards
@@ -75,16 +77,15 @@ void __reset_irq()
     // basic system initalization
     system_init();
 
-    // initialize standard module initializers.
-    // Traditionally __libc_init_array() does this,
-    // but we might as well.
-    for (auto fn = __preinit_array_start; fn < __init_array_end; fn++)
-    {
-        (*fn)();
-    }
+    // call module initializers.
+    __libc_init_array();
 
     // into the main function
-    main();
+    static const char* args[] = {
+        "microratchettests",
+        "--gtest_color=yes",
+    };
+    main(2, args);
 
     // main is not allowed to exit.
     for (;;)
