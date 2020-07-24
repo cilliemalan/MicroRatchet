@@ -268,7 +268,7 @@ void performanceTest(const uint8_t* key, uint32_t keysize)
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	auto seconds = time_passed.count();
-	printf("Did %d initializations in %.0fms (%.0f per second)\n", numinits, seconds * 1000.0, numinits / seconds);
+	printf("Did %d initializations in %dms (%d per second)\n", numinits, (uint32_t)(seconds * 1000.0), (uint32_t)(numinits / seconds));
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 
@@ -280,7 +280,7 @@ void performanceTest(const uint8_t* key, uint32_t keysize)
 	t2 = std::chrono::high_resolution_clock::now();
 	time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	seconds = time_passed.count();
-	printf("Did %d encryptions in %.0fms (%.0f per second)\n", numcrypts, seconds * 1000.0, numcrypts / seconds);
+	printf("Did %d encryptions in %dms (%d per second)\n", numcrypts, (uint32_t)(seconds * 1000.0), (uint32_t)(numinits / seconds));
 	EXPECT_EQ(MR_E_SUCCESS, result);
 
 	mr_aes_destroy(aes);

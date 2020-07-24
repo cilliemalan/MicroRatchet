@@ -158,5 +158,5 @@ TEST(Sha, PerformanceTest) {
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto time_passed = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 	auto seconds = time_passed.count();
-	printf("Did %d hashes in %.0fms (%.0f per second)\n", numshas, seconds * 1000.0, numshas / seconds);
+	printf("Did %d hashes in %dms (%d per second)\n", numshas, (uint32_t)(seconds * 1000.0), (uint32_t)(numshas / seconds));
 }

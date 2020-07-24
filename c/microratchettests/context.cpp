@@ -804,5 +804,5 @@ TEST(Context, InitializationPerformanceTest) {
 		if (seconds > 1) break;
 	}
 
-	printf("Ran %i initializations in %.3f seconds\n", i, seconds);
+	printf("Ran %i initializations in %d.%03d seconds\n", i, (uint32_t)seconds, (uint32_t)(seconds * 1000));
 }
