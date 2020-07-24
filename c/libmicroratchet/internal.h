@@ -65,8 +65,7 @@
 #define ATOMIC_INCREMENT(a) __atomic_add_fetch((ptrdiff_t*)&(a), 1, __ATOMIC_ACQ_REL)
 #define ATOMIC_DECREMENT(a) __atomic_sub_fetch((ptrdiff_t*)&(a), 1, __ATOMIC_ACQ_REL)
 #define STATIC_ASSERT(e,r) _Static_assert(e, r)
-//#define MR_ALIGN(n) __attribute__((aligned(n))
-#define MR_ALIGN(n)
+#define MR_ALIGN(n) __attribute__((aligned(n)))
 #define MR_HTON __builtin_bswap32
 
 #else
