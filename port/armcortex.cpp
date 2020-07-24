@@ -42,7 +42,7 @@ extern "C"
 
 // forwards
 static void system_init();
-extern isr_handler interrupt_vector[];
+extern isr_handler interrupt_vector[128] __attribute__((aligned(128)));
 
 // the base interrupt vector run out of startup. The first word is the
 // initial value of the stack pointer and the second word is the
@@ -237,7 +237,8 @@ static void system_init_device()
 static void system_init()
 {
     // set the vector table to the correct one
-    SCB->VTOR = reinterpret_cast<uint32_t>(&interrupt_vector);
+    uint32_t vtor = reinterpret_cast<uint32_t>(&interrupt_vector[0]);
+    SCB->VTOR = vtor;
 
     // device specific initialization
     system_init_device();
