@@ -241,9 +241,13 @@ TEST(Aes, ReferenceTest12) {
 	processTest(key, sizeof(key), input, sizeof(input), expected, sizeof(expected));
 }
 
-
+#ifdef MR_EMBEDDED
+static constexpr uint32_t numinits = 10000;
+static constexpr uint32_t numcrypts = 10000;
+#else
 static constexpr uint32_t numinits = 10000000;
 static constexpr uint32_t numcrypts = 10000000;
+#endif
 void performanceTest(const uint8_t* key, uint32_t keysize)
 {
 	MR_ALIGN(16)

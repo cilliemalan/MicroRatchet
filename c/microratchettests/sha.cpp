@@ -131,7 +131,12 @@ TEST(Sha, ReferenceTestLong) {
 	testsha(input, output);
 }
 
+
+#ifdef MR_EMBEDDED
 static constexpr uint32_t numshas = 1000000;
+#else
+static constexpr uint32_t numshas = 10000;
+#endif
 TEST(Sha, PerformanceTest) {
 	uint8_t data[32]{
 	   0x3B, 0x7F, 0xFF, 0xD4, 0xFC, 0x0D, 0xCB, 0xD5,
