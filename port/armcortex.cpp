@@ -364,6 +364,7 @@ isr_handler interrupt_vector[128]
 //#include <sys/time.h>
 //#include <sys/times.h>
 #include <cstddef>
+#include <errno.h>
 
 #ifdef mkdir
 #undef mkdir
@@ -376,9 +377,15 @@ extern "C"
 #undef errno
 #endif
     extern int errno;
-    char* __env[1] = { 0 };
+    const char * ___env[] = {
+        "term=xterm",
+        nullptr
+    };
+    char **__env = const_cast<char**>(___env);
     char** environ = __env;
 
+    char * getenv(const char *name);
+    char * _getenv(const char *name);
     int __io_putchar(int ch);
     int __io_getchar(void);
     void _putchar(char character);
@@ -389,6 +396,7 @@ extern "C"
     int _write(int file, char* ptr, int len);
     int _close(int file);
     int _fstat(int file, struct stat* st);
+    int _gettimeofday (struct timeval * tp, void * tzvp);
     int _isatty(int file);
     int _lseek(int file, int ptr, int dir);
     int _open(char* path, int flags, ...);
@@ -402,9 +410,19 @@ extern "C"
     int _execve(char* name, char** argv, char** env);
     int mkdir(const char* name, mode_t mode);
     int _mkdir(const char* name, mode_t mode);
-    int _gettimeofday();
     caddr_t _sbrk(int incr);
     void __cxa_pure_virtual();
+    void mr_write_uart(const char* msg, size_t amt);
+}
+
+char * getenv(const char *name)
+{
+    return _getenv_r(_REENT, name);
+}
+
+char * _getenv(const char *name)
+{
+    return _getenv_r(_REENT, name);
 }
 
 int __io_putchar(int ch)
@@ -517,6 +535,12 @@ int _fstat(int file, struct stat* st)
     return 0;
 }
 
+int _gettimeofday(struct timeval *tp, void *tzvp)
+{
+
+    return 0;
+}
+
 int _isatty(int file)
 {
     return 1;
@@ -591,11 +615,6 @@ int _mkdir(const char* name, mode_t mode)
     return -1;
 }
 
-int _gettimeofday()
-{
-    return -1;
-}
-
 extern char __heap_start__;
 extern char __heap_end__;
 char* heap_ptr = 0;
@@ -634,4 +653,24 @@ namespace __gnu_cxx
     }
 
 } // namespace __gnu_cxx
+
+#include <chrono>
+namespace std::chrono
+{
+    inline namespace _V2
+    {
+        system_clock::time_point system_clock::now() noexcept
+        {
+            auto ns = chrono::nanoseconds((uint64_t)uwTick * 1000000ULL);
+            system_clock::time_point time(ns);
+            return time;
+        }
+    }
+}
+
 #endif
+
+void mr_write_uart(const char* msg, size_t amt)
+{
+    _write(0, const_cast<char*>(msg), static_cast<int>(amt));
+}
