@@ -153,6 +153,17 @@ typedef struct SCB_s
             __NOP();             \
     } while (0)
 
+#define WAITFOR(x)                          \
+    do                                      \
+    {                                       \
+        uint32_t scs = SystemCoreClock / 8; \
+        for (uint32_t i = 0; i < scs; i++)  \
+        {                                   \
+            if (x)                          \
+                break;                      \
+        }                                   \
+    } while (0);
+
 static void system_init_device()
 {
 #ifdef STM32L4xx
@@ -272,6 +283,7 @@ static void fault_handler()
 {
     // the fault handler is called for
     // several fault conditions. 
+	static const char msg[] = " \033[1;5;91m[ ENCOUNTERED FAULT ]\033[0m";
 
     // here we disable IRQs and reset using
     // the hardware watchdog
