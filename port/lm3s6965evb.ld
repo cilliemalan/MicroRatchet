@@ -4,11 +4,11 @@ ENTRY(__reset_irq)
 MEMORY
 {
     RAM (xrw)     : ORIGIN = 0x20000000, LENGTH = 256K
-    FLASH (rx)     : ORIGIN = 0x00000000, LENGTH = 800K
+    FLASH (rx)     : ORIGIN = 0x00000000, LENGTH = 800K /* this will only work in qemu */
 }
 
 _estack = ORIGIN(RAM) + LENGTH(RAM);
-_stack_reserve = 1k;
+_stack_reserve = 16k;
 
 /* Define output sections */
 SECTIONS
