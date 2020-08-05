@@ -36,7 +36,7 @@ namespace MicroRatchet
         {
         }
 
-        private byte[] FixIv(ArraySegment<byte> iv)
+        private static byte[] FixIv(ArraySegment<byte> iv)
         {
             if (iv.Array == null) throw new ArgumentNullException(nameof(iv));
 

@@ -164,6 +164,8 @@ namespace MicroRatchet
                 (LocalEcdhRatchetStep1 as IDisposable)?.Dispose();
                 LocalEcdhRatchetStep1 = null;
             }
+
+            base.Dispose(disposing);
         }
     }
 }
